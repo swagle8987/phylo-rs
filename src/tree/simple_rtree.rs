@@ -7,12 +7,12 @@ use crate::iter::edge_iter::*;
 pub type EdgeWeight = f64;
 
 pub trait SimpleRTree {
-    fn get_root(&self)->NodeID;
-    fn get_nodes(&self)->HashMap<NodeID, NodeType>;
-    fn get_children(&self, node_id: &NodeID)->HashMap<NodeID, NodeType>;
+    fn get_root(&self)->&NodeID;
+    fn get_nodes(&self)->&HashMap<NodeID, NodeType>;
+    fn get_children(&self, node_id: &NodeID)->Option<&HashSet<(Option<EdgeWeight>, NodeID)>>;
     fn get_leaves(&self, node_id: &NodeID)->HashSet<NodeID>;
-    fn get_descendents(&self, node_id: &NodeID)->Vec<NodeID>;
-    fn get_subtree(&self, node_id: &NodeID)->Box<dyn Node>;
+    fn get_descendents(&self, node_id: &NodeID)->&Vec<NodeID>;
+    fn get_subtree(&self, node_id: &NodeID)->&Box<dyn Node>;
     fn get_mrca(&self, node_id_list: Vec<&NodeID>)->&NodeID;
     fn is_leaf(&self, node_id: &NodeID)->bool;
     
