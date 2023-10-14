@@ -2,7 +2,7 @@ pub mod simple_rtree;
 
 use std::{collections::{HashMap, HashSet}, fmt::Display};
 
-use crate::node::simple_rt_node::*;
+use crate::node::*;
 use crate::tree::simple_rtree::*;
 
 pub struct SimpleRTree{
