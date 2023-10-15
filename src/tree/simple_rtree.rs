@@ -20,11 +20,8 @@ pub trait SimpleRTree {
     /// Returns all leaf node ids
     fn get_leaves(&self, node_id: &NodeID)->HashSet<NodeID>;
     
-    /// Returns all descendant nodes of give node
-    fn get_descendents(&self, node_id: &NodeID)->&Vec<NodeID>;
-    
     /// Returns full subtree rooted at given node
-    fn get_subtree(&self, node_id: &NodeID)->&Box<dyn Node>;
+    fn get_subtree(&self, node_id: &NodeID)->Box<dyn SimpleRTree>;
     
     /// Returns most recent common ancestor of give node set
     fn get_mrca(&self, node_id_list: Vec<&NodeID>)->&NodeID;
@@ -37,9 +34,6 @@ pub trait SimpleRTree {
     
     /// Returns subtree starting at given node, while corresponding nodes from self.
     fn extract_subtree(&mut self, node_id: &NodeID)-> Box<dyn SimpleRTree>;
-    
-    /// Returns subtree starting at given node, without removing corresponding nodes from self 
-    fn prune_subtree(&self, node_id: &NodeID)-> Box<dyn SimpleRTree>;
 
     ///Returns an iterator that iterates over the nodes in Pre-order
     fn iter_node_pre(&self, start_node_id: &NodeID)->PreOrdNodes;
