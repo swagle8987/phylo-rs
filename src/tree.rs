@@ -1,6 +1,6 @@
 pub mod simple_rtree;
 
-use std::{collections::{HashMap, HashSet}};
+use std::collections::{HashMap, HashSet};
 
 use crate::node::*;
 use crate::tree::simple_rtree::*;
@@ -155,7 +155,8 @@ impl SimpleRTree for RootedPhyloTree{
     }
 
     fn get_bipartition(&self, edge: (&NodeID, &NodeID))->(HashSet<NodeID>, HashSet<NodeID>){
-        (self.get_cluster(edge.0), self.get_cluster(edge.1))
+        let c2 = self.get_cluster(edge.1);
+        (self.leaves.difference(&c2).map(|x| x.clone()).collect(), c2)
     }
 
     fn get_cluster(&self, node_id: &NodeID)-> HashSet<NodeID>{
