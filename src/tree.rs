@@ -154,8 +154,14 @@ impl SimpleRTree for RootedPhyloTree{
         todo!()
     }
 
-    fn get_bipartition(&self, edge: (&NodeID, &NodeID)){
-        todo!()
+    fn get_bipartition(&self, edge: (&NodeID, &NodeID))->(HashSet<NodeID>, HashSet<NodeID>){
+        (self.get_cluster(edge.0), self.get_cluster(edge.1))
+    }
+
+    fn get_cluster(&self, node_id: &NodeID)-> HashSet<NodeID>{
+        let mut leaves: Vec<NodeID> = Vec::new();
+        self.leaves_of_node(node_id, &mut leaves);
+        HashSet::from_iter(leaves)
     }
 
 }

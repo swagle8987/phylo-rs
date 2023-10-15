@@ -63,5 +63,8 @@ pub trait SimpleRTree {
     fn distance_from_root(&self, weighted: bool)->f64;
 
     /// Returns bipartition induced by edge
-    fn get_bipartition(&self, edge: (&NodeID, &NodeID));
+    fn get_bipartition(&self, edge: (&NodeID, &NodeID))->(HashSet<NodeID>, HashSet<NodeID>);
+
+    /// Returns cluster of node
+    fn get_cluster(&self, node_id: &NodeID)-> HashSet<NodeID>;
 }
