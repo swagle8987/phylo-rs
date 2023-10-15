@@ -105,7 +105,7 @@ impl SimpleRTree for RootedPhyloTree{
         todo!()
     }
 
-    fn phylogenetic_distance_matrix(&self)->Vec<Vec<EdgeWeight>>{
+    fn leaf_distance_matrix(&self, weighted: bool)->Vec<Vec<EdgeWeight>>{
         todo!()
     }
 
