@@ -6,6 +6,12 @@ use crate::node::*;
 use crate::tree::simple_rtree::*;
 use crate::iter::{node_iter::*, edge_iter::*};
 
+pub struct UnrootedPhyloTree{
+    nodes: HashMap<NodeID, NodeType>,
+    neighbours: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>>,
+    leaves: HashSet<NodeID>,
+}
+
 pub struct RootedPhyloTree{
     root: NodeID,
     nodes: HashMap<NodeID, NodeType>,
