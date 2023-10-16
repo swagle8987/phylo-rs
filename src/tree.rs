@@ -9,7 +9,7 @@ use crate::iter::{node_iter::*, edge_iter::*};
 pub struct UnrootedPhyloTree{
     nodes: HashMap<NodeID, NodeType>,
     neighbours: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>>,
-    leaves: HashSet<NodeID>,
+    leaves: HashMap<NodeID, String>,
 }
 
 pub struct RootedPhyloTree{
@@ -17,7 +17,7 @@ pub struct RootedPhyloTree{
     nodes: HashMap<NodeID, NodeType>,
     children: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>>,
     parents: HashMap<NodeID, Option<NodeID>>,
-    leaves: HashSet<NodeID>,
+    leaves: HashMap<NodeID, String>,
 }
 
 impl RootedPhyloTree{
@@ -27,7 +27,7 @@ impl RootedPhyloTree{
             nodes: HashMap::from([(0, false)]),
             children: HashMap::new(),
             parents: HashMap::from([(0, None)]),
-            leaves: HashSet::new()
+            leaves: HashMap::new()
         }
     }
 
@@ -71,13 +71,13 @@ impl SimpleRTree for RootedPhyloTree{
         let mut nodes: HashMap<NodeID, NodeType>= HashMap::new();
         let mut children: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>> = HashMap::new();
         let mut parents: HashMap<NodeID, Option<NodeID>> = HashMap::new();
-        let mut leaves: HashSet<NodeID> = HashSet::new();
+        let mut leaves: HashMap<NodeID, String> = HashMap::new();
         for decsendant_node_id in self.iter_node_pre(node_id){
             nodes.insert(decsendant_node_id.clone(), self.nodes.get(&decsendant_node_id).expect("Invalid NodeID!").clone());
             children.insert(decsendant_node_id.clone(), self.children.get(&decsendant_node_id).expect("Invalid NodeID!").clone());
             parents.insert(decsendant_node_id.clone(), self.parents.get(&decsendant_node_id).expect("Invalid NodeID!").clone());
             if self.is_leaf(&decsendant_node_id){
-                leaves.insert(decsendant_node_id.clone());
+                leaves.insert(decsendant_node_id.clone(), self.leaves.get(&decsendant_node_id).cloned().unwrap());
             }
         }
         Box::new(
@@ -108,13 +108,13 @@ impl SimpleRTree for RootedPhyloTree{
         let mut nodes: HashMap<NodeID, NodeType>= HashMap::new();
         let mut children: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>> = HashMap::new();
         let mut parents: HashMap<NodeID, Option<NodeID>> = HashMap::new();
-        let mut leaves: HashSet<NodeID> = HashSet::new();
+        let mut leaves: HashMap<NodeID, String> = HashMap::new();
         for decsendant_node_id in self.iter_node_pre(node_id){
             nodes.insert(decsendant_node_id.clone(), self.nodes.remove(&decsendant_node_id).expect("Invalid NodeID!").clone());
             children.insert(decsendant_node_id.clone(), self.children.remove(&decsendant_node_id).expect("Invalid NodeID!").clone());
             parents.insert(decsendant_node_id.clone(), self.parents.remove(&decsendant_node_id).expect("Invalid NodeID!").clone());
-            match self.leaves.take(&decsendant_node_id){
-                Some(leaf_id) => {leaves.insert(leaf_id.clone());},
+            match self.leaves.remove(&decsendant_node_id){
+                Some(taxa_id) => {leaves.insert(decsendant_node_id.clone(), taxa_id);},
                 None => {},
             }
         }
@@ -167,7 +167,7 @@ impl SimpleRTree for RootedPhyloTree{
 
     fn get_bipartition(&self, edge: (&NodeID, &NodeID))->(HashSet<NodeID>, HashSet<NodeID>){
         let c2 = self.get_cluster(edge.1);
-        (self.leaves.difference(&c2).map(|x| x.clone()).collect(), c2)
+        (self.leaves.keys().map(|x| x.clone()).collect::<HashSet<NodeID>>().difference(&c2).map(|x| x.clone()).collect(), c2)
     }
 
     fn get_cluster(&self, node_id: &NodeID)-> HashSet<NodeID>{
