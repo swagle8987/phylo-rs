@@ -25,6 +25,11 @@ impl RootedPhyloTree{
         }
     }
 
+    pub fn from_newick(newick_string: String)->Self{
+        todo!()
+    }
+
+
     fn leaves_of_node(&self, node_id:&NodeID, leaves:&mut Vec<NodeID>){
         if self.get_children(node_id).expect("Invalid NodeID!").is_empty(){
             leaves.push(*node_id);
