@@ -87,6 +87,49 @@ impl RootedPhyloTree{
             self.leaves_of_node(child_node_id, leaves);
         }
     }
+
+    fn new_node(&mut self, children: Vec<(Option<EdgeWeight>, NodeID)>, parent:Option<NodeID>, leaf_id:Option<String>, parent_edge_weight: Option<EdgeWeight>){
+        let node_id = self.nodes.len();
+        match leaf_id {
+            Some(taxa_id) => {
+                self.leaves.insert(node_id.clone(), taxa_id);
+                self.nodes.insert(node_id.clone(), true);
+            }
+            None =>{
+                self.nodes.insert(node_id.clone(), false);
+            }
+        };
+        self.children.insert(node_id.clone(), children);
+        self.parents.insert(node_id.clone(), parent);
+        self.children.entry(node_id).or_default().push((parent_edge_weight, node_id));
+    }
+
+    pub fn add_child_to_node(&mut self, parent:NodeID, edge_weight: Option<EdgeWeight>){
+        self.new_node(Vec::new(), Some(parent), None, edge_weight);
+
+    }
+
+    pub fn add_leaf_to_node(&mut self, parent: NodeID, leaf_label: String, edge_weight: Option<EdgeWeight>){
+        self.new_node(Vec::new(), Some(parent), Some(leaf_label), edge_weight);
+    }
+
+    pub fn iter_node_ancestors_pre(&self, node_id:&NodeID)->Vec<NodeID>{
+        let mut node_iter: Vec<NodeID> = Vec::new();
+        let mut curr_node = node_id;
+        while self.parents.get(curr_node) != None {
+            match self.parents.get(curr_node).expect("Invalid NodeID!") {
+                Some(node) => {
+                    node_iter.push(node.clone());
+                    curr_node = node;
+                },
+                None => {
+                    node_iter.push(self.get_root().clone());
+                    break;
+                },
+            }
+        }
+        node_iter
+    }
 }
 
 impl SimpleRTree for RootedPhyloTree{
@@ -135,7 +178,7 @@ impl SimpleRTree for RootedPhyloTree{
         let root= node_id.clone();
         let mut nodes: HashMap<NodeID, NodeType>= HashMap::new();
         let mut children: HashMap<NodeID, HashSet<NodeID>> = HashMap::new();
-        let mut parents: HashMap<NodeID, Option<NodeID>> = HashMap::new();
+       let mut parents: HashMap<NodeID, Option<NodeID>> = HashMap::new();
         let mut leaves: HashMap<NodeID, String> = HashMap::new();
         for descendant_node_id in self.iter_node_pre(node_id){
             nodes.insert(descendant_node_id.clone(), self.nodes.get(&descendant_node_id).expect("Invalid NodeID!").clone());
@@ -157,8 +200,27 @@ impl SimpleRTree for RootedPhyloTree{
         )
     }
 
-    fn get_mrca(&self, node_id_list: Vec<&NodeID>)->&NodeID{
-        todo!()
+    fn get_mrca(&self, node_id_list: Vec<&NodeID>)->NodeID{
+        let ancestor_iter_vec: Vec<std::vec::IntoIter<NodeID>> = node_id_list.iter().map(|x| self.iter_node_ancestors_pre(x).into_iter()).collect();
+        let mut mrca: NodeID = 0;
+        for mut iterator in ancestor_iter_vec{
+            let temp: HashSet<NodeID> = HashSet::new();
+            match iterator.next(){
+                Some(x) => {
+                    match temp.contains(&x){
+                        true => {mrca = x.clone()},
+                        false => {
+                            match temp.len()==0{
+                                true => {},
+                                false => {return mrca}
+                            }
+                        }
+                    }
+                },
+                None => {}
+            }
+        }
+        mrca
     }
 
     fn is_leaf(&self, node_id: &NodeID)->bool{
@@ -221,7 +283,11 @@ impl SimpleRTree for RootedPhyloTree{
     }
 
     fn reroot_at_node(&mut self, node_id: &NodeID){
-        self.root = node_id.clone();
+        todo!()
+    }
+
+    fn reroot_at_edge(&mut self, edge: (&NodeID, &NodeID)) {
+        todo!()
     }
 
     fn insert_internal_node(&mut self, edge: (NodeID, NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>)){

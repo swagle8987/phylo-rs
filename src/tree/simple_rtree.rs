@@ -33,7 +33,7 @@ pub trait SimpleRTree {
     fn get_subtree(&self, node_id: &NodeID)->Box<dyn SimpleRTree>;
     
     /// Returns most recent common ancestor of give node set
-    fn get_mrca(&self, node_id_list: Vec<&NodeID>)->&NodeID;
+    fn get_mrca(&self, node_id_list: Vec<&NodeID>)->NodeID;
     
     /// Checks if the given node is a leaf node
     fn is_leaf(&self, node_id: &NodeID)->bool;
@@ -64,6 +64,9 @@ pub trait SimpleRTree {
 
     /// Rerootes tree at given node.
     fn reroot_at_node(&mut self, node_id: &NodeID);
+    
+    /// Rerootes tree at edge.
+    fn reroot_at_edge(&mut self, edge: (&NodeID, &NodeID));
 
     /// Inserts node in the middle of edge given by pair of node ids
     fn insert_internal_node(&mut self, edge: (NodeID, NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>));
