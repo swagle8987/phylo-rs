@@ -2,7 +2,7 @@ pub mod simple_rtree;
 
 use std::collections::{HashMap, HashSet};
 
-use crate::node::*;
+use crate::{node::*, taxa};
 use crate::tree::simple_rtree::*;
 use crate::iter::{node_iter::*, edge_iter::*};
 
@@ -12,13 +12,16 @@ pub struct UnrootedPhyloTree{
     leaves: HashMap<NodeID, String>,
 }
 
+#[derive(Debug)]
 pub struct RootedPhyloTree{
     root: NodeID,
     nodes: HashMap<NodeID, NodeType>,
-    children: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>>,
+    children: HashMap<NodeID, HashSet<NodeID>>,
+    distance_matrix: HashMap<(NodeID,NodeID),EdgeWeight>,
     parents: HashMap<NodeID, Option<NodeID>>,
     leaves: HashMap<NodeID, String>,
 }
+
 
 impl RootedPhyloTree{
     pub fn new()->Self{
@@ -26,6 +29,7 @@ impl RootedPhyloTree{
             root: 0,
             nodes: HashMap::from([(0, false)]),
             children: HashMap::new(),
+            distance_matrix: HashMap::new(),
             parents: HashMap::from([(0, None)]),
             leaves: HashMap::new()
         }
@@ -35,19 +39,41 @@ impl RootedPhyloTree{
         todo!()
     }
 
-
     fn leaves_of_node(&self, node_id:&NodeID, leaves:&mut Vec<NodeID>){
         if self.get_children(node_id).expect("Invalid NodeID!").is_empty(){
             leaves.push(*node_id);
         }
 
-        for (_edge_weight, child_node_id) in self.get_children(node_id).expect("Invalid NodeID").iter(){
+        for child_node_id in self.get_children(node_id).expect("Invalid NodeID").iter(){
             self.leaves_of_node(child_node_id, leaves);
         }
     }
 }
 
 impl SimpleRTree for RootedPhyloTree{
+    fn add_node(&mut self,is_leaf:bool)->NodeID {
+        let n : NodeID = self.nodes.len();
+        self.nodes.insert(n, is_leaf);
+        return n
+    }
+
+    fn assign_taxa(&mut self,node:&NodeID, taxa:&str) {
+        self.leaves.insert(*node, String::from(taxa));   
+    }
+
+    fn add_child(&mut self,parent:&NodeID, child:NodeID,distance:EdgeWeight) {
+        let hs = self.children.get_mut(parent);
+        match hs{
+            None => {
+                let mut h:HashSet<NodeID> = HashSet::new();
+                h.insert(child);
+                self.children.insert(*parent, h);
+            },
+            Some(x) =>{
+                x.insert(child);
+            }
+        }
+    }
     fn get_root(&self)->&NodeID{
         &self.root
     }
@@ -56,7 +82,7 @@ impl SimpleRTree for RootedPhyloTree{
         &self.nodes
     }
 
-    fn get_children(&self, node_id: &NodeID)->Option<&HashSet<(Option<EdgeWeight>, NodeID)>>{
+    fn get_children(&self, node_id: &NodeID)->Option<&HashSet<NodeID>>{
         self.children.get(node_id)
     }
 
@@ -69,15 +95,15 @@ impl SimpleRTree for RootedPhyloTree{
     fn get_subtree(&self, node_id: &NodeID)->Box<dyn SimpleRTree>{
         let root= node_id.clone();
         let mut nodes: HashMap<NodeID, NodeType>= HashMap::new();
-        let mut children: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>> = HashMap::new();
+        let mut children: HashMap<NodeID, HashSet<NodeID>> = HashMap::new();
         let mut parents: HashMap<NodeID, Option<NodeID>> = HashMap::new();
         let mut leaves: HashMap<NodeID, String> = HashMap::new();
-        for decsendant_node_id in self.iter_node_pre(node_id){
-            nodes.insert(decsendant_node_id.clone(), self.nodes.get(&decsendant_node_id).expect("Invalid NodeID!").clone());
-            children.insert(decsendant_node_id.clone(), self.children.get(&decsendant_node_id).expect("Invalid NodeID!").clone());
-            parents.insert(decsendant_node_id.clone(), self.parents.get(&decsendant_node_id).expect("Invalid NodeID!").clone());
-            if self.is_leaf(&decsendant_node_id){
-                leaves.insert(decsendant_node_id.clone(), self.leaves.get(&decsendant_node_id).cloned().unwrap());
+        for descendant_node_id in self.iter_node_pre(node_id){
+            nodes.insert(descendant_node_id.clone(), self.nodes.get(&descendant_node_id).expect("Invalid NodeID!").clone());
+            children.insert(descendant_node_id.clone(), self.children.get(&descendant_node_id).expect("Invalid NodeID!").clone());
+            parents.insert(descendant_node_id.clone(), self.parents.get(&descendant_node_id).expect("Invalid NodeID!").clone());
+            if self.is_leaf(&descendant_node_id){
+                leaves.insert(descendant_node_id.clone(), self.leaves.get(&descendant_node_id).cloned().unwrap());
             }
         }
         Box::new(
@@ -85,6 +111,7 @@ impl SimpleRTree for RootedPhyloTree{
                 root: root,
                 nodes: nodes,
                 children: children,
+                distance_matrix:self.distance_matrix.clone(),
                 parents: parents,
                 leaves: leaves,
             }
@@ -106,7 +133,7 @@ impl SimpleRTree for RootedPhyloTree{
     fn extract_subtree(&mut self, node_id: &NodeID)-> Box<dyn SimpleRTree>{
         let root= node_id.clone();
         let mut nodes: HashMap<NodeID, NodeType>= HashMap::new();
-        let mut children: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>> = HashMap::new();
+        let mut children: HashMap<NodeID, HashSet<NodeID>> = HashMap::new();
         let mut parents: HashMap<NodeID, Option<NodeID>> = HashMap::new();
         let mut leaves: HashMap<NodeID, String> = HashMap::new();
         for decsendant_node_id in self.iter_node_pre(node_id){
@@ -123,6 +150,7 @@ impl SimpleRTree for RootedPhyloTree{
                 root: root,
                 nodes: nodes,
                 children: children,
+                distance_matrix: self.distance_matrix.clone(),
                 parents: parents,
                 leaves: leaves,
             }
@@ -177,3 +205,4 @@ impl SimpleRTree for RootedPhyloTree{
     }
 
 }
+

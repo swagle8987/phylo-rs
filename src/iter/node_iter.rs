@@ -12,10 +12,10 @@ pub struct PreOrdNodes
 
 impl PreOrdNodes
 {
-    pub fn new(start_node_id: &NodeID, children: &HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>>)->Self{
+    pub fn new(start_node_id: &NodeID, children: &HashMap<NodeID, HashSet<NodeID>>)->Self{
         Self { stack:vec![*start_node_id], nodes: children.iter()
             .map(|(k, v)| (k.clone(), v.iter()
-                .map(|(_ew, ni)| ni.clone()).collect::<HashSet<NodeID>>()))
+                .map(|ni| ni.clone()).collect::<HashSet<NodeID>>()))
             .collect()}
     }
 }
@@ -46,10 +46,10 @@ pub struct PostOrdNodes
 
 impl PostOrdNodes
 {
-    pub fn new(start_node_id: &NodeID, children: &HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>>)->Self{
+    pub fn new(start_node_id: &NodeID, children: &HashMap<NodeID, HashSet<NodeID>>)->Self{
         Self { stack:vec![*start_node_id], nodes: children.iter()
                 .map(|(k, v)| (k.clone(), v.iter()
-                    .map(|(_ew, ni)| ni.clone()).collect::<HashSet<NodeID>>()))
+                    .map(|ni| ni.clone()).collect::<HashSet<NodeID>>()))
                 .collect()}
     }
 }
