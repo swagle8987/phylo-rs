@@ -109,8 +109,27 @@ impl SimpleRTree for RootedPhyloTree{
         )
     }
 
-    fn get_mrca(&self, node_id_list: Vec<&NodeID>)->&NodeID{
-        todo!()
+    fn get_mrca(&self, node_id_list: Vec<&NodeID>)->NodeID{
+        let ancestor_iter_vec: Vec<std::vec::IntoIter<NodeID>> = node_id_list.iter().map(|x| self.iter_node_ancestors_pre(x).into_iter()).collect();
+        let mut mrca: NodeID = 0;
+        for mut iterator in ancestor_iter_vec{
+            let temp: HashSet<NodeID> = HashSet::new();
+            match iterator.next(){
+                Some(x) => {
+                    match temp.contains(&x){
+                        true => {mrca = x.clone()},
+                        false => {
+                            match temp.len()==0{
+                                true => {},
+                                false => {return mrca}
+                            }
+                        }
+                    }
+                },
+                None => {}
+            }
+        }
+        mrca
     }
 
     fn is_leaf(&self, node_id: &NodeID)->bool{

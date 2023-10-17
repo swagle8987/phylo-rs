@@ -24,7 +24,7 @@ pub trait SimpleRTree {
     fn get_subtree(&self, node_id: &NodeID)->Box<dyn SimpleRTree>;
     
     /// Returns most recent common ancestor of give node set
-    fn get_mrca(&self, node_id_list: Vec<&NodeID>)->&NodeID;
+    fn get_mrca(&self, node_id_list: Vec<&NodeID>)->NodeID;
     
     /// Checks if the given node is a leaf node
     fn is_leaf(&self, node_id: &NodeID)->bool;
