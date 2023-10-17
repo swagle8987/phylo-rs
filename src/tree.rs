@@ -216,7 +216,11 @@ impl SimpleRTree for RootedPhyloTree{
     }
 
     fn reroot_at_node(&mut self, node_id: &NodeID){
-        self.root = node_id.clone();
+        todo!()
+    }
+
+    fn reroot_at_edge(&mut self, edge: (&NodeID, &NodeID)) {
+        todo!()
     }
 
     fn insert_internal_node(&mut self, edge: (NodeID, NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>)){
