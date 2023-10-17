@@ -7,7 +7,6 @@ use crate::iter::edge_iter::*;
 pub type EdgeWeight = f64;
 
 pub trait SimpleRTree {
-    
     /// Returns root node id
     fn get_root(&self)->&NodeID;
     
