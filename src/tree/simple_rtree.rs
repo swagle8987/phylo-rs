@@ -15,7 +15,7 @@ pub trait SimpleRTree {
     fn get_nodes(&self)->&HashMap<NodeID, NodeType>;
     
     /// Returns children node ids for given node id 
-    fn get_children(&self, node_id: &NodeID)->Option<&HashSet<(Option<EdgeWeight>, NodeID)>>;
+    fn get_children(&self, node_id: &NodeID)->Option<&Vec<(Option<EdgeWeight>, NodeID)>>;
     
     /// Returns all leaf node ids
     fn get_leaves(&self, node_id: &NodeID)->HashSet<NodeID>;

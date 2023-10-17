@@ -15,7 +15,7 @@ pub struct UnrootedPhyloTree{
 pub struct RootedPhyloTree{
     root: NodeID,
     nodes: HashMap<NodeID, NodeType>,
-    children: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>>,
+    children: HashMap<NodeID, Vec<(Option<EdgeWeight>, NodeID)>>,
     parents: HashMap<NodeID, Option<NodeID>>,
     leaves: HashMap<NodeID, String>,
 }
@@ -46,6 +46,31 @@ impl RootedPhyloTree{
         }
     }
 
+    fn new_node(&mut self, children: Vec<(Option<EdgeWeight>, NodeID)>, parent:Option<NodeID>, leaf_id:Option<String>, parent_edge_weight: Option<EdgeWeight>){
+        let node_id = self.nodes.len();
+        match leaf_id {
+            Some(taxa_id) => {
+                self.leaves.insert(node_id.clone(), taxa_id);
+                self.nodes.insert(node_id.clone(), true);
+            }
+            None =>{
+                self.nodes.insert(node_id.clone(), false);
+            }
+        };
+        self.children.insert(node_id.clone(), children);
+        self.parents.insert(node_id.clone(), parent);
+        self.children.entry(node_id).or_default().push((parent_edge_weight, node_id));
+    }
+
+    pub fn add_child_to_node(&mut self, parent:NodeID, edge_weight: Option<EdgeWeight>){
+        self.new_node(Vec::new(), Some(parent), None, edge_weight);
+
+    }
+
+    pub fn add_leaf_to_node(&mut self, parent: NodeID, leaf_label: String, edge_weight: Option<EdgeWeight>){
+        self.new_node(Vec::new(), Some(parent), Some(leaf_label), edge_weight);
+    }
+
     pub fn iter_node_ancestors_pre(&self, node_id:&NodeID)->Vec<NodeID>{
         let mut node_iter: Vec<NodeID> = Vec::new();
         let mut curr_node = node_id;
@@ -74,7 +99,7 @@ impl SimpleRTree for RootedPhyloTree{
         &self.nodes
     }
 
-    fn get_children(&self, node_id: &NodeID)->Option<&HashSet<(Option<EdgeWeight>, NodeID)>>{
+    fn get_children(&self, node_id: &NodeID)->Option<&Vec<(Option<EdgeWeight>, NodeID)>>{
         self.children.get(node_id)
     }
 
@@ -87,7 +112,7 @@ impl SimpleRTree for RootedPhyloTree{
     fn get_subtree(&self, node_id: &NodeID)->Box<dyn SimpleRTree>{
         let root= node_id.clone();
         let mut nodes: HashMap<NodeID, NodeType>= HashMap::new();
-        let mut children: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>> = HashMap::new();
+        let mut children: HashMap<NodeID, Vec<(Option<EdgeWeight>, NodeID)>> = HashMap::new();
         let mut parents: HashMap<NodeID, Option<NodeID>> = HashMap::new();
         let mut leaves: HashMap<NodeID, String> = HashMap::new();
         for decsendant_node_id in self.iter_node_pre(node_id){
@@ -143,7 +168,7 @@ impl SimpleRTree for RootedPhyloTree{
     fn extract_subtree(&mut self, node_id: &NodeID)-> Box<dyn SimpleRTree>{
         let root= node_id.clone();
         let mut nodes: HashMap<NodeID, NodeType>= HashMap::new();
-        let mut children: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>> = HashMap::new();
+        let mut children: HashMap<NodeID, Vec<(Option<EdgeWeight>, NodeID)>> = HashMap::new();
         let mut parents: HashMap<NodeID, Option<NodeID>> = HashMap::new();
         let mut leaves: HashMap<NodeID, String> = HashMap::new();
         for decsendant_node_id in self.iter_node_pre(node_id){
