@@ -36,7 +36,46 @@ impl RootedPhyloTree{
     }
 
     pub fn from_newick(newick_string: String)->Self{
-        todo!()
+        let mut tree = RootedPhyloTree { 
+                    root: 0,
+                    nodes: HashMap::new(),
+                    children: HashMap::new(),
+                    distance_matrix: HashMap::new(),
+                    parents: HashMap::new(),
+                    leaves: HashMap::new()
+        };
+        let mut stack : Vec<NodeID> = Vec::new();
+        let mut context : NodeID = 0;
+        let mut completed : NodeID = 0;
+        let mut taxa_str = String::from("");
+        let mut chars = newick_string.chars();
+        loop {
+            let next = chars.next();
+            if next == None{
+                break;
+            }
+            let mut c = next.unwrap();
+            if c == '(' {
+                if context >= 0{
+                    stack.push(context);
+                }
+                context = tree.add_node(false);
+            } else if c == ')' || c == ',' {
+                completed = context;
+                context = stack.pop().unwrap(); 
+                tree.add_child(&context,completed,0.0);
+            } else if c.is_alphanumeric() {
+                stack.push(context);
+                context = tree.add_node(true);
+                while c.is_alphanumeric() {
+                    taxa_str.push(c); 
+                    c = chars.next().unwrap();
+                }
+                tree.assign_taxa(&context, &taxa_str);
+                taxa_str = String::from("");
+            }
+        }
+        return tree
     }
 
     fn leaves_of_node(&self, node_id:&NodeID, leaves:&mut Vec<NodeID>){
