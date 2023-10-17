@@ -45,6 +45,24 @@ impl RootedPhyloTree{
             self.leaves_of_node(child_node_id, leaves);
         }
     }
+
+    pub fn iter_node_ancestors_pre(&self, node_id:&NodeID)->Vec<NodeID>{
+        let mut node_iter: Vec<NodeID> = Vec::new();
+        let mut curr_node = node_id;
+        while self.parents.get(curr_node) != None {
+            match self.parents.get(curr_node).expect("Invalid NodeID!") {
+                Some(node) => {
+                    node_iter.push(node.clone());
+                    curr_node = node;
+                },
+                None => {
+                    node_iter.push(self.get_root().clone());
+                    break;
+                },
+            }
+        }
+        node_iter
+    }
 }
 
 impl SimpleRTree for RootedPhyloTree{
