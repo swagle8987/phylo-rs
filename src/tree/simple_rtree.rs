@@ -7,14 +7,13 @@ use crate::iter::edge_iter::*;
 pub type EdgeWeight = f64;
 
 pub trait SimpleRTree {
-
-
-    //Add node to tree
+    /// Add node to tree
     fn add_node(&mut self,is_leaf:bool)->NodeID;
 
-    //Add child to node
-    fn add_child(&mut self,parent:&NodeID, child:NodeID,distance:EdgeWeight);
+    /// Add child to node
+    fn add_child(&mut self,parent:&NodeID, child:NodeID, distance:Option<EdgeWeight>);
 
+    /// Assign taxa to leaf node
     fn assign_taxa(&mut self,node:&NodeID, taxa:&str);
     
     /// Returns root node id
@@ -24,7 +23,7 @@ pub trait SimpleRTree {
     fn get_nodes(&self)->&HashMap<NodeID, NodeType>;
     
     /// Returns children node ids for given node id 
-    fn get_children(&self, node_id: &NodeID)->Option<&HashSet<NodeID>>;
+    fn get_children(&self, node_id: &NodeID)->Option<&Vec<(NodeID, Option<EdgeWeight>)>>;
     
     /// Returns all leaf node ids
     fn get_leaves(&self, node_id: &NodeID)->HashSet<NodeID>;
