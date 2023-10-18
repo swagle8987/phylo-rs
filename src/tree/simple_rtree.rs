@@ -8,10 +8,10 @@ pub type EdgeWeight = f64;
 
 pub trait SimpleRTree {
     /// Add node to tree
-    fn add_node(&mut self,is_leaf:bool)->NodeID;
+    fn add_node(&mut self, children: Vec<(NodeID, Option<EdgeWeight>)>, parent:Option<NodeID>, leaf_id:Option<String>, parent_edge_weight: Option<EdgeWeight>)->NodeID;
 
     /// Add child to node
-    fn add_child(&mut self,parent:&NodeID, child:NodeID, distance:Option<EdgeWeight>);
+    fn add_child(&mut self,parent:&NodeID, child:&NodeID, distance:Option<EdgeWeight>);
 
     /// Assign taxa to leaf node
     fn assign_taxa(&mut self,node:&NodeID, taxa:&str);
