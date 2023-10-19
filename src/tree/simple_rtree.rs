@@ -13,6 +13,13 @@ pub trait SimpleRTree {
     /// Add child to node
     fn add_child(&mut self,parent:&NodeID, child:&NodeID, distance:Option<EdgeWeight>);
 
+    /// Add children to node
+    fn add_children(&mut self, parent:NodeID, children: Vec<(NodeID, Option<EdgeWeight>)>){
+        for (child_id, edge_weight) in children.iter(){
+            self.add_child(&parent, child_id, edge_weight.clone());
+        }
+    }
+
     /// Assign taxa to leaf node
     fn assign_taxa(&mut self,node:&NodeID, taxa:&str);
     
@@ -21,9 +28,30 @@ pub trait SimpleRTree {
     
     /// Returns all node ids
     fn get_nodes(&self)->&HashMap<NodeID, NodeType>;
+
+    /// Returns node degree
+    fn get_node_degree(&self, node_id:&NodeID)->usize{
+        self.get_node_children(node_id).len() + match self.get_node_parent(node_id) {
+            Some(_) => 1,
+            None => 0
+        }
+    }
+
+    /// Check if tree is weighted
+    fn is_weighted(&self)->bool{
+        for (_, _, edge_weight) in self.iter_edges_post(self.get_root()){
+            if edge_weight!=None{
+                return true;
+            }
+        }
+        false
+    }
     
     /// Returns children node ids for given node id 
-    fn get_children(&self, node_id: &NodeID)->Option<&Vec<(NodeID, Option<EdgeWeight>)>>;
+    fn get_node_children(&self, node_id: &NodeID)->&Vec<(NodeID, Option<EdgeWeight>)>;
+
+    /// Returns node parent
+    fn get_node_parent(&self, node_id:&NodeID)->Option<&NodeID>;
     
     /// Returns all leaf node ids
     fn get_leaves(&self, node_id: &NodeID)->HashSet<NodeID>;
@@ -78,4 +106,7 @@ pub trait SimpleRTree {
 
     /// Returns cluster of node
     fn get_cluster(&self, node_id: &NodeID)-> HashSet<NodeID>;
+
+    /// Cleans self by removing 1) internal nodes (other than root) with degree 2, 2) Floating root nodes, 3) self loops
+    fn clean(&mut self);
 }

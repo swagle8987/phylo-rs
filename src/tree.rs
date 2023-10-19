@@ -25,9 +25,9 @@ impl RootedPhyloTree{
     pub fn new()->Self{
         RootedPhyloTree { 
             root: 0,
-            nodes: HashMap::from([(0, false)]),
-            children: HashMap::from([(0, Vec::new())]),
-            parents: HashMap::from([(0, None)]),
+            nodes: HashMap::new(),
+            children: HashMap::new(),
+            parents: HashMap::new(),
             leaves: HashMap::new()
         }
     }
@@ -39,12 +39,11 @@ impl RootedPhyloTree{
         let mut str_ptr: usize = 0;
         let newick_string = newick_string.chars().collect::<Vec<char>>();
         loop{
-            if str_ptr>=newick_string.len(){
+            if str_ptr==newick_string.len(){
                 break;
             }
             match newick_string[str_ptr]{
                 '(' => {
-
                     stack.push(context);
                     context = tree.add_node(Vec::new(), None, None, None);
                 },
@@ -68,17 +67,17 @@ impl RootedPhyloTree{
             }
             str_ptr +=1;
         }
-        dbg!(stack);
+        tree.remove_self_loops();
         return tree;
     }
 
 
     fn leaves_of_node(&self, node_id:&NodeID, leaves:&mut Vec<NodeID>){
-        if self.get_children(node_id).expect("Invalid NodeID!").is_empty(){
+        if self.get_node_children(node_id).is_empty(){
             leaves.push(*node_id);
         }
 
-        for (child_node_id, _edge_weight) in self.get_children(node_id).expect("Invalid NodeID").iter(){
+        for (child_node_id, _edge_weight) in self.get_node_children(node_id).iter(){
             self.leaves_of_node(child_node_id, leaves);
         }
     }
@@ -99,6 +98,12 @@ impl RootedPhyloTree{
             }
         }
         node_iter
+    }
+
+    fn remove_self_loops(&mut self){
+        for (node_id, children) in self.children.iter_mut(){
+            children.retain(|(child_id, _edge_weight)| child_id!=node_id);
+        }
     }
 }
 
@@ -125,8 +130,14 @@ impl SimpleRTree for RootedPhyloTree{
     }
 
     fn add_child(&mut self,parent:&NodeID, child: &NodeID, distance: Option<EdgeWeight>) {
-        self.children.entry(parent.clone()).or_default().push((child.clone(), distance));
-        self.parents.entry(child.clone()).and_modify(|e| *e=Some(child.clone()));
+        if parent!=child{
+            self.children.entry(parent.clone()).or_default().push((child.clone(), distance));
+        }
+        self.parents.entry(child.clone()).and_modify(|e| *e=Some(parent.clone()));
+    }
+
+    fn add_children(&mut self, parent:NodeID, children: Vec<(NodeID, Option<EdgeWeight>)>) {
+        self.children.entry(parent).and_modify(|x| x.extend(children));
     }
 
     fn get_root(&self)->&NodeID{
@@ -137,8 +148,12 @@ impl SimpleRTree for RootedPhyloTree{
         &self.nodes
     }
 
-    fn get_children(&self, node_id: &NodeID)->Option<&Vec<(NodeID, Option<EdgeWeight>)>>{
-        self.children.get(node_id)
+    fn get_node_children(&self, node_id: &NodeID)->&Vec<(NodeID, Option<EdgeWeight>)>{
+        self.children.get(node_id).expect("Invalid NodeID!")
+    }
+
+    fn get_node_parent(&self, node_id:&NodeID)->Option<&NodeID>{
+        self.parents.get(node_id).expect("Invalid NodeID!").as_ref()
     }
 
     fn get_leaves(&self, node_id: &NodeID)->HashSet<NodeID>{
@@ -148,6 +163,9 @@ impl SimpleRTree for RootedPhyloTree{
     }
 
     fn get_subtree(&self, node_id: &NodeID)->Box<dyn SimpleRTree>{
+        if self.is_leaf(node_id){
+            panic!("NodeID is a leaf");
+        }
         let root= node_id.clone();
         let mut nodes: HashMap<NodeID, NodeType>= HashMap::new();
         let mut children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>> = HashMap::new();
@@ -280,4 +298,25 @@ impl SimpleRTree for RootedPhyloTree{
         HashSet::from_iter(leaves)
     }
 
+    fn clean(&mut self) {
+        let mut remove_list: Vec<&NodeID> = Vec::new();
+        for (node_id, is_leaf) in self.nodes.clone().iter(){
+            // remove root with only one child
+            if node_id==self.get_root() && self.get_node_degree(node_id)<2{
+                let new_root = self.get_node_children(self.get_root())[0].0;
+                self.root = new_root;
+                self.parents.entry(new_root).and_modify(|x| *x = None);
+                remove_list.push(node_id);
+            }
+            // remove nodes with only one child
+            else if !is_leaf &&  self.get_node_degree(node_id)<3{
+                let parent = self.get_node_parent(node_id).cloned();
+                let children = self.get_node_children(node_id).clone();
+                for (child_id, _edge_weight) in children.clone().into_iter(){
+                    self.parents.entry(child_id.clone()).and_modify(|x| *x = parent);
+                }
+                self.add_children(parent.unwrap(), children);
+            }
+        }
+    }
 }
