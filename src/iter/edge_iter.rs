@@ -17,7 +17,7 @@ impl PreOrdEdges
 
 impl Iterator for PreOrdEdges
 {
-    type Item = (NodeID, NodeID);
+    type Item = (NodeID, NodeID, Option<EdgeWeight>);
 
     fn next(&mut self)->Option<Self::Item>{
         todo!();
@@ -39,7 +39,7 @@ impl PostOrdEdges
 
 impl Iterator for PostOrdEdges
 {
-    type Item = (NodeID, NodeID);
+    type Item = (NodeID, NodeID, Option<EdgeWeight>);
 
     fn next(&mut self)->Option<Self::Item>{
         todo!();
