@@ -1,5 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
+use itertools::Itertools;
+
 use crate::node::*;
 use crate::iter::node_iter::*;
 use crate::iter::edge_iter::*;
@@ -18,6 +20,14 @@ pub trait SimpleRTree {
         for (child_id, edge_weight) in children.iter(){
             self.add_child(&parent, child_id, edge_weight.clone());
         }
+    }
+
+    /// Sets the edge weight between two nodes (None to unweight the edge)
+    fn set_edge_weight(&mut self, parent:&NodeID, child:&NodeID, edge_weights:Option<EdgeWeight>);
+
+    /// Returns true of node is child of parent.
+    fn node_is_child_of(&self, parent:&NodeID, node:&NodeID)->bool{
+        self.get_node_children(parent).iter().map(|(id, _weight)| id).contains(node)
     }
 
     /// Assign taxa to leaf node
