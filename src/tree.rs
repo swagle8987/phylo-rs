@@ -27,9 +27,9 @@ impl RootedPhyloTree{
     pub fn new()->Self{
         RootedPhyloTree { 
             root: 0,
-            nodes: HashMap::new(),
-            children: HashMap::new(),
-            parents: HashMap::new(),
+            nodes: HashMap::from([(0, false)]),
+            children: HashMap::from([(0, Vec::new())]),
+            parents: HashMap::from([(0, None)]),
             leaves: HashMap::new()
         }
     }
@@ -37,17 +37,15 @@ impl RootedPhyloTree{
     pub fn from_newick(newick_string: String)->Self{
         let mut tree = RootedPhyloTree::new();
         let mut stack : Vec<NodeID> = Vec::new();
-        let mut context : NodeID = 0;
+        let mut context : NodeID = tree.get_root().clone();
         let mut str_ptr: usize = 0;
         let newick_string = newick_string.chars().collect::<Vec<char>>();
-        loop{
-            if str_ptr==newick_string.len(){
-                break;
-            }
+        while str_ptr<newick_string.len(){
             match newick_string[str_ptr]{
                 '(' => {
                     stack.push(context);
                     context = tree.add_node(Vec::new(), None, None, None);
+                    str_ptr +=1;
                 },
                 ')' => {
                     let mut decimal_str: String = String::from("");
@@ -65,14 +63,9 @@ impl RootedPhyloTree{
                     // if !tree.node_is_child_of(&context, &completed){
                         tree.add_child(dbg!(&context), dbg!(&completed), dbg!(decimal_str.parse::<EdgeWeight>().ok()));
                     // }
-                    continue;
                 },
                 ',' => {
-                    let completed = context;
-                    context = stack.pop().unwrap();
-                    if !tree.node_is_child_of(&context, &completed){
-                        tree.add_child(&context,&completed,None);
-                    }
+                    str_ptr+=1;
                 }
                 _ => {
                     if newick_string[str_ptr].is_alphanumeric(){
@@ -92,11 +85,9 @@ impl RootedPhyloTree{
                             }
                         }
                         context = tree.add_node(Vec::new(), Some(last_context), Some(taxa_str), decimal_str.parse::<EdgeWeight>().ok());
-                        continue;
                     }
                 },
             }
-            str_ptr +=1;
         }
         return tree;
     }
