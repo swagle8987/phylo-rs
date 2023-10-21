@@ -38,66 +38,68 @@ impl RootedPhyloTree{
         let mut tree = RootedPhyloTree::new();
         let mut stack : Vec<NodeID> = Vec::new();
         let mut context : NodeID = tree.get_root().clone();
+        let mut taxa_str = String::new();
+        let mut decimal_str: String = String::new();
         let mut str_ptr: usize = 0;
-        let newick_string = newick_string.chars().collect::<Vec<char>>();
-        loop{
-            if str_ptr>=newick_string.len(){
-                break;
-            }
-            match newick_string[str_ptr]{
+        let newick_string = newick_string.chars().filter(|c| !c.is_whitespace()).collect::<Vec<char>>();
+        while str_ptr<newick_string.len(){
+            dbg!(&stack, &context, &taxa_str, &decimal_str);
+            match dbg!(newick_string[str_ptr]){
                 '(' => {
-
                     stack.push(context);
-                    context = tree.add_node(Vec::new(), None, None, None);
+                    context = tree.add_node();
                     str_ptr +=1;
                 },
-                ')' => {
-                    let mut decimal_str: String = String::from("");
-                    let completed = context;
-                    context = stack.pop().unwrap();
-                    str_ptr += 1;
+                ')'|',' => {
+                    // last context id
+                    let last_context = stack.last().expect("Newick string ended abruptly!");
+                    // add current context as a child to last context
+                    tree.set_child(&context, last_context, decimal_str.parse::<EdgeWeight>().ok(), taxa_str.clone());
+                    // we clear the strings
+                    taxa_str.clear();
+                    decimal_str.clear();
+
+                    if newick_string[str_ptr]==','{
+                        // create next child of last context
+                        context = tree.add_node();
+                        str_ptr += 1;
+                    }
+                    else{
+                        context = stack.pop().expect("Newick string ended abruptly!");
+                        str_ptr += 1;
+                    }
+                },
+                ';'=>{
+                    break;
+                }
+                ':' => {
+                    // if the current context had a weight
                     if newick_string[str_ptr]==':'{
                         str_ptr+=1;
                         while newick_string[str_ptr].is_ascii_digit() || newick_string[str_ptr]=='.'{
-                            decimal_str.push(dbg!(newick_string[str_ptr])); 
+                            decimal_str.push(newick_string[str_ptr]); 
                             str_ptr+=1;
                         }
                     }
-                    dbg!(&decimal_str.parse::<EdgeWeight>().ok());
-                    // if !tree.node_is_child_of(&context, &completed){
-                        tree.add_child(dbg!(&context), dbg!(&completed), dbg!(decimal_str.parse::<EdgeWeight>().ok()));
-                    // }
-                },
-                ',' => {
-                    str_ptr+=1;
                 }
                 _ => {
-                    if newick_string[str_ptr].is_alphanumeric(){
-                        let mut taxa_str = String::new();
-                        let mut decimal_str: String = String::new();
-                        let last_context = context.clone();
-                        stack.push(context);
-                        while newick_string[str_ptr].is_alphanumeric(){
-                            taxa_str.push(newick_string[str_ptr]); 
-                            str_ptr+=1;
-                        }
-                        context = tree.add_node(Vec::new(), None, Some(taxa_str), None);    
-                        continue;
+                    // push taxa characters into taxa string
+                    while newick_string[str_ptr]!=':'&&newick_string[str_ptr]!=')'&&newick_string[str_ptr]!=','&&newick_string[str_ptr]!='('{
+                        taxa_str.push(dbg!(newick_string[str_ptr])); 
+                        str_ptr+=1;
                     }
                 },
             }
-            str_ptr +=1;
         }
-        dbg!(stack);
         return tree;
     }
 
     fn leaves_of_node(&self, node_id:&NodeID, leaves:&mut Vec<NodeID>){
-        if self.get_node_children(node_id).expect("Invalid NodeID!").is_empty(){
+        if self.get_node_children(node_id).is_empty(){
             leaves.push(*node_id);
         }
 
-        for (child_node_id, _edge_weight) in self.get_node_children(node_id).expect("Invalid NodeID").iter(){
+        for (child_node_id, _edge_weight) in self.get_node_children(node_id).iter(){
             self.leaves_of_node(child_node_id, leaves);
         }
     }
@@ -119,34 +121,32 @@ impl RootedPhyloTree{
         }
         node_iter
     }
+
+    fn remove_self_loops(&mut self){
+        for (node_id, children) in self.children.iter_mut(){
+            children.retain(|(child_id, _edge_weight)| child_id!=node_id);
+        }
+    }
 }
 
 impl SimpleRTree for RootedPhyloTree{
-    fn add_node(&mut self, children: Vec<(NodeID, Option<EdgeWeight>)>, parent:Option<NodeID>, leaf_id:Option<String>, parent_edge_weight: Option<EdgeWeight>)->NodeID{
+    fn add_node(&mut self)->NodeID{
+        // New node id
         let node_id = self.nodes.len();
-        
-        match leaf_id {
-            Some(taxa_id) => {
-                self.leaves.insert(node_id.clone(), taxa_id);
-                self.nodes.insert(node_id.clone(), true);
-            }
-            None =>{
-                self.nodes.insert(node_id.clone(), false);
-                self.children.insert(node_id.clone(), Vec::new());
-            }
-        };
-        self.add_children(node_id.clone(), children);
-        self.parents.insert(node_id.clone(), parent);
-        match parent{
-            Some(parent_id) => {
-                self.children.entry(parent_id).or_default().push((node_id, parent_edge_weight));
-                self.parents.entry(node_id).or_insert(Some(parent_id));
-            },
-            None => {
-                self.parents.insert(node_id, None);
-            }
-        }
+        // add entry of node in parents and children fields
+        self.nodes.insert(node_id.clone(), false);
+        self.parents.insert(node_id.clone(), None);
+        self.children.insert(node_id.clone(), Vec::new());
         node_id
+    }
+
+    fn set_child(&mut self, node_id:&NodeID, parent_id:&NodeID, distance:Option<EdgeWeight>, taxa:String){
+        self.parents.insert(node_id.clone(), Some(parent_id.clone()));
+        self.children.entry(parent_id.clone()).or_default().push((node_id.clone(), distance));
+        if taxa.len()>0{
+            self.leaves.insert(node_id.clone(), taxa);
+            self.nodes.insert(node_id.clone(), true);
+        }
     }
 
     fn assign_taxa(&mut self,node:&NodeID, taxa:&str) {
@@ -166,12 +166,6 @@ impl SimpleRTree for RootedPhyloTree{
         );
     }
 
-
-    fn add_child(&mut self,parent:&NodeID, child: &NodeID, distance: Option<EdgeWeight>) {
-        self.children.entry(parent.clone()).or_default().push((child.clone(), distance));
-        self.parents.entry(child.clone()).and_modify(|e| *e=Some(child.clone()));
-    }
-
     fn get_root(&self)->&NodeID{
         &self.root
     }
@@ -180,8 +174,12 @@ impl SimpleRTree for RootedPhyloTree{
         &self.nodes
     }
 
-    fn get_node_children(&self, node_id: &NodeID)->Option<&Vec<(NodeID, Option<EdgeWeight>)>>{
-        self.children.get(node_id)
+    fn get_node_children(&self, node_id: &NodeID)->&Vec<(NodeID, Option<EdgeWeight>)>{
+        self.children.get(node_id).expect("Invalid NodeID!")
+    }
+
+    fn get_node_parent(&self, node_id:&NodeID)->Option<&NodeID>{
+        self.parents.get(node_id).expect("Invalid NodeID!").as_ref()
     }
 
     fn get_leaves(&self, node_id: &NodeID)->HashSet<NodeID>{
@@ -191,6 +189,9 @@ impl SimpleRTree for RootedPhyloTree{
     }
 
     fn get_subtree(&self, node_id: &NodeID)->Box<dyn SimpleRTree>{
+        if self.is_leaf(node_id){
+            panic!("NodeID is a leaf");
+        }
         let root= node_id.clone();
         let mut nodes: HashMap<NodeID, NodeType>= HashMap::new();
         let mut children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>> = HashMap::new();
@@ -323,4 +324,25 @@ impl SimpleRTree for RootedPhyloTree{
         HashSet::from_iter(leaves)
     }
 
+    fn clean(&mut self) {
+        let mut remove_list: Vec<&NodeID> = Vec::new();
+        for (node_id, is_leaf) in self.nodes.clone().iter(){
+            // remove root with only one child
+            if node_id==self.get_root() && self.get_node_degree(node_id)<2{
+                let new_root = self.get_node_children(self.get_root())[0].0;
+                self.root = new_root;
+                self.parents.entry(new_root).and_modify(|x| *x = None);
+                remove_list.push(node_id);
+            }
+            // remove nodes with only one child
+            else if !is_leaf &&  self.get_node_degree(node_id)<3{
+                let parent = self.get_node_parent(node_id).cloned();
+                let children = self.get_node_children(node_id).clone();
+                for (child_id, _edge_weight) in children.clone().into_iter(){
+                    self.parents.entry(child_id.clone()).and_modify(|x| *x = parent);
+                }
+                self.set_children(parent.as_ref().unwrap(), &children);
+            }
+        }
+    }
 }
