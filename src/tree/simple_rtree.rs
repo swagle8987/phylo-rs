@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-
 use itertools::Itertools;
 
 use crate::node::*;
@@ -119,4 +118,45 @@ pub trait SimpleRTree {
 
     /// Cleans self by removing 1) internal nodes (other than root) with degree 2, 2) Floating root nodes, 3) self loops
     fn clean(&mut self);
+
+    /// Get node taxa
+    fn get_taxa(&self, node_id:&NodeID)->&String;
+
+    /// Get edge weight
+    fn get_edge_weight(&self, parent_id: &NodeID, child_id:&NodeID)->Option<&EdgeWeight>{
+        for node_id in self.get_node_children(parent_id).iter(){
+            if node_id.0==*child_id{
+                return node_id.1.as_ref();
+            }
+        }
+        return None;
+    }
+
+    /// return subtree as newick string
+    fn subtree_to_newick(&self, node_id:&NodeID, edge_weight:Option<EdgeWeight>)->String{
+        match self.is_leaf(node_id){
+            true => {
+                match edge_weight {
+                    Some(w) => {format!("{}:{}", self.get_taxa(node_id), w)},
+                    _ => {format!("{}", self.get_taxa(node_id))}
+                }
+            }
+            false => {
+                let mut tmp = String::new();
+                tmp.push('(');
+                for (child_id, w) in self.get_node_children(node_id){
+                    let child_str = format!("{},", self.subtree_to_newick(child_id, *w));
+                    tmp.push_str(&child_str);
+                }
+                tmp.pop();
+                tmp.push(')');
+                return tmp;
+            }
+        }
+    }
+
+    /// writes full tree in newick format
+    fn to_newick(&self)->String{
+        format!("{};", self.subtree_to_newick(self.get_root(), None))
+    }
 }

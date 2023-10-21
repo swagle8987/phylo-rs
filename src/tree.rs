@@ -43,8 +43,7 @@ impl RootedPhyloTree{
         let mut str_ptr: usize = 0;
         let newick_string = newick_string.chars().filter(|c| !c.is_whitespace()).collect::<Vec<char>>();
         while str_ptr<newick_string.len(){
-            dbg!(&stack, &context, &taxa_str, &decimal_str);
-            match dbg!(newick_string[str_ptr]){
+            match newick_string[str_ptr]{
                 '(' => {
                     stack.push(context);
                     context = tree.add_node();
@@ -85,7 +84,7 @@ impl RootedPhyloTree{
                 _ => {
                     // push taxa characters into taxa string
                     while newick_string[str_ptr]!=':'&&newick_string[str_ptr]!=')'&&newick_string[str_ptr]!=','&&newick_string[str_ptr]!='('{
-                        taxa_str.push(dbg!(newick_string[str_ptr])); 
+                        taxa_str.push(newick_string[str_ptr]); 
                         str_ptr+=1;
                     }
                 },
@@ -344,5 +343,9 @@ impl SimpleRTree for RootedPhyloTree{
                 self.set_children(parent.as_ref().unwrap(), &children);
             }
         }
+    }
+
+    fn get_taxa(&self, node_id:&NodeID)->&String {
+        self.leaves.get(node_id).expect("Node has not associated taxa!")
     }
 }
