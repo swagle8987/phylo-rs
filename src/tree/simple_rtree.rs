@@ -87,7 +87,7 @@ pub trait SimpleRTree {
     fn is_leaf(&self, node_id: &NodeID)->bool;
     
     /// Attaches input tree to self by spliting an edge
-    fn graft_subtree(&mut self, tree: Box<dyn SimpleRTree>, edge: (&NodeID, &NodeID));
+    fn graft_subtree(&mut self, tree: Box<dyn SimpleRTree>, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>), graft_edge_weight: Option<EdgeWeight>);
     
     /// Returns subtree starting at given node, while corresponding nodes from self.
     fn prune(&mut self, node_id: &NodeID)-> Box<dyn SimpleRTree>;
@@ -137,8 +137,8 @@ pub trait SimpleRTree {
     /// Rerootes tree at edge.
     fn reroot_at_edge(&mut self, edge: (&NodeID, &NodeID));
 
-    /// Inserts node in the middle of edge given by pair of node ids
-    fn split_edge(&mut self, edge: (NodeID, NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>));
+    /// Inserts node in the middle of edge given by pair of node ids, and returns the new node id
+    fn split_edge(&mut self, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>))->NodeID;
 
     /// Returns distance of node from some ancestor of node. If weighted is true, it returns sum of edges from root to self.
     fn distance_from_ancestor(&self, node_id: &NodeID, ancestor: &NodeID, weighted: bool)->f64;

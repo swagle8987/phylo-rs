@@ -244,8 +244,19 @@ impl SimpleRTree for RootedPhyloTree{
         self.nodes.get(node_id).expect("Invalid NodeID").is_leaf()
     }
 
-    fn graft_subtree(&mut self, _tree: Box<dyn SimpleRTree>, _edge: (&NodeID, &NodeID)){
-        todo!()
+    fn graft_subtree(&mut self, tree: Box<dyn SimpleRTree>, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>), graft_edge_weight: Option<EdgeWeight>){
+        let graft_node = self.split_edge(edge, edge_weights);
+        let input_root_id = tree.get_root();
+        for input_node in tree.get_nodes().keys(){
+            if self.get_nodes().contains_key(input_node){
+                panic!("The NodeIDs in the input tree are already present in the current tree!");
+            }
+        }
+
+        self.children.extend(tree.get_children().clone().into_iter());
+        self.parents.extend(tree.get_parents().clone().iter());
+        self.nodes.extend(tree.get_nodes().clone().into_iter());
+        self.set_child(input_root_id, &graft_node, graft_edge_weight, Some(tree.get_taxa(input_root_id)))
     }
 
     fn prune(&mut self, node_id: &NodeID)-> Box<dyn SimpleRTree>{
@@ -310,11 +321,12 @@ impl SimpleRTree for RootedPhyloTree{
         todo!()
     }
 
-    fn split_edge(&mut self, edge: (NodeID, NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>)){
+    fn split_edge(&mut self, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>))->NodeID{
         let new_node_id = self.add_node();
-        self.parents.insert(new_node_id, Some(edge.0));
-        self.children.entry(new_node_id).or_default().push((edge.1, edge_weights.1));
-        self.parents.insert(edge.1, Some(new_node_id));
+        self.parents.insert(new_node_id, Some(edge.0.clone()));
+        self.children.entry(new_node_id).or_default().push((edge.1.clone(), edge_weights.1));
+        self.parents.insert(edge.1.clone(), Some(new_node_id));
+        new_node_id
     }
 
     fn distance_from_ancestor(&self, node: &NodeID, ancestor: &NodeID, weighted: bool)->f64{
