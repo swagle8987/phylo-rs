@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt::format;
 use itertools::Itertools;
 
 use crate::node::*;
@@ -29,12 +28,12 @@ pub trait SimpleRTree {
     fn set_edge_weight(&mut self, parent:&NodeID, child:&NodeID, edge_weights:Option<EdgeWeight>);
 
     /// Returns true of node is child of parent.
-    fn node_is_child_of(&self, parent:&NodeID, node:&NodeID)->bool{
-        self.get_node_children(parent).iter().map(|(id, _weight)| id).contains(node)
+    fn node_is_child_of(&self, parent:&NodeID, node_id:&NodeID)->bool{
+        self.get_node_children(parent).iter().map(|(id, _weight)| id).contains(node_id)
     }
 
     /// Assign taxa to leaf node
-    fn assign_taxa(&mut self,node:&NodeID, taxa:&str);
+    fn assign_taxa(&mut self,node_id:&NodeID, taxa:&str);
     
     /// Returns root node id
     fn get_root(&self)->&NodeID;
@@ -142,11 +141,11 @@ pub trait SimpleRTree {
     fn split_edge(&mut self, edge: (NodeID, NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>));
 
     /// Returns distance of node from some ancestor of node. If weighted is true, it returns sum of edges from root to self.
-    fn distance_from_ancestor(&self, node: &NodeID, ancestor: &NodeID, weighted: bool)->f64;
+    fn distance_from_ancestor(&self, node_id: &NodeID, ancestor: &NodeID, weighted: bool)->f64;
 
     /// Returns distance of node from root. If weighted is true, it returns sum of edges from root to self.
-    fn distance_from_root(&self, node: &NodeID, weighted: bool)->EdgeWeight{
-        self.distance_from_ancestor(node, self.get_root(), weighted)
+    fn distance_from_root(&self, node_id: &NodeID, weighted: bool)->EdgeWeight{
+        self.distance_from_ancestor(node_id, self.get_root(), weighted)
     }
 
     /// Returns distance of node from root. If weighted is true, it returns sum of edges from root to self.

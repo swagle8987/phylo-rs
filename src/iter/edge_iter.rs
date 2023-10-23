@@ -6,9 +6,10 @@ use crate::tree::RootedPhyloTree;
 
 pub struct PreOrdEdges
 {
-    stack: Vec<(NodeID, NodeID)>,
-    nodes_iter: PostOrdNodes,
+    stack: Vec<(NodeID, NodeID, Option<EdgeWeight>)>,
+    node_iter: PostOrdNodes,
     children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>,
+    parents: HashMap<NodeID, Option<NodeID>>,
 }
 
 impl PreOrdEdges
@@ -16,11 +17,12 @@ impl PreOrdEdges
     pub fn new(tree: &RootedPhyloTree, start_node: &NodeID)->Self{
         Self { 
             stack:vec![], 
-            nodes_iter: PostOrdNodes::new(
+            node_iter: PostOrdNodes::new(
                 start_node,
                 tree.get_children(),
             ),
             children: tree.get_children().clone(),
+            parents: tree.get_parents().clone(),
         }
     }
 }
@@ -78,7 +80,7 @@ impl Iterator for PostOrdEdges
                                 }
                                 Some((*parent_id, node_id, w))
                             },
-                            None => return None,
+                            None => None,
                         }
                     },
                     None => None

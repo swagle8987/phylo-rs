@@ -8,9 +8,9 @@ use crate::tree::simple_rtree::*;
 use crate::iter::{node_iter::*, edge_iter::*};
 
 pub struct UnrootedPhyloTree{
-    nodes: HashMap<NodeID, NodeType>,
-    neighbours: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>>,
-    leaves: HashMap<NodeID, String>,
+    _nodes: HashMap<NodeID, NodeType>,
+    _neighbours: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>>,
+    _leaves: HashMap<NodeID, String>,
 }
 
 #[derive(Debug)]
@@ -241,7 +241,7 @@ impl SimpleRTree for RootedPhyloTree{
         self.nodes.get(node_id).expect("Invalid NodeID").is_leaf()
     }
 
-    fn graft_subtree(&mut self, tree: Box<dyn SimpleRTree>, edge: (&NodeID, &NodeID)){
+    fn graft_subtree(&mut self, _tree: Box<dyn SimpleRTree>, _edge: (&NodeID, &NodeID)){
         todo!()
     }
 
@@ -299,11 +299,11 @@ impl SimpleRTree for RootedPhyloTree{
         node_iter
     }
 
-    fn reroot_at_node(&mut self, node_id: &NodeID){
+    fn reroot_at_node(&mut self, _node_id: &NodeID){
         todo!()
     }
 
-    fn reroot_at_edge(&mut self, edge: (&NodeID, &NodeID)) {
+    fn reroot_at_edge(&mut self, _edge: (&NodeID, &NodeID)) {
         todo!()
     }
 
