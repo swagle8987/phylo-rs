@@ -13,8 +13,8 @@ impl PreOrdNodes
 {
     pub fn new(start_node_id: &NodeID, children: &HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>)->Self{
         Self { stack:vec![*start_node_id], nodes: children.iter()
-            .map(|(k, v)| (k.clone(), v.iter()
-                .map(|ni| ni.0.clone()).collect::<HashSet<NodeID>>()))
+            .map(|(k, v)| (*k, v.iter()
+                .map(|ni| ni.0).collect::<HashSet<NodeID>>()))
             .collect()}
     }
 }
@@ -47,8 +47,8 @@ impl PostOrdNodes
 {
     pub fn new(start_node_id: &NodeID, children: &HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>)->Self{
         Self { stack:vec![*start_node_id], nodes: children.iter()
-                .map(|(k, v)| (k.clone(), v.iter()
-                    .map(|ni| ni.0.clone()).collect::<HashSet<NodeID>>()))
+                .map(|(k, v)| (*k, v.iter()
+                    .map(|ni| ni.0).collect::<HashSet<NodeID>>()))
                 .collect()}
     }
 }

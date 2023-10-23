@@ -15,9 +15,9 @@ pub trait SimpleRTree {
     fn set_child(&mut self, node_id:&NodeID, parent_id:&NodeID, distance:Option<EdgeWeight>, taxa: Option<String>);
 
     /// Sets iterable of node_ids as children to parent
-    fn set_children(&mut self, parent: &NodeID, children: &Vec<(NodeID, Option<EdgeWeight>)>){
+    fn set_children(&mut self, parent: &NodeID, children: &[(NodeID, Option<EdgeWeight>)]){
         for (child_id, edge_weight) in children.iter(){
-            self.set_child(child_id, &parent, edge_weight.clone(), None);
+            self.set_child(child_id, parent, *edge_weight, None);
         }
     }
 
@@ -55,7 +55,7 @@ pub trait SimpleRTree {
     /// Check if tree is weighted
     fn is_weighted(&self)->bool{
         for (_, _, edge_weight) in self.iter_edges_post(self.get_root()){
-            if edge_weight!=None{
+            if edge_weight.is_some(){
                 return true;
             }
         }
@@ -114,7 +114,7 @@ pub trait SimpleRTree {
         let mut dist_mat: HashMap<(NodeID, NodeID), EdgeWeight> = HashMap::new();
         for node_pair in leaves{
             let w  = self.distance_from_node(node_pair[0], node_pair[1], weighted);
-            dist_mat.insert((node_pair[0].clone(), node_pair[1].clone()), w);
+            dist_mat.insert((*node_pair[0], *node_pair[1]), w);
         }
         dist_mat
     }
@@ -126,7 +126,7 @@ pub trait SimpleRTree {
         let mut dist_mat: HashMap<(NodeID, NodeID), EdgeWeight> = HashMap::new();
         for node_pair in leaves{
             let w  = self.distance_from_node(node_pair[0], node_pair[1], weighted);
-            dist_mat.insert((node_pair[0].clone(), node_pair[1].clone()), w);
+            dist_mat.insert((*node_pair[0], *node_pair[1]), w);
         }
         dist_mat
     }
@@ -173,7 +173,7 @@ pub trait SimpleRTree {
                 return node_id.1.as_ref();
             }
         }
-        return None;
+        None
     }
 
     /// return subtree as newick string
@@ -187,7 +187,7 @@ pub trait SimpleRTree {
 
         let node  = self.get_node(node_id);
         let mut tmp = String::new();
-        if self.get_node_children(node_id).len()>0{
+        if !self.get_node_children(node_id).is_empty(){
             tmp.push('(');
             for (child_id, w) in self.get_node_children(node_id){
                 let child_str = format!("{},", self.subtree_to_newick(child_id, *w));
@@ -197,7 +197,7 @@ pub trait SimpleRTree {
             tmp.push(')');
         }
         tmp.push_str(&print_node(node, edge_weight));
-        return tmp;
+        tmp
     }
 
     /// writes full tree in newick format

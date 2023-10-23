@@ -40,8 +40,8 @@ impl NodeType{
 
     pub fn node_type(&self)->String{
         match self.is_leaf() {
-            false => format!("Internal"),
-            true => format!("Leaf"),
+            false => "Internal".to_string(),
+            true => "Leaf".to_string(),
         }
     }
 }
