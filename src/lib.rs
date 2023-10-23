@@ -31,4 +31,10 @@ mod tests {
         let tree = RootedPhyloTree::from_newick(input_str);
         dbg!(tree.to_newick());
         }
+    #[test]
+    fn read_smallfwfl_tree() {
+        let input_str = String::from("((A:0.12,B:12)E:10,(C:15,D:0.001)F:20)G;");
+        let tree = RootedPhyloTree::from_newick(input_str);
+        dbg!(tree.to_newick());
+        }
 }

@@ -1,4 +1,5 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use std::fmt::format;
 use itertools::Itertools;
 
 use crate::node::*;
@@ -12,14 +13,17 @@ pub trait SimpleRTree {
     fn add_node(&mut self)->NodeID;
 
     /// Sets node_id as child to parent.
-    fn set_child(&mut self, node_id:&NodeID, parent_id:&NodeID, distance:Option<EdgeWeight>, taxa: String);
+    fn set_child(&mut self, node_id:&NodeID, parent_id:&NodeID, distance:Option<EdgeWeight>, taxa: Option<String>);
 
     /// Sets iterable of node_ids as children to parent
     fn set_children(&mut self, parent: &NodeID, children: &Vec<(NodeID, Option<EdgeWeight>)>){
         for (child_id, edge_weight) in children.iter(){
-            self.set_child(child_id, &parent, edge_weight.clone(), String::new());
+            self.set_child(child_id, &parent, edge_weight.clone(), None);
         }
     }
+
+    /// Converts internal node to leaf_node
+    fn set_leaf(&mut self, node_id: &NodeID);
 
     /// Sets the edge weight between two nodes (None to unweight the edge)
     fn set_edge_weight(&mut self, parent:&NodeID, child:&NodeID, edge_weights:Option<EdgeWeight>);
@@ -37,6 +41,9 @@ pub trait SimpleRTree {
     
     /// Returns all node ids
     fn get_nodes(&self)->&HashMap<NodeID, NodeType>;
+
+    /// Returns node by ID
+    fn get_node(&self, node_id: &NodeID)->&NodeType;
 
     /// Returns node degree
     fn get_node_degree(&self, node_id:&NodeID)->usize{
@@ -69,7 +76,7 @@ pub trait SimpleRTree {
     fn get_node_parent(&self, node_id:&NodeID)->Option<&NodeID>;
     
     /// Returns all leaf node ids
-    fn get_leaves(&self, node_id: &NodeID)->HashSet<(NodeID, String)>;
+    fn get_leaves(&self, node_id: &NodeID)->Vec<(NodeID, NodeType)>;
     
     /// Returns full subtree rooted at given node
     fn get_subtree(&self, node_id: &NodeID)->Box<dyn SimpleRTree>;
@@ -104,7 +111,7 @@ pub trait SimpleRTree {
     /// Returns pairwise distance matrix of the taxa. If weighted is true, then returns sum of edge weights along paths connecting leaves of tree
     fn leaf_distance_matrix(&self, weighted: bool)->HashMap<(NodeID, NodeID), EdgeWeight>{
         let binding = self.get_leaves(self.get_root());
-        let leaves = binding.iter().map(|(leaf_id, taxa)| leaf_id).combinations(2);
+        let leaves = binding.iter().map(|(leaf_id, _taxa)| leaf_id).combinations(2);
         let mut dist_mat: HashMap<(NodeID, NodeID), EdgeWeight> = HashMap::new();
         for node_pair in leaves{
             let w  = self.distance_from_node(node_pair[0], node_pair[1], weighted);
@@ -149,16 +156,16 @@ pub trait SimpleRTree {
     }
 
     /// Returns bipartition induced by edge
-    fn get_bipartition(&self, edge: (&NodeID, &NodeID))->(HashSet<NodeID>, HashSet<NodeID>);
+    fn get_bipartition(&self, edge: (&NodeID, &NodeID))->(Vec<(NodeID, NodeType)>, Vec<(NodeID, NodeType)>);
 
     /// Returns cluster of node
-    fn get_cluster(&self, node_id: &NodeID)-> HashSet<NodeID>;
+    fn get_cluster(&self, node_id: &NodeID)-> Vec<(NodeID, NodeType)>;
 
     /// Cleans self by removing 1) internal nodes (other than root) with degree 2, 2) Floating root nodes, 3) self loops
     fn clean(&mut self);
 
     /// Get node taxa
-    fn get_taxa(&self, node_id:&NodeID)->&String;
+    fn get_taxa(&self, node_id:&NodeID)->String;
 
     /// Get edge weight
     fn get_edge_weight(&self, parent_id: &NodeID, child_id:&NodeID)->Option<&EdgeWeight>{
@@ -172,25 +179,26 @@ pub trait SimpleRTree {
 
     /// return subtree as newick string
     fn subtree_to_newick(&self, node_id:&NodeID, edge_weight:Option<EdgeWeight>)->String{
-        match self.is_leaf(node_id){
-            true => {
-                match edge_weight {
-                    Some(w) => {format!("{}:{}", self.get_taxa(node_id), w)},
-                    _ => {format!("{}", self.get_taxa(node_id))}
-                }
-            }
-            false => {
-                let mut tmp = String::new();
-                tmp.push('(');
-                for (child_id, w) in self.get_node_children(node_id){
-                    let child_str = format!("{},", self.subtree_to_newick(child_id, *w));
-                    tmp.push_str(&child_str);
-                }
-                tmp.pop();
-                tmp.push(')');
-                return tmp;
+        fn print_node(node: &NodeType, weight: Option<EdgeWeight>)->String{
+            match weight {
+                Some(w) => format!("{}:{}", node.taxa(), w),
+                None => node.taxa()
             }
         }
+
+        let node  = self.get_node(node_id);
+        let mut tmp = String::new();
+        if self.get_node_children(node_id).len()>0{
+            tmp.push('(');
+            for (child_id, w) in self.get_node_children(node_id){
+                let child_str = format!("{},", self.subtree_to_newick(child_id, *w));
+                tmp.push_str(&child_str);
+            }
+            tmp.pop();
+            tmp.push(')');
+        }
+        tmp.push_str(&print_node(node, edge_weight));
+        return tmp;
     }
 
     /// writes full tree in newick format
