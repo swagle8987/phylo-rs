@@ -99,14 +99,6 @@ impl RootedPhyloTree{
             self.leaves_of_node(child_node_id, leaves);
         }
     }
-
-    pub fn get_children(&self)->&HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>{
-        &self.children
-    }
-
-    pub fn get_parents(&self)->&HashMap<NodeID, Option<NodeID>>{
-        &self.parents
-    }
 }
 
 impl SimpleRTree for RootedPhyloTree{
@@ -154,6 +146,15 @@ impl SimpleRTree for RootedPhyloTree{
         &self.nodes
     }
 
+    fn get_children(&self)->&HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>{
+        &self.children
+    }
+
+    fn get_parents(&self)->&HashMap<NodeID, Option<NodeID>>{
+        &self.parents
+    }
+
+
     fn get_node_children(&self, node_id: &NodeID)->&Vec<(NodeID, Option<EdgeWeight>)>{
         self.children.get(node_id).expect("Invalid NodeID!")
     }
@@ -162,10 +163,10 @@ impl SimpleRTree for RootedPhyloTree{
         self.parents.get(node_id).expect("Invalid NodeID!").as_ref()
     }
 
-    fn get_leaves(&self, node_id: &NodeID)->HashSet<NodeID>{
+    fn get_leaves(&self, node_id: &NodeID)->HashSet<(NodeID, String)>{
         let mut leaf_vec: Vec<NodeID> = Vec::new();
         self.leaves_of_node(node_id, &mut leaf_vec);
-        leaf_vec.into_iter().collect::<HashSet<NodeID>>()
+        leaf_vec.into_iter().map(|leaf_id| (leaf_id, self.leaves.get(&leaf_id).cloned().expect("NodeID is not a leaf!"))).collect::<HashSet<(NodeID, String)>>()
     }
 
     fn get_subtree(&self, node_id: &NodeID)->Box<dyn SimpleRTree>{
@@ -227,7 +228,7 @@ impl SimpleRTree for RootedPhyloTree{
         todo!()
     }
 
-    fn extract_subtree(&mut self, node_id: &NodeID)-> Box<dyn SimpleRTree>{
+    fn prune(&mut self, node_id: &NodeID)-> Box<dyn SimpleRTree>{
         let root= node_id.clone();
         let mut nodes: HashMap<NodeID, NodeType>= HashMap::new();
         let mut children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>> = HashMap::new();
@@ -366,4 +367,31 @@ impl SimpleRTree for RootedPhyloTree{
     fn get_taxa(&self, node_id:&NodeID)->&String {
         self.leaves.get(node_id).expect("Node has not associated taxa!")
     }
+
+    fn incerement_ids(&mut self, value: &usize){
+        self.nodes = self.nodes.clone().into_iter().map(|(node_id, node_type)| (node_id+value, node_type)).collect();
+        self.parents = self.parents.clone().into_iter().map(|(node_id, parent_id)| {
+            (
+                node_id+value, 
+                match parent_id{
+                    Some(id) => Some(id+value),
+                    None => None,
+                }
+            )
+        }).collect();
+        self.children = self.children.clone().into_iter().map(|(node_id, children_vec)| {
+            (
+                node_id+value,
+                children_vec.into_iter().map(|(child_id, w)| {
+                    (
+                        child_id+value,
+                        w
+                    )
+                })
+                .collect()
+            )
+        }).collect();
+        self.leaves = self.leaves.clone().into_iter().map(|(leaf_id, taxa)| (leaf_id+value, taxa)).collect();
+    }
+
 }
