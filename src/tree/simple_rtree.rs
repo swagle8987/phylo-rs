@@ -55,6 +55,12 @@ pub trait SimpleRTree {
         }
         false
     }
+
+    /// Get all node-child relationships
+    fn get_children(&self)->&HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>;
+
+    /// Get all node-parent relationships
+    fn get_parents(&self)->&HashMap<NodeID, Option<NodeID>>;
     
     /// Returns children node ids for given node id 
     fn get_node_children(&self, node_id: &NodeID)->&Vec<(NodeID, Option<EdgeWeight>)>;
@@ -63,7 +69,7 @@ pub trait SimpleRTree {
     fn get_node_parent(&self, node_id:&NodeID)->Option<&NodeID>;
     
     /// Returns all leaf node ids
-    fn get_leaves(&self, node_id: &NodeID)->HashSet<NodeID>;
+    fn get_leaves(&self, node_id: &NodeID)->HashSet<(NodeID, String)>;
     
     /// Returns full subtree rooted at given node
     fn get_subtree(&self, node_id: &NodeID)->Box<dyn SimpleRTree>;
@@ -78,7 +84,7 @@ pub trait SimpleRTree {
     fn graft_subtree(&mut self, tree: Box<dyn SimpleRTree>, edge: (&NodeID, &NodeID));
     
     /// Returns subtree starting at given node, while corresponding nodes from self.
-    fn extract_subtree(&mut self, node_id: &NodeID)-> Box<dyn SimpleRTree>;
+    fn prune(&mut self, node_id: &NodeID)-> Box<dyn SimpleRTree>;
 
     ///Returns an iterator that iterates over the nodes in Pre-order
     fn iter_node_pre(&self, start_node_id: &NodeID)->PreOrdNodes;
@@ -98,7 +104,7 @@ pub trait SimpleRTree {
     /// Returns pairwise distance matrix of the taxa. If weighted is true, then returns sum of edge weights along paths connecting leaves of tree
     fn leaf_distance_matrix(&self, weighted: bool)->HashMap<(NodeID, NodeID), EdgeWeight>{
         let binding = self.get_leaves(self.get_root());
-        let leaves = binding.iter().combinations(2);
+        let leaves = binding.iter().map(|(leaf_id, taxa)| leaf_id).combinations(2);
         let mut dist_mat: HashMap<(NodeID, NodeID), EdgeWeight> = HashMap::new();
         for node_pair in leaves{
             let w  = self.distance_from_node(node_pair[0], node_pair[1], weighted);
@@ -191,4 +197,7 @@ pub trait SimpleRTree {
     fn to_newick(&self)->String{
         format!("{};", self.subtree_to_newick(self.get_root(), None))
     }
+
+    /// Increment all node_ids
+    fn incerement_ids(&mut self, value: &usize);
 }
