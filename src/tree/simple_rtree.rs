@@ -135,7 +135,10 @@ pub trait SimpleRTree {
     fn reroot_at_node(&mut self, node_id: &NodeID);
     
     /// Rerootes tree at edge.
-    fn reroot_at_edge(&mut self, edge: (&NodeID, &NodeID));
+    fn reroot_at_edge(&mut self, edge: (&NodeID, &NodeID), edge_weights: (Option<EdgeWeight>, Option<EdgeWeight>)){
+        let split_node_id = self.split_edge(edge, edge_weights);
+        self.reroot_at_node(&split_node_id);
+    }
 
     /// Inserts node in the middle of edge given by pair of node ids, and returns the new node id
     fn split_edge(&mut self, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>))->NodeID;

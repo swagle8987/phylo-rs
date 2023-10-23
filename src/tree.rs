@@ -313,12 +313,28 @@ impl SimpleRTree for RootedPhyloTree{
         node_iter
     }
 
-    fn reroot_at_node(&mut self, _node_id: &NodeID){
-        todo!()
-    }
+    fn reroot_at_node(&mut self, node_id: &NodeID){
+        let mut stack: Vec<NodeID> = vec![node_id.clone()];
+        let mut completed_stack: Vec<NodeID> = Vec::new();
+        let mut neighbours: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>> = self.children.clone();
+        neighbours.extend(
+            self.parents.clone().into_iter()
+                .filter(|(_child_id, parent_id)| parent_id!=&None)
+                .map(|(child_id, parent_id)| (child_id, vec![(parent_id.unwrap(), self.get_edge_weight(parent_id.as_ref().unwrap(), &child_id).cloned())]))
+        );
+        let mut new_children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>> = HashMap::new();
+        let mut new_parents: HashMap<NodeID, Option<NodeID>> = HashMap::from([(node_id.clone(), None)]);
 
-    fn reroot_at_edge(&mut self, _edge: (&NodeID, &NodeID)) {
-        todo!()
+        while !stack.is_empty(){
+            let curr_node = stack.pop().unwrap();
+            if let Some(child) = neighbours.get(&curr_node){
+                let curr_node_children = child.into_iter().filter(|(id, _w)| !completed_stack.contains(id));
+                new_children.entry(curr_node).or_default().extend(curr_node_children);
+                stack.extend(child.into_iter().map(|(id, _w)| id.clone()));
+            }
+            completed_stack.push(curr_node);
+        }
+
     }
 
     fn split_edge(&mut self, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>))->NodeID{
