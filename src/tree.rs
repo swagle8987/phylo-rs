@@ -1,9 +1,6 @@
 pub mod simple_rtree;
 
 use std::collections::{HashMap, HashSet};
-
-use itertools::Itertools;
-
 use crate::node::*;
 use crate::tree::simple_rtree::*;
 use crate::iter::{node_iter::*, edge_iter::*};
