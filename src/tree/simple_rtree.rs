@@ -96,7 +96,28 @@ pub trait SimpleRTree {
     fn get_ancestors_pre(&self, node_id: &NodeID)->Vec<NodeID>;
 
     /// Returns pairwise distance matrix of the taxa. If weighted is true, then returns sum of edge weights along paths connecting leaves of tree
-    fn leaf_distance_matrix(&self, weighted: bool)->Vec<Vec<EdgeWeight>>;
+    fn leaf_distance_matrix(&self, weighted: bool)->HashMap<(NodeID, NodeID), EdgeWeight>{
+        let binding = self.get_leaves(self.get_root());
+        let leaves = binding.iter().combinations(2);
+        let mut dist_mat: HashMap<(NodeID, NodeID), EdgeWeight> = HashMap::new();
+        for node_pair in leaves{
+            let w  = self.distance_from_node(node_pair[0], node_pair[1], weighted);
+            dist_mat.insert((node_pair[0].clone(), node_pair[1].clone()), w);
+        }
+        dist_mat
+    }
+
+    /// Returns pairwise distance matrix of all nodes. If weighted is true, then returns sum of edge weights along paths connecting leaves of tree
+    fn node_distance_matrix(&self, weighted: bool)->HashMap<(NodeID, NodeID), EdgeWeight>{
+        let binding = self.get_nodes();
+        let leaves = binding.keys().combinations(2);
+        let mut dist_mat: HashMap<(NodeID, NodeID), EdgeWeight> = HashMap::new();
+        for node_pair in leaves{
+            let w  = self.distance_from_node(node_pair[0], node_pair[1], weighted);
+            dist_mat.insert((node_pair[0].clone(), node_pair[1].clone()), w);
+        }
+        dist_mat
+    }
 
     /// Rerootes tree at given node.
     fn reroot_at_node(&mut self, node_id: &NodeID);
@@ -107,8 +128,19 @@ pub trait SimpleRTree {
     /// Inserts node in the middle of edge given by pair of node ids
     fn split_edge(&mut self, edge: (NodeID, NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>));
 
+    /// Returns distance of node from some ancestor of node. If weighted is true, it returns sum of edges from root to self.
+    fn distance_from_ancestor(&self, node: &NodeID, ancestor: &NodeID, weighted: bool)->f64;
+
     /// Returns distance of node from root. If weighted is true, it returns sum of edges from root to self.
-    fn distance_from_root(&self, node: &NodeID, weighted: bool)->f64;
+    fn distance_from_root(&self, node: &NodeID, weighted: bool)->EdgeWeight{
+        self.distance_from_ancestor(node, self.get_root(), weighted)
+    }
+
+    /// Returns distance of node from root. If weighted is true, it returns sum of edges from root to self.
+    fn distance_from_node(&self, node1: &NodeID, node2: &NodeID, weighted: bool)->f64{
+        let mrca = self.get_mrca(vec![node1, node2]);
+        self.distance_from_ancestor(node1, &mrca, weighted) + self.distance_from_ancestor(node2, &mrca, weighted)
+    }
 
     /// Returns bipartition induced by edge
     fn get_bipartition(&self, edge: (&NodeID, &NodeID))->(HashSet<NodeID>, HashSet<NodeID>);

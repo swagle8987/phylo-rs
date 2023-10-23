@@ -100,10 +100,12 @@ impl RootedPhyloTree{
         }
     }
 
-    fn remove_self_loops(&mut self){
-        for (node_id, children) in self.children.iter_mut(){
-            children.retain(|(child_id, _edge_weight)| child_id!=node_id);
-        }
+    pub fn get_children(&self)->&HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>{
+        &self.children
+    }
+
+    pub fn get_parents(&self)->&HashMap<NodeID, Option<NodeID>>{
+        &self.parents
     }
 }
 
@@ -260,11 +262,11 @@ impl SimpleRTree for RootedPhyloTree{
     }
 
     fn iter_edges_pre(&self, start_node_id: &NodeID)->PreOrdEdges{
-        todo!()
+        PreOrdEdges::new(&self, start_node_id)
     }
 
     fn iter_edges_post(&self, start_node_id: &NodeID)->PostOrdEdges{
-        todo!()
+        PostOrdEdges::new(&self, start_node_id)
     }
 
     fn get_ancestors_pre(&self, node_id: &NodeID)->Vec<NodeID>{
@@ -285,10 +287,6 @@ impl SimpleRTree for RootedPhyloTree{
         node_iter
     }
 
-    fn leaf_distance_matrix(&self, weighted: bool)->Vec<Vec<EdgeWeight>>{
-        todo!()
-    }
-
     fn reroot_at_node(&mut self, node_id: &NodeID){
         todo!()
     }
@@ -304,9 +302,10 @@ impl SimpleRTree for RootedPhyloTree{
         self.parents.insert(edge.1, Some(new_node_id));
     }
 
-    fn distance_from_root(&self, node: &NodeID, weighted: bool)->f64{
+    fn distance_from_ancestor(&self, node: &NodeID, ancestor: &NodeID, weighted: bool)->f64{
         let binding = self.get_ancestors_pre(node);
-        let mut node_ancestor_pre = binding.iter();
+        let start_idx = binding.iter().position(|&x| x==*ancestor).expect("Provided ancestor is not an ancestor of node!");
+        let mut node_ancestor_pre = binding[start_idx..].iter();
         let mut curr_parent = node_ancestor_pre.next().unwrap();
         let mut distance  = 0 as f64;
         loop{
