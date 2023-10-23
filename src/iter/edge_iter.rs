@@ -1,13 +1,13 @@
 use crate::node::*;
 use crate::tree::simple_rtree::*;
 use std::collections::HashMap;
-use crate::iter::node_iter::PostOrdNodes;
+use crate::iter::node_iter::{PostOrdNodes, PreOrdNodes};
 use crate::tree::RootedPhyloTree;
 
 pub struct PreOrdEdges
 {
     stack: Vec<(NodeID, NodeID, Option<EdgeWeight>)>,
-    node_iter: PostOrdNodes,
+    node_iter: PreOrdNodes,
     children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>,
     parents: HashMap<NodeID, Option<NodeID>>,
 }
@@ -17,7 +17,7 @@ impl PreOrdEdges
     pub fn new(tree: &RootedPhyloTree, start_node: &NodeID)->Self{
         Self { 
             stack:vec![], 
-            node_iter: PostOrdNodes::new(
+            node_iter: PreOrdNodes::new(
                 start_node,
                 tree.get_children(),
             ),
