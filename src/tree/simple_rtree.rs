@@ -93,7 +93,7 @@ pub trait SimpleRTree {
     fn iter_edges_post(&self, start_node_id: &NodeID)->PostOrdEdges;
 
     /// Returns all node ids in path from root to given node
-    fn get_ancestors(&self, node_id: &NodeID)->Vec<&NodeID>;
+    fn get_ancestors_pre(&self, node_id: &NodeID)->Vec<NodeID>;
 
     /// Returns pairwise distance matrix of the taxa. If weighted is true, then returns sum of edge weights along paths connecting leaves of tree
     fn leaf_distance_matrix(&self, weighted: bool)->Vec<Vec<EdgeWeight>>;
@@ -105,10 +105,10 @@ pub trait SimpleRTree {
     fn reroot_at_edge(&mut self, edge: (&NodeID, &NodeID));
 
     /// Inserts node in the middle of edge given by pair of node ids
-    fn insert_internal_node(&mut self, edge: (NodeID, NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>));
+    fn split_edge(&mut self, edge: (NodeID, NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>));
 
     /// Returns distance of node from root. If weighted is true, it returns sum of edges from root to self.
-    fn distance_from_root(&self, weighted: bool)->f64;
+    fn distance_from_root(&self, node: &NodeID, weighted: bool)->f64;
 
     /// Returns bipartition induced by edge
     fn get_bipartition(&self, edge: (&NodeID, &NodeID))->(HashSet<NodeID>, HashSet<NodeID>);

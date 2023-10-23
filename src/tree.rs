@@ -103,24 +103,6 @@ impl RootedPhyloTree{
         }
     }
 
-    pub fn iter_node_ancestors_pre(&self, node_id:&NodeID)->Vec<NodeID>{
-        let mut node_iter: Vec<NodeID> = Vec::new();
-        let mut curr_node = node_id;
-        while self.parents.get(curr_node) != None {
-            match self.parents.get(curr_node).expect("Invalid NodeID!") {
-                Some(node) => {
-                    node_iter.push(node.clone());
-                    curr_node = node;
-                },
-                None => {
-                    node_iter.push(self.get_root().clone());
-                    break;
-                },
-            }
-        }
-        node_iter
-    }
-
     fn remove_self_loops(&mut self){
         for (node_id, children) in self.children.iter_mut(){
             children.retain(|(child_id, _edge_weight)| child_id!=node_id);
@@ -216,7 +198,7 @@ impl SimpleRTree for RootedPhyloTree{
     }
 
     fn get_mrca(&self, node_id_list: Vec<&NodeID>)->NodeID{
-        let ancestor_iter_vec: Vec<std::vec::IntoIter<NodeID>> = node_id_list.iter().map(|x| self.iter_node_ancestors_pre(x).into_iter()).collect();
+        let ancestor_iter_vec: Vec<std::vec::IntoIter<NodeID>> = node_id_list.iter().map(|x| self.get_ancestors_pre(x).into_iter()).collect();
         let mut mrca: NodeID = 0;
         for mut iterator in ancestor_iter_vec{
             let temp: HashSet<NodeID> = HashSet::new();
@@ -288,8 +270,22 @@ impl SimpleRTree for RootedPhyloTree{
         todo!()
     }
 
-    fn get_ancestors(&self, node_id: &NodeID)->Vec<&NodeID>{
-        todo!()
+    fn get_ancestors_pre(&self, node_id: &NodeID)->Vec<NodeID>{
+        let mut node_iter: Vec<NodeID> = Vec::new();
+        let mut curr_node = node_id;
+        while self.parents.get(curr_node) != None {
+            match self.parents.get(curr_node).expect("Invalid NodeID!") {
+                Some(node) => {
+                    node_iter.push(node.clone());
+                    curr_node = node;
+                },
+                None => {
+                    node_iter.push(self.get_root().clone());
+                    break;
+                },
+            }
+        }
+        node_iter
     }
 
     fn leaf_distance_matrix(&self, weighted: bool)->Vec<Vec<EdgeWeight>>{
@@ -304,12 +300,38 @@ impl SimpleRTree for RootedPhyloTree{
         todo!()
     }
 
-    fn insert_internal_node(&mut self, edge: (NodeID, NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>)){
-        todo!()
+    fn split_edge(&mut self, edge: (NodeID, NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>)){
+        let new_node_id = self.add_node();
+        self.parents.insert(new_node_id, Some(edge.0));
+        self.children.entry(new_node_id).or_default().push((edge.1, edge_weights.1));
+        self.parents.insert(edge.1, Some(new_node_id));
     }
 
-    fn distance_from_root(&self, weighted: bool)->f64{
-        todo!()
+    fn distance_from_root(&self, node: &NodeID, weighted: bool)->f64{
+        let binding = self.get_ancestors_pre(node);
+        let mut node_ancestor_pre = binding.iter();
+        let mut curr_parent = node_ancestor_pre.next().unwrap();
+        let mut distance  = 0 as f64;
+        loop{
+            match node_ancestor_pre.next(){
+                Some(node_id) => {
+                    let curr_parent_children = self.get_node_children(curr_parent);
+                    for (child_id, w) in curr_parent_children{
+                        if child_id==node_id{
+                            match weighted {
+                                true => {distance += w.unwrap_or(0 as f64);}
+                                false => {distance += 1 as f64;}
+                            }
+                            curr_parent = node_id;
+                            continue;
+                        }
+                        panic!("Ancestor chain is broken! Clean tree before moving forward...")
+                    } 
+                },
+                None => {break;}
+            } 
+        };
+        distance
     }
 
     fn get_bipartition(&self, edge: (&NodeID, &NodeID))->(HashSet<NodeID>, HashSet<NodeID>){
