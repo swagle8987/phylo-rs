@@ -6,23 +6,21 @@ use crate::tree::RootedPhyloTree;
 
 pub struct PreOrdEdges
 {
-    stack: Vec<(NodeID, NodeID, Option<EdgeWeight>)>,
     node_iter: PreOrdNodes,
-    children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>,
-    parents: HashMap<NodeID, Option<NodeID>>,
+    parents: HashMap<NodeID, (Option<NodeID>, Option<EdgeWeight>)>,
 }
 
 impl PreOrdEdges
 {
     pub fn new(tree: &RootedPhyloTree, start_node: &NodeID)->Self{
         Self { 
-            stack:vec![], 
             node_iter: PreOrdNodes::new(
                 start_node,
                 tree.get_children(),
             ),
-            children: tree.get_children().clone(),
-            parents: tree.get_parents().clone(),
+            parents: tree.get_parents().into_iter()
+            .filter(|(_child_id, parent_id)| parent_id!=&&None)
+            .map(|(child_id, parent_id)| (child_id.clone(), (parent_id.clone(), tree.get_edge_weight(parent_id.as_ref().unwrap(), child_id).cloned()))).collect(),
         }
     }
 }
@@ -32,7 +30,18 @@ impl Iterator for PreOrdEdges
     type Item = (NodeID, NodeID, Option<EdgeWeight>);
 
     fn next(&mut self)->Option<Self::Item>{
-        todo!();
+        while let Some(next_node) = self.node_iter.next() {
+            match next_node {
+                0 => {
+                    continue;
+                }
+                _ => {
+                    let parents = self.parents.get(&next_node).unwrap();
+                    return Some((parents.0.unwrap(), next_node, parents.1));
+                }
+            }
+        }
+        None
     }
 }
 

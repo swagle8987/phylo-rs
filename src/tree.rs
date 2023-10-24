@@ -244,7 +244,7 @@ impl SimpleRTree for RootedPhyloTree{
         self.nodes.get(node_id).expect("Invalid NodeID").is_leaf()
     }
 
-    fn graft_subtree(&mut self, tree: Box<dyn SimpleRTree>, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>), graft_edge_weight: Option<EdgeWeight>){
+    fn graft(&mut self, tree: Box<dyn SimpleRTree>, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>), graft_edge_weight: Option<EdgeWeight>){
         let graft_node = self.split_edge(edge, edge_weights);
         let input_root_id = tree.get_root();
         for input_node in tree.get_nodes().keys(){
@@ -315,26 +315,31 @@ impl SimpleRTree for RootedPhyloTree{
 
     fn reroot_at_node(&mut self, node_id: &NodeID){
         let mut stack: Vec<NodeID> = vec![node_id.clone()];
-        let mut completed_stack: Vec<NodeID> = Vec::new();
         let mut neighbours: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>> = self.children.clone();
-        neighbours.extend(
-            self.parents.clone().into_iter()
-                .filter(|(_child_id, parent_id)| parent_id!=&None)
-                .map(|(child_id, parent_id)| (child_id, vec![(parent_id.unwrap(), self.get_edge_weight(parent_id.as_ref().unwrap(), &child_id).cloned())]))
-        );
+        let parent_as_edge = self.parents.clone().into_iter()
+        .filter(|(_child_id, parent_id)| parent_id!=&None)
+        .map(|(child_id, parent_id)| (child_id, vec![(parent_id.unwrap(), self.get_edge_weight(parent_id.as_ref().unwrap(), &child_id).cloned())]));
+        for (id, edges) in parent_as_edge{
+            neighbours.entry(id).or_default().extend(edges);
+        }
         let mut new_children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>> = HashMap::new();
         let mut new_parents: HashMap<NodeID, Option<NodeID>> = HashMap::from([(node_id.clone(), None)]);
 
         while !stack.is_empty(){
             let curr_node = stack.pop().unwrap();
-            if let Some(child) = neighbours.get(&curr_node){
-                let curr_node_children = child.into_iter().filter(|(id, _w)| !completed_stack.contains(id));
-                new_children.entry(curr_node).or_default().extend(curr_node_children);
-                stack.extend(child.into_iter().map(|(id, _w)| id.clone()));
+            if let Some(child) = neighbours.remove(&curr_node){
+                let curr_node_children = &child.iter().filter(|(id, _w)| !new_parents.keys().contains(id));
+                new_children.entry(curr_node).or_default().extend(curr_node_children.clone());
+                for (id, _w) in &child{
+                    new_parents.insert(id.clone(), Some(curr_node.clone()));
+                }
+                stack.extend(child.iter().map(|(id, _w)| id.clone()))
             }
-            completed_stack.push(curr_node);
         }
 
+        self.children = dbg!(new_children);
+        self.parents = dbg!(new_parents);
+        self.root = *dbg!(node_id);
     }
 
     fn split_edge(&mut self, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>))->NodeID{
