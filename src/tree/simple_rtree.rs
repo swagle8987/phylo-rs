@@ -87,7 +87,7 @@ pub trait SimpleRTree {
     fn is_leaf(&self, node_id: &NodeID)->bool;
     
     /// Attaches input tree to self by spliting an edge
-    fn graft_subtree(&mut self, tree: Box<dyn SimpleRTree>, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>), graft_edge_weight: Option<EdgeWeight>);
+    fn graft(&mut self, tree: Box<dyn SimpleRTree>, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>), graft_edge_weight: Option<EdgeWeight>);
     
     /// Returns subtree starting at given node, while corresponding nodes from self.
     fn prune(&mut self, node_id: &NodeID)-> Box<dyn SimpleRTree>;
