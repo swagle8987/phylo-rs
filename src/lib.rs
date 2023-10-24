@@ -6,7 +6,7 @@ pub mod iter;
 
 #[cfg(test)]
 mod tests {
-    use crate::tree::{RootedPhyloTree, simple_rtree::SimpleRTree};
+    use crate::tree::{RootedPhyloTree, simple_rtree::*};
     #[test]
     fn read_small_tree() {
         let input_str = String::from("((A,B),(C,D));");
@@ -53,6 +53,14 @@ mod tests {
         let mut tree = RootedPhyloTree::from_newick(input_str);
         dbg!(tree.to_newick());
         tree.reroot_at_edge((&1, &0), (None, None));
+        dbg!(tree.to_newick());
+    }
+    #[test]
+    fn spr_small_tree() {
+        let input_str = String::from("((A,B),(C,D));");
+        let mut tree = RootedPhyloTree::from_newick(input_str);
+        dbg!(tree.to_newick());
+        tree.spr((&0, &1), (&4, &5), (None, None));
         dbg!(tree.to_newick());
     }
 
