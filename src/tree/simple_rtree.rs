@@ -210,11 +210,14 @@ pub trait SimpleRTree {
 
     /// Increment all node_ids
     fn incerement_ids(&mut self, value: &usize);
+}
 
-    /// SPR function
-    fn spr(&mut self, edge1: (&NodeID, &NodeID), edge2: (&NodeID, &NodeID), edge2_weights: (Option<EdgeWeight>, Option<EdgeWeight>)){
-        let graft_edge_weight = self.get_edge_weight(edge1.0, edge1.1).cloned();
-        let pruned_tree = self.prune(edge1.1);
-        self.graft(pruned_tree, edge2, edge2_weights, graft_edge_weight);
-    }
+pub trait RPhyTree:SimpleRTree {
+        /// SPR function
+        fn spr(&mut self, edge1: (&NodeID, &NodeID), edge2: (&NodeID, &NodeID), edge2_weights: (Option<EdgeWeight>, Option<EdgeWeight>)){
+            let graft_edge_weight = self.get_edge_weight(edge1.0, edge1.1).cloned();
+            let pruned_tree = self.prune(edge1.1);
+            self.graft(pruned_tree, edge2, edge2_weights, graft_edge_weight);
+        }
+    
 }
