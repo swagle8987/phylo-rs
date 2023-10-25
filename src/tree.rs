@@ -441,4 +441,33 @@ impl SimpleRTree for RootedPhyloTree{
 
 }
 
-impl RPhyTree for RootedPhyloTree{}
+impl RPhyTree for RootedPhyloTree{
+    fn induce_tree(&self, taxa: Vec<String>)->Box<dyn RPhyTree>{
+        let mut nodes: HashMap<NodeID, NodeType> = HashMap::new();
+        let leaf_ids = self.get_nodes()
+            .iter()
+            .filter(|(_id, n_type)| taxa.contains(&n_type.taxa()))
+            .map(|(id, _)| (id));
+        for id in leaf_ids{
+            nodes.insert(id.clone(), self.get_node(id).clone());
+            nodes.extend(self.get_ancestors_pre(id).iter().map(|node_id| (node_id.clone(), self.get_node(node_id).clone())).collect::<HashMap<NodeID, NodeType>>());
+        }
+        let root = self.get_mrca(nodes.keys().collect_vec());
+        let children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>> = nodes.keys()
+            .map(|id| (id.clone(), self.get_node_children(id).into_iter().filter(|(child_id, _)| nodes.contains_key(child_id)).map(|i| i.clone()).collect_vec()))
+            .collect();
+        let mut parents: HashMap<NodeID, Option<NodeID>> = nodes.keys()
+            .map(|id| (id.clone(), self.get_node_parent(id).cloned()))
+            .collect();
+        parents.insert(root.clone(), None);
+        Box::new(
+            RootedPhyloTree{
+                root,
+                nodes,
+                children,
+                parents,
+            }
+        )
+    }
+
+}
