@@ -127,7 +127,7 @@ impl RootedPhyloTree{
 impl SimpleRTree for RootedPhyloTree{
     fn add_node(&mut self)->NodeID{
         // New node id
-        let node_id = self.nodes.len();
+        let node_id = self.nodes.keys().max().unwrap_or(self.get_root())+&1;
         // add entry of node in parents and children fields
         self.nodes.insert(node_id, NodeType::Internal(None));
         self.parents.insert(node_id, None);
@@ -261,9 +261,14 @@ impl SimpleRTree for RootedPhyloTree{
 
     fn prune(&mut self, node_id: &NodeID)-> Box<dyn SimpleRTree>{
         let root= *node_id;
+        let root_parent = self.get_node_parent(node_id).expect("Node has no parent! Clean tree first...");
+        self.children.entry(*root_parent).or_default().retain(|(child_id, _w)| *child_id!=root);
+        self.parents.insert(root, None);
+
         let mut nodes: HashMap<NodeID, NodeType>= HashMap::new();
         let mut children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>> = HashMap::new();
         let mut parents: HashMap<NodeID, Option<NodeID>> = HashMap::new();
+        
         for decsendant_node_id in self.iter_node_pre(node_id){
             nodes.insert(decsendant_node_id, self.nodes.remove(&decsendant_node_id).expect("Invalid NodeID!").clone());
             children.insert(decsendant_node_id, self.children.remove(&decsendant_node_id).expect("Invalid NodeID!").clone());
@@ -347,6 +352,8 @@ impl SimpleRTree for RootedPhyloTree{
         self.parents.insert(new_node_id, Some(edge.0.clone()));
         self.children.entry(new_node_id).or_default().push((edge.1.clone(), edge_weights.1));
         self.parents.insert(edge.1.clone(), Some(new_node_id));
+        self.children.entry(edge.0.clone()).or_default().retain(|(id, _w)| id!=edge.1);
+        self.children.entry(edge.0.clone()).or_default().push((new_node_id, edge_weights.0));
         new_node_id
     }
 
@@ -430,6 +437,37 @@ impl SimpleRTree for RootedPhyloTree{
                 .collect()
             )
         }).collect();
+    }
+
+}
+
+impl RPhyTree for RootedPhyloTree{
+    fn induce_tree(&self, taxa: Vec<String>)->Box<dyn RPhyTree>{
+        let mut nodes: HashMap<NodeID, NodeType> = HashMap::new();
+        let leaf_ids = self.get_nodes()
+            .iter()
+            .filter(|(_id, n_type)| taxa.contains(&n_type.taxa()))
+            .map(|(id, _)| (id));
+        for id in leaf_ids{
+            nodes.insert(id.clone(), self.get_node(id).clone());
+            nodes.extend(self.get_ancestors_pre(id).iter().map(|node_id| (node_id.clone(), self.get_node(node_id).clone())).collect::<HashMap<NodeID, NodeType>>());
+        }
+        let root = self.get_mrca(nodes.keys().collect_vec());
+        let children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>> = nodes.keys()
+            .map(|id| (id.clone(), self.get_node_children(id).into_iter().filter(|(child_id, _)| nodes.contains_key(child_id)).map(|i| i.clone()).collect_vec()))
+            .collect();
+        let mut parents: HashMap<NodeID, Option<NodeID>> = nodes.keys()
+            .map(|id| (id.clone(), self.get_node_parent(id).cloned()))
+            .collect();
+        parents.insert(root.clone(), None);
+        Box::new(
+            RootedPhyloTree{
+                root,
+                nodes,
+                children,
+                parents,
+            }
+        )
     }
 
 }
