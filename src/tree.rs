@@ -261,17 +261,18 @@ impl SimpleRTree for RootedPhyloTree{
 
     fn prune(&mut self, node_id: &NodeID)-> Box<dyn SimpleRTree>{
         let root= *node_id;
+        let root_parent = self.get_node_parent(node_id).expect("Node has no parent! Clean tree first...");
+        self.children.entry(*root_parent).or_default().retain(|(child_id, _w)| *child_id!=root);
+        self.parents.insert(root, None);
+
         let mut nodes: HashMap<NodeID, NodeType>= HashMap::new();
         let mut children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>> = HashMap::new();
         let mut parents: HashMap<NodeID, Option<NodeID>> = HashMap::new();
-        let self_nodes = self.nodes.clone();
+        
         for decsendant_node_id in self.iter_node_pre(node_id){
             nodes.insert(decsendant_node_id, self.nodes.remove(&decsendant_node_id).expect("Invalid NodeID!").clone());
             children.insert(decsendant_node_id, self.children.remove(&decsendant_node_id).expect("Invalid NodeID!").clone());
             parents.insert(decsendant_node_id, self.parents.remove(&decsendant_node_id).expect("Invalid NodeID!"));
-            for id in self_nodes.keys(){
-                self.children.entry(*id).or_default().retain(|(child_id, _w)| child_id != &decsendant_node_id);
-            }
             }
         Box::new(
             RootedPhyloTree{
