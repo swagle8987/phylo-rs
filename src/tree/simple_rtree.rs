@@ -225,6 +225,18 @@ pub trait SimpleRTree {
 }
 
 pub trait RPhyTree:SimpleRTree {
+    
+    /// Checks if tree is binary
+    fn is_binary(&self)->bool{
+        for (_id, children) in self.get_children().iter(){
+            match children.len()<=2{
+                true => {},
+                false => {return false;}
+            }
+        };
+        return true;
+    }
+
     /// SPR function
     fn spr(&mut self, edge1: (&NodeID, &NodeID), edge2: (&NodeID, &NodeID), edge2_weights: (Option<EdgeWeight>, Option<EdgeWeight>)){
         let graft_edge_weight = self.get_edge_weight(edge1.0, edge1.1).cloned();
