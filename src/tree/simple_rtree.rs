@@ -171,6 +171,9 @@ pub trait SimpleRTree {
     /// Returns cluster of node
     fn get_cluster(&self, node_id: &NodeID)-> Vec<(NodeID, NodeType)>;
 
+    // removes half-nodes in a subtree starting at input node and returns new root of subtree
+    fn clean_subtree(&mut self, node_id: NodeID)->(NodeID, Option<f64>);
+
     /// Cleans self by removing 1) internal nodes (other than root) with degree 2, 2) Floating root nodes, 3) self loops
     fn clean(&mut self);
 
@@ -225,6 +228,18 @@ pub trait SimpleRTree {
 }
 
 pub trait RPhyTree:SimpleRTree {
+    
+    /// Checks if tree is binary
+    fn is_binary(&self)->bool{
+        for (_id, children) in self.get_children().iter(){
+            match children.len()<=2{
+                true => {},
+                false => {return false;}
+            }
+        };
+        return true;
+    }
+
     /// SPR function
     fn spr(&mut self, edge1: (&NodeID, &NodeID), edge2: (&NodeID, &NodeID), edge2_weights: (Option<EdgeWeight>, Option<EdgeWeight>)){
         let graft_edge_weight = self.get_edge_weight(edge1.0, edge1.1).cloned();
@@ -233,5 +248,28 @@ pub trait RPhyTree:SimpleRTree {
     }
 
     /// Induce tree
-    fn induce_tree(&self, taxa: Vec<String>)->Box<dyn RPhyTree>;
+    fn induce_tree(&self, taxa: Vec<&String>)->Box<dyn RPhyTree>;
+
+    /// Balance a binary tree of 4 taxa
+    fn balance_subtree(&mut self){
+        assert!(self.is_binary(), "Tree is not binary!");
+        assert!(self.get_leaves(self.get_root()).len()==4, "Quartets have 4 leaves!");
+        assert!(!self.is_weighted(), "Cannot balance weighted tree!");
+        let (root_children, root) = (self.get_node_children(self.get_root()), self.get_root().clone());
+        let (child1, child2) = (root_children[0].0, root_children[1].0);
+        match (self.is_leaf(&child1), self.is_leaf(&child2)){
+            (false, false) => {},
+            (true, false) => {
+                let other_leaf = self.get_node_children(&child2).iter().filter(|(id, _)| self.is_leaf(id)).collect_vec()[0].0;
+                self.spr((&root, &child1), (&child2, &other_leaf), (None, None));
+            },
+            (false, true) => {
+                let other_leaf = self.get_node_children(&child1).iter().filter(|(id, _)| self.is_leaf(id)).collect_vec()[0].0;
+                self.spr((&root, &child2), (&child1, &other_leaf), (None, None));
+            },
+            _ =>{}
+        }
+        self.clean()
+    }
+
 }

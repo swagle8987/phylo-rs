@@ -122,6 +122,7 @@ impl RootedPhyloTree{
             self.leaves_of_node(child_node_id, leaves);
         }
     }
+
 }
 
 impl SimpleRTree for RootedPhyloTree{
@@ -391,26 +392,42 @@ impl SimpleRTree for RootedPhyloTree{
         leaves.into_iter().map(|leaf_id| (leaf_id, self.get_node(&leaf_id).clone())).collect_vec()
     }
 
-    fn clean(&mut self) {
-        let mut remove_list: Vec<&NodeID> = Vec::new();
-        for (node_id, node) in self.nodes.clone().iter(){
-            // remove root with only one child
-            if node_id==self.get_root() && self.get_node_degree(node_id)<2{
-                let new_root = self.get_node_children(self.get_root())[0].0;
-                self.root = new_root;
-                self.parents.entry(new_root).and_modify(|x| *x = None);
-                remove_list.push(node_id);
-            }
-            // remove nodes with only one child
-            else if !node.is_leaf() &&  self.get_node_degree(node_id)<3{
-                let parent = self.get_node_parent(node_id).cloned();
-                let children = self.get_node_children(node_id).clone();
-                for (child_id, _edge_weight) in children.clone().into_iter(){
-                    self.parents.entry(child_id).and_modify(|x| *x = parent);
+    fn clean_subtree(&mut self, node_id:NodeID)->(NodeID, Option<f64>){
+        match self.get_node(&node_id){
+            NodeType::Internal(_) => {
+                let node_children = self.get_node_children(&node_id).clone();
+                match node_children.len(){
+                    1 => {
+                        let node_de = self.clean_subtree(node_children[0].0);
+                        self.parents.insert(node_de.0, self.get_node_parent(&node_id).cloned());
+                        self.nodes.remove(&node_id);
+                        self.children.remove(&node_id);
+                        self.parents.remove(&node_id);
+                        return node_de
+                    },
+                    _ => {
+                        let new_children = node_children.clone()
+                        .iter()
+                        .map(|(child_id, _)| {
+                            let child_de = self.clean_subtree(child_id.clone());
+                            self.parents.insert(child_de.0.clone(), Some(node_id.clone()));
+                            child_de
+                        })
+                        .collect_vec();
+                        self.children.insert(node_id, new_children);
+                        return (node_id, None);
+                    }
                 }
-                self.set_children(parent.as_ref().unwrap(), &children);
+            },
+            NodeType::Leaf(_) => {
+                return (node_id, None)
             }
         }
+    }
+
+    fn clean(&mut self) {
+        let (new_root, _) = self.clean_subtree(self.root.clone());
+        self.root = new_root;
     }
 
     fn get_taxa(&self, node_id:&NodeID)->String {
@@ -442,11 +459,11 @@ impl SimpleRTree for RootedPhyloTree{
 }
 
 impl RPhyTree for RootedPhyloTree{
-    fn induce_tree(&self, taxa: Vec<String>)->Box<dyn RPhyTree>{
+    fn induce_tree(&self, taxa: Vec<&String>)->Box<dyn RPhyTree>{        
         let mut nodes: HashMap<NodeID, NodeType> = HashMap::new();
         let leaf_ids = self.get_nodes()
             .iter()
-            .filter(|(_id, n_type)| taxa.contains(&n_type.taxa()))
+            .filter(|(_id, n_type)| taxa.contains(&&n_type.taxa()))
             .map(|(id, _)| (id));
         for id in leaf_ids{
             nodes.insert(id.clone(), self.get_node(id).clone());
@@ -460,14 +477,17 @@ impl RPhyTree for RootedPhyloTree{
             .map(|id| (id.clone(), self.get_node_parent(id).cloned()))
             .collect();
         parents.insert(root.clone(), None);
-        Box::new(
+
+        let mut new_tree = Box::new(
             RootedPhyloTree{
                 root,
                 nodes,
                 children,
                 parents,
             }
-        )
+        );
+        new_tree.clean();
+        new_tree
     }
 
 }
