@@ -245,9 +245,9 @@ impl SimpleRTree for RootedPhyloTree{
     }
 
     fn graft(&mut self, mut tree: Box<dyn SimpleRTree>, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>), graft_edge_weight: Option<EdgeWeight>){
-        let graft_node = (self.split_edge(edge, edge_weights));
+        let graft_node = self.split_edge(edge, edge_weights);
         for input_node in tree.get_nodes().clone().keys(){
-            if (self.get_nodes()).contains_key((input_node)){
+            if (self.get_nodes()).contains_key(input_node){
                 tree.incerement_ids(&graft_node);
             }
         }
