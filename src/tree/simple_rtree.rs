@@ -252,19 +252,20 @@ pub trait RPhyTree:SimpleRTree {
 
     /// Balance a binary tree of 4 taxa
     fn balance_subtree(&mut self){
-        assert!(self.is_binary(), "Tree is not binary!");
         assert!(self.get_leaves(self.get_root()).len()==4, "Quartets have 4 leaves!");
         assert!(!self.is_weighted(), "Cannot balance weighted tree!");
+        assert!(self.is_binary(), "Cannot balance non-binary tree!");
         let (root_children, root) = (self.get_node_children(self.get_root()), self.get_root().clone());
-        let (child1, child2) = (root_children[0].0, root_children[1].0);
-        match (self.is_leaf(&child1), self.is_leaf(&child2)){
+        let (child1, child2) = ((root_children[0].0, root_children[1].0));
+        (&self.get_children(), &self.get_nodes());
+        match ((self.is_leaf(&child1)), (self.is_leaf(&child2))){
             (false, false) => {},
             (true, false) => {
-                let other_leaf = self.get_node_children(&child2).iter().filter(|(id, _)| self.is_leaf(id)).collect_vec()[0].0;
+                let other_leaf = (self.get_node_children(&child2).iter().filter(|(id, _)| self.is_leaf(id)).collect_vec()[0].0);
                 self.spr((&root, &child1), (&child2, &other_leaf), (None, None));
             },
             (false, true) => {
-                let other_leaf = self.get_node_children(&child1).iter().filter(|(id, _)| self.is_leaf(id)).collect_vec()[0].0;
+                let other_leaf = (self.get_node_children(&child1).iter().filter(|(id, _)| self.is_leaf(id)).collect_vec()[0].0);
                 self.spr((&root, &child2), (&child1, &other_leaf), (None, None));
             },
             _ =>{}

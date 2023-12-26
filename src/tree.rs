@@ -122,7 +122,6 @@ impl RootedPhyloTree{
             self.leaves_of_node(child_node_id, leaves);
         }
     }
-
 }
 
 impl SimpleRTree for RootedPhyloTree{
@@ -245,14 +244,15 @@ impl SimpleRTree for RootedPhyloTree{
         self.nodes.get(node_id).expect("Invalid NodeID").is_leaf()
     }
 
-    fn graft(&mut self, tree: Box<dyn SimpleRTree>, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>), graft_edge_weight: Option<EdgeWeight>){
-        let graft_node = self.split_edge(edge, edge_weights);
-        let input_root_id = tree.get_root();
-        for input_node in tree.get_nodes().keys(){
-            if self.get_nodes().contains_key(input_node){
-                panic!("The NodeIDs in the input tree are already present in the current tree!");
+    fn graft(&mut self, mut tree: Box<dyn SimpleRTree>, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>), graft_edge_weight: Option<EdgeWeight>){
+        let graft_node = (self.split_edge(edge, edge_weights));
+        for input_node in tree.get_nodes().clone().keys(){
+            if (self.get_nodes()).contains_key((input_node)){
+                tree.incerement_ids(&graft_node);
+                // panic!("The NodeIDs in the input tree are already present in the current tree!");
             }
         }
+        let input_root_id = tree.get_root();
 
         self.children.extend(tree.get_children().clone().into_iter());
         self.parents.extend(tree.get_parents().clone().iter());
@@ -343,9 +343,9 @@ impl SimpleRTree for RootedPhyloTree{
             }
         }
 
-        self.children = dbg!(new_children);
-        self.parents = dbg!(new_parents);
-        self.root = *dbg!(node_id);
+        self.children = new_children;
+        self.parents = new_parents;
+        self.root = *node_id;
     }
 
     fn split_edge(&mut self, edge: (&NodeID, &NodeID), edge_weights:(Option<EdgeWeight>, Option<EdgeWeight>))->NodeID{
@@ -434,26 +434,11 @@ impl SimpleRTree for RootedPhyloTree{
         self.get_node(node_id).taxa()
     }
 
-    fn incerement_ids(&mut self, value: &usize){
-        self.nodes = self.nodes.clone().into_iter().map(|(node_id, node_type)| (node_id+value, node_type)).collect();
-        self.parents = self.parents.clone().into_iter().map(|(node_id, parent_id)| {
-            (
-                node_id+value, 
-                parent_id.map(|id| id + value)
-            )
-        }).collect();
-        self.children = self.children.clone().into_iter().map(|(node_id, children_vec)| {
-            (
-                node_id+value,
-                children_vec.into_iter().map(|(child_id, w)| {
-                    (
-                        child_id+value,
-                        w
-                    )
-                })
-                .collect()
-            )
-        }).collect();
+    fn incerement_ids(&mut self, start: &usize){
+        self.root = self.root+start;
+        self.nodes = self.nodes.clone().into_iter().map(|(id, node)| (id+start, node)).collect();
+        self.children = self.children.clone().into_iter().map(|(id, node)| (id+start, node)).collect();
+        self.parents = self.parents.clone().into_iter().map(|(id, node)| (id+start, node)).collect();
     }
 
 }
