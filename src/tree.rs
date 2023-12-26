@@ -249,7 +249,6 @@ impl SimpleRTree for RootedPhyloTree{
         for input_node in tree.get_nodes().clone().keys(){
             if (self.get_nodes()).contains_key((input_node)){
                 tree.incerement_ids(&graft_node);
-                // panic!("The NodeIDs in the input tree are already present in the current tree!");
             }
         }
         let input_root_id = tree.get_root();
