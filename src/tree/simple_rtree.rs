@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use crate::node::simple_rnode::*;
 
-pub trait SimpleRTree<RHS=Self> 
+pub trait SimpleRootedTree<RHS=Self> 
 {
     type NodeID: Display + Debug + Hash + Copy + Clone + Ord + Add<Output = Self::NodeID> + AddAssign + Sub<Output = Self::NodeID> + SubAssign;
     type EdgeWeight: Display + Debug + Clone + Add<Output = Self::EdgeWeight> + AddAssign + Sub<Output = Self::EdgeWeight> + SubAssign;
@@ -383,10 +383,10 @@ pub trait SimpleRTree<RHS=Self>
     
 }
 
-pub trait RPhyTree<RHS=Self>: SimpleRTree
+pub trait RPhyTree<RHS=Self>: SimpleRootedTree
 {
     /// SPR function
-    fn spr(&mut self, edge1: (&<Self as SimpleRTree>::NodeID, &<Self as SimpleRTree>::NodeID), edge2: (&<Self as SimpleRTree>::NodeID, &<Self as SimpleRTree>::NodeID), edge2_weights: (Option<<Self as SimpleRTree>::EdgeWeight>, Option<<Self as SimpleRTree>::EdgeWeight>)){
+    fn spr(&mut self, edge1: (&<Self as SimpleRootedTree>::NodeID, &<Self as SimpleRootedTree>::NodeID), edge2: (&<Self as SimpleRootedTree>::NodeID, &<Self as SimpleRootedTree>::NodeID), edge2_weights: (Option<<Self as SimpleRootedTree>::EdgeWeight>, Option<<Self as SimpleRootedTree>::EdgeWeight>)){
         let graft_edge_weight = self.get_edge_weight(edge1.0, edge1.1).cloned();
         let pruned_tree = self.prune(edge1.1);
         self.graft(pruned_tree, edge2, edge2_weights, None);
