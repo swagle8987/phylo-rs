@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::slice::Iter;
 use itertools::Itertools;
 use std::fmt::{Display, Debug};
@@ -8,20 +8,25 @@ use std::rc::Rc;
 
 use crate::node::simple_rnode::*;
 
+use super::ops::SPR;
+
 pub trait SimpleRootedTree<RHS=Self> 
 {
     type NodeID: Display + Debug + Hash + Copy + Clone + Ord + Add<Output = Self::NodeID> + AddAssign + Sub<Output = Self::NodeID> + SubAssign;
     type EdgeWeight: Display + Debug + Clone + Add<Output = Self::EdgeWeight> + AddAssign + Sub<Output = Self::EdgeWeight> + SubAssign;
     type Taxa: Display + Debug + Clone + Ord;
-    type Node: RootedTreeNode<NodeID = Self::NodeID, Taxa = Self::Taxa, Weight = Self::EdgeWeight>;
+    type Node: RootedTreeNode<NodeID = Self::NodeID, Taxa = Self::Taxa, Weight = Self::EdgeWeight> + Clone;
 
-    type Nodes: Debug + Iterator + IntoIterator<Item=(Rc<Self::NodeID>, Self::Node)>; //+ Index<&Rc<Self::NodeID>, Output=Self::Node> ;
+    type Nodes: Debug + Iterator + IntoIterator<Item=(Rc<Self::NodeID>, Self::Node)> + Extend<(Rc<Self::NodeID>, Self::Node)>;
 
+    /// Returns a new instance of a rooted tree
+    fn new(root_id: Rc<Self::NodeID>, nodes: impl Iterator<Item=(Rc<Self::NodeID>, Self::Node)>)->Self;
+
+    /// Generate unique node id that does not already exist in tree.
+    fn gen_id(&self)->Self::NodeID;
+    
     /// Creates a new node in the tree and returns new node ID.
-    fn create_node(&mut self)->Rc<Self::NodeID>;
-
-    /// Assign taxa to leaf node
-    fn assign_taxa(&mut self, node_id:Rc<Self::NodeID>, taxa:Option<Self::Taxa>);
+    fn add_node(&mut self, node: Self::Node);
 
     /// Get root node ID
     fn get_root_id(&self)->Rc<Self::NodeID>;
@@ -34,18 +39,6 @@ pub trait SimpleRootedTree<RHS=Self>
 
     /// Returns mutable refence to node by ID
     fn get_node_mut(&mut self, node_id: Rc<Self::NodeID>)->Option<&mut Self::Node>;    
-    
-    /// Returns full subtree rooted at given node
-    fn get_subtree(&self, node_id: Rc<Self::NodeID>)->Box<RHS>;
-    
-    /// Returns most recent common ancestor of give node set
-    fn get_mrca(&self, node_id_list: &Vec<Rc<Self::NodeID>>)->Rc<Self::NodeID>;
-
-    /// Attaches input tree to self by spliting an edge
-    fn graft(&mut self, tree: Box<RHS>, edge: (Rc<Self::NodeID>, Rc<Self::NodeID>), edge_weights:(Option<Self::EdgeWeight>, Option<Self::EdgeWeight>), graft_edge_weight: Option<Self::EdgeWeight>);
-    
-    /// Returns subtree starting at given node, while corresponding nodes from self.
-    fn prune(&mut self, node_id: Rc<Self::NodeID>)-> Box<RHS>;
 
     ///Returns an iterator that iterates over the nodes in Pre-order
     fn iter_nodes_pre(&self, start_node_id: Rc<Self::NodeID>)->Iter<Rc<Self::NodeID>>;
@@ -69,23 +62,50 @@ pub trait SimpleRootedTree<RHS=Self>
     fn distance_from_ancestor(&self, node_id: Rc<Self::NodeID>, ancestor_id: Rc<Self::NodeID>, weighted: bool)->Self::EdgeWeight;
 
     /// Returns cluster of node
-    fn get_cluster(&self, node_id: Rc<Self::NodeID>)-> Iter<Self::NodeID>;
+    fn get_cluster(&self, node_id: Rc<Self::NodeID>)-> Iter<Rc<Self::NodeID>>
+    {
+        return self.iter_nodes_post(node_id).filter(|x| !self.is_leaf(node_id))
+            .map(|x| Rc::clone(x)).collect_vec().iter()
+    }
+
+    /// Create and insert a new node in the tree and return the id of the new node
+    fn create_node(&mut self, is_leaf: bool)->Rc<Self::NodeID>
+    {
+        let new_node = Self::Node::new(self.gen_id(), is_leaf);
+        let new_node_id = new_node.get_id();
+        self.add_node(new_node);
+        new_node_id
+    }
 
     /// Checks if tree is binary
     fn is_binary(&self)->bool
     {
-        todo!()
+        for node_id in self.iter_nodes_post(self.get_root_id()){
+            match self.get_node(Rc::clone(node_id)).expect("No such node exists!").get_children().len()==2{
+                true => {},
+                false => {return false}
+            }
+        }
+        return true;
     }
 
     /// Returns bipartition induced by edge
-    fn get_bipartition(&self, edge: (Rc<Self::NodeID>, Rc<Self::NodeID>))->(Vec<Rc<Self::NodeID>>, Vec<Rc<Self::NodeID>>)
+    fn get_bipartition(&self, edge: (Rc<Self::NodeID>, Rc<Self::NodeID>))->(Iter<Rc<Self::NodeID>>, Iter<Rc<Self::NodeID>>)
     {
         // This can be done using get_cluster
-        todo!()
+        let parent_id = edge.0;
+        let part1 = self.get_cluster(Rc::clone(&edge.1));
+        let part2 = vec![];
+        let part2_parents = self.get_node_children(parent_id).into_iter()
+            .filter(|x| x==&edge.1);
+        for node_id in part2_parents{
+            part2.extend(self.get_cluster(node_id).map(|x| Rc::clone(x)));
+        }
+        return (part2.iter(), part1);
     }
 
     // removes half-nodes in a subtree starting at input node and returns id of new root node of subtree and in-going edge weight
-    fn clean_subtree(&mut self, node_id: Self::NodeID)->(Rc<Self::NodeID>, Option<Self::EdgeWeight>)
+    fn clean_subtree(&mut self, node_id: Rc<Self::NodeID>)
     {
         todo!()
     }
@@ -97,15 +117,55 @@ pub trait SimpleRootedTree<RHS=Self>
         todo!()
     }
 
+    /// Returns most recent common ancestor of give node set
+    fn get_mrca(&self, node_id_list: &Vec<Rc<Self::NodeID>>)->Rc<Self::NodeID>
+    {
+        let mut mrca_id: Rc<Self::NodeID> = self.get_root_id();
+        let mut iter_list = Vec::new();
+        for id in node_id_list{
+            iter_list.push(self.get_ancestors_pre(Rc::clone(id)));
+        }
+        let mut next_nodes = HashSet::new();
+        for iterator in iter_list{
+            let next_id = iterator.next();
+            match next_id{
+                Some(id) => {next_nodes.insert(id);},
+                None => return self.get_root_id(),
+            }
+        }
+        match next_nodes.len()==1{
+            true => {
+                mrca_id = next_nodes.into_iter().collect_vec()[0].clone();
+            }
+            false => {return mrca_id}
+        }
+        mrca_id
+    }    
+
     // This may not be needed, commenting out for now
     // /// Increment all node_ids
     // fn incerement_ids(&mut self, value: Rc<Self::NodeID>);
+
+    /// Assign taxa to leaf node
+    fn assign_taxa(&mut self, node_id:Rc<Self::NodeID>, taxa:Option<Self::Taxa>)
+    {
+        self.get_node_mut(node_id).expect("No such node exists!").set_taxa(taxa);
+    }
+
+    /// Returns clone of full subtree rooted at given node
+    fn get_subtree(&self, node_id: Rc<Self::NodeID>)->Box<Self> where Self: Sized
+    {
+        let new_root_id = Rc::clone(&node_id);
+        let node_iter = self.iter_nodes_pre(node_id)
+            .map(|id| (Rc::clone(id), self.get_node(Rc::clone(id)).cloned().expect("No such Node exists!")));
+        Box::new(Self::new(new_root_id, node_iter))
+    }    
 
     /// Remove all weights
     fn unweight(&mut self)
     {
         for id in self.iter_nodes_pre(self.get_root_id()){
-            self.get_node_mut(id).unwrap().unweight();
+            self.get_node_mut(Rc::clone(id)).unwrap().unweight();
         }
     }
 
@@ -149,9 +209,9 @@ pub trait SimpleRootedTree<RHS=Self>
     }
 
     /// Get node taxa
-    fn get_taxa(&self, node_id:Rc<Self::NodeID>)->Option<Self::Taxa>
+    fn get_taxa(&self, node_id:Rc<Self::NodeID>)->Option<Rc<Self::Taxa>>
     {
-        self.get_node(node_id).expect("No such node exists!").get_taxa().cloned()
+        self.get_node(node_id).expect("No such node exists!").get_taxa()
     }
     
     /// Checks if the given node is a leaf node
@@ -162,8 +222,11 @@ pub trait SimpleRootedTree<RHS=Self>
     /// Inserts node in the middle of edge given by pair of node ids, and returns the new node id
     fn split_edge(&mut self, edge: (Rc<Self::NodeID>, Rc<Self::NodeID>), edge_weights:(Option<Self::EdgeWeight>, Option<Self::EdgeWeight>))->Rc<Self::NodeID>
     {
-        // Create a new node
-        let new_node_id = self.create_node();
+
+        // Create a new node and insert it into tree
+        let new_node = Self::Node::new(self.gen_id(), false);
+        let new_node_id = new_node.get_id();
+        self.add_node(new_node);
 
         // Set new node as child of edge.0 and remove edge.1 from children or edge.0
         self.set_child(edge.0, Rc::clone(&new_node_id));
@@ -172,7 +235,7 @@ pub trait SimpleRootedTree<RHS=Self>
 
         // Add edge.1 as child of new node and set new node as parent of edge.1
         self.get_node_mut(Rc::clone(&new_node_id)).unwrap().add_child(edge.1);
-        self.get_node_mut(edge.1).unwrap().set_parent(Rc::clone(&new_node_id));
+        self.get_node_mut(edge.1).unwrap().set_parent(Some(Rc::clone(&new_node_id)));
 
         // return new node id
         new_node_id
@@ -383,31 +446,24 @@ pub trait SimpleRootedTree<RHS=Self>
     
 }
 
-pub trait RPhyTree<RHS=Self>: SimpleRootedTree
+pub trait RPhyTree<RHS=Self>: SimpleRootedTree + SPR + Sized
 {
-    /// SPR function
-    fn spr(&mut self, edge1: (&<Self as SimpleRootedTree>::NodeID, &<Self as SimpleRootedTree>::NodeID), edge2: (&<Self as SimpleRootedTree>::NodeID, &<Self as SimpleRootedTree>::NodeID), edge2_weights: (Option<<Self as SimpleRootedTree>::EdgeWeight>, Option<<Self as SimpleRootedTree>::EdgeWeight>)){
-        let graft_edge_weight = self.get_edge_weight(edge1.0, edge1.1).cloned();
-        let pruned_tree = self.prune(edge1.1);
-        self.graft(pruned_tree, edge2, edge2_weights, None);
-    }
-
     /// Balance a binary tree of 4 taxa
     fn balance_subtree(&mut self){
-        assert!(self.get_leaves(self.get_root()).len()==4, "Quartets have 4 leaves!");
+        assert!(self.get_leaves().len()==4, "Quartets have 4 leaves!");
         assert!(!self.is_weighted(), "Cannot balance weighted tree!");
         assert!(self.is_binary(), "Cannot balance non-binary tree!");
-        let (root_children, root) = (self.get_node_children(self.get_root()), *self.get_root());
+        let (root_children, root) = (self.get_node_children(self.get_root_id()), self.get_root_id());
         let (child1, child2) = (root_children[0], root_children[1]);
-        match ((self.is_leaf(&child1)), (self.is_leaf(&child2))){
+        match ((self.is_leaf(child1)), (self.is_leaf(child2))){
             (false, false) => {},
             (true, false) => {
-                let other_leaf = &self.get_node_children(&child2).into_iter().filter(|id| self.is_leaf(id)).collect_vec()[0].clone();
-                self.spr((&root, &child1), (&child2, &other_leaf), (None, None));
+                let other_leaf = self.get_node_children(child2).into_iter().filter(|id| self.is_leaf(Rc::clone(id))).collect_vec()[0];
+                self.spr((root, child1), (child2, other_leaf), (None, None));
             },
             (false, true) => {
-                let other_leaf = &self.get_node_children(&child1).into_iter().filter(|id| self.is_leaf(id)).collect_vec()[0].clone();
-                self.spr((&root, &child2), (&child1, &other_leaf), (None, None));
+                let other_leaf = self.get_node_children(child1).into_iter().filter(|id| self.is_leaf(Rc::clone(id))).collect_vec()[0];
+                self.spr((root, child2), (child1, other_leaf), (None, None));
             },
             _ =>{}
         }

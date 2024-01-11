@@ -7,6 +7,7 @@ use crate::node::simple_rnode::{RootedTreeNode, NodeType};
 
 pub type NodeID = usize;
 
+#[derive(Clone)]
 pub struct Node{
     id: Rc<NodeID>,
     parent: Option<Rc<NodeID>>,
