@@ -5,13 +5,13 @@ use std::rc::Rc;
 
 use crate::node::simple_rnode::{RootedTreeNode, NodeType};
 
-pub type NodeID = usize;
+pub type NodeID = Rc<usize>;
 
 #[derive(Clone)]
 pub struct Node{
-    id: Rc<NodeID>,
-    parent: Option<Rc<NodeID>>,
-    children: Vec<Rc<NodeID>>,
+    id: NodeID,
+    parent: Option<NodeID>,
+    children: Vec<NodeID>,
     taxa: Option<Rc<String>>,
     weight: Option<f64>,
     node_type: NodeType,
@@ -51,7 +51,7 @@ impl RootedTreeNode for Node
         };
     }
 
-    fn get_taxa(&self)->Option<Rc<Self::Taxa>>{
+    fn get_taxa(&self)->Option<Self::Taxa>{
         match self.taxa{
             None => None,
             Some(t) => Some(Rc::clone(&t))
@@ -66,7 +66,7 @@ impl RootedTreeNode for Node
         self.weight = w;
     }
 
-    fn get_id(&self)->Rc<Self::NodeID> {
+    fn get_id(&self)->Self::NodeID {
         Rc::clone(&self.id)
     }
 
@@ -80,22 +80,22 @@ impl RootedTreeNode for Node
             Some(t) => Some(Rc::new(t)),
         };
     }
-    fn set_parent(&mut self, parent: Option<Rc<NodeID>>){
+    fn set_parent(&mut self, parent: Option<Self::NodeID>){
         self.parent = parent;
     }
-    fn get_parent(&self)->Option<&Rc<NodeID>>{
+    fn get_parent(&self)->Option<Self::NodeID>{
         self.parent.as_ref()
     }
-    fn get_children(&self)->&Vec<Rc<NodeID>>{
-        &self.children
+    fn get_children(&self)->impl Iterator<Item=Self::NodeID>{
+        self.children.iter().map(|x| Rc::clone(x))
     }
-    fn add_child(&mut self, child: Rc<NodeID>){
+    fn add_child(&mut self, child: Self::NodeID){
         self.children.push(child);
     }
-    fn remove_child(&mut self, child:Rc<Self::NodeID>) {
+    fn remove_child(&mut self, child:Self::NodeID) {
         self.children.retain(|x| x != &child);
     }
-    fn remove_children(&mut self, children: Vec<Rc<Self::NodeID>>){
+    fn remove_children(&mut self, children: impl Iterator<Item=Self::NodeID>){
         self.children.retain(|x| children.contains(&x));
     }
 }

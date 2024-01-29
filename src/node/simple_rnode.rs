@@ -1,7 +1,6 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
-use std::rc::Rc;
 
 #[derive(Clone)]
 pub enum NodeType
@@ -13,8 +12,8 @@ pub enum NodeType
 pub trait RootedTreeNode
 {
     type Weight: Display + Debug + Clone + Add<Output=Self::Weight> + AddAssign + Sub<Output=Self::Weight> + SubAssign;
-    type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord + Drop;
-    type NodeID: Display + Debug + Hash + Clone + Drop + Ord + Add<Output = Self::NodeID> + AddAssign + Sub<Output = Self::NodeID> + SubAssign;
+    type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord;
+    type NodeID: Display + Debug + Hash + Clone + Drop + Ord;
     
     fn new(id: Self::NodeID, is_leaf: bool)->Self;
     fn is_leaf(&self)->bool;
@@ -27,7 +26,7 @@ pub trait RootedTreeNode
     fn set_id(&mut self, id: Self::NodeID);
     fn get_parent(&self)->Option<Self::NodeID>;
     fn set_parent(&mut self, parent: Option<Self::NodeID>);
-    fn get_children(&self)->impl Iterator<Self::NodeID>;
+    fn get_children(&self)->impl Iterator<Item=Self::NodeID>;
     fn add_child(&mut self, child:Self::NodeID);
     fn remove_child(&mut self, child:Self::NodeID);
     fn unweight(&mut self){
@@ -39,12 +38,12 @@ pub trait RootedTreeNode
             true => "Leaf".to_string(),
         }
     }
-    fn add_children(&mut self, children: impl Iterator<Self::NodeID>){
+    fn add_children(&mut self, children: impl Iterator<Item=Self::NodeID>){
         for child in children.into_iter(){
             self.add_child(child);
         }
     }
-    fn remove_children(&mut self, children: impl Iterator<Self::NodeID>){
+    fn remove_children(&mut self, children: impl Iterator<Item=Self::NodeID>){
         for child in children.into_iter(){
             self.remove_child(child);
         }
