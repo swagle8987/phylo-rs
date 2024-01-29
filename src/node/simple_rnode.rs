@@ -14,7 +14,7 @@ pub trait RootedTreeNode
 {
     type Weight: Display + Debug + Clone + Add<Output=Self::Weight> + AddAssign + Sub<Output=Self::Weight> + SubAssign;
     type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord;
-    type NodeID: Display + Debug + Hash + Copy + Clone + Ord + Add<Output = Self::NodeID> + AddAssign + Sub<Output = Self::NodeID> + SubAssign;
+    type NodeID: Display + Debug + Hash + Clone + Drop + Ord + Add<Output = Self::NodeID> + AddAssign + Sub<Output = Self::NodeID> + SubAssign;
     
     fn new(id: Self::NodeID, is_leaf: bool)->Self;
     fn is_leaf(&self)->bool;
