@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::slice::Iter;
+use core::ops::Deref;
 use itertools::Itertools;
 use std::fmt::{Display, Debug};
 use std::hash::Hash;
@@ -12,7 +13,7 @@ use super::ops::SPR;
 
 pub trait SimpleRootedTree<RHS=Self> 
 {
-    type NodeID: Display + Debug + Hash + Copy + Clone + Ord + Add<Output = Self::NodeID> + AddAssign + Sub<Output = Self::NodeID> + SubAssign;
+    type NodeID: Display + Debug + Hash + Ord + Add<Output = Self::NodeID> + AddAssign + Sub<Output = Self::NodeID> + SubAssign + Deref + Drop;
     type EdgeWeight: Display + Debug + Clone + Add<Output = Self::EdgeWeight> + AddAssign + Sub<Output = Self::EdgeWeight> + SubAssign;
     type Taxa: Display + Debug + Clone + Ord;
     type Node: RootedTreeNode<NodeID = Self::NodeID, Taxa = Self::Taxa, Weight = Self::EdgeWeight> + Clone;
