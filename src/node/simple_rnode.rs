@@ -27,7 +27,7 @@ pub trait RootedTreeNode
     fn set_id(&mut self, id: Self::NodeID);
     fn get_parent(&self)->Option<&Rc<Self::NodeID>>;
     fn set_parent(&mut self, parent: Option<Rc<Self::NodeID>>);
-    fn get_children(&self)->&Vec<Rc<Self::NodeID>>;
+    fn get_children(&self)->impl Iterator<Self::NodeID>;
     fn add_child(&mut self, child:Rc<Self::NodeID>);
     fn remove_child(&mut self, child:Rc<Self::NodeID>);
     fn unweight(&mut self){
