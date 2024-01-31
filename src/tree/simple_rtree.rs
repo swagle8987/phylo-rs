@@ -1,14 +1,10 @@
-use std::collections::{HashMap, HashSet};
+// use std::collections::{HashMap, HashSet};
 use std::slice::Iter;
-use itertools::Itertools;
 use std::fmt::{Display, Debug};
 use std::hash::Hash;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
-use std::rc::Rc;
 
 use crate::node::simple_rnode::*;
-
-use super::ops::SPR;
 
 pub trait SimpleRootedTree<RHS=Self> {
     type NodeID: Display + Debug + Hash + Drop + Clone + Ord;
@@ -36,7 +32,16 @@ pub trait SimpleRootedTree<RHS=Self> {
     fn delete_edge(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID);
 
     fn clean(&mut self);
+
+    fn get_mrca(&self, node_id_list: &Vec<Self::NodeID>)->Self::NodeID;
+
+    fn get_cluster(&self, node_id: Self::NodeID)-> Iter<Self::NodeID>;
+
+    fn get_bipartition(&self, edge: (Self::NodeID, Self::NodeID))->(Iter<Self::NodeID>, Iter<Self::NodeID>);
+
+    fn get_edge_weight(&self, parent_id: Self::NodeID, child_id:Self::NodeID)->Option<Self::EdgeWeight>;
 }
+
 
 // pub trait SimpleRootedTree<RHS=Self> 
 // {
@@ -474,28 +479,28 @@ pub trait SimpleRootedTree<RHS=Self> {
     
 // }
 
-pub trait RPhyTree<RHS=Self>: SimpleRootedTree + SPR + Sized
-{
-    /// Balance a binary tree of 4 taxa
-    fn balance_subtree(&mut self){
-        assert!(self.get_leaves().len()==4, "Quartets have 4 leaves!");
-        assert!(!self.is_weighted(), "Cannot balance weighted tree!");
-        assert!(self.is_binary(), "Cannot balance non-binary tree!");
-        let (root_children, root) = (self.get_node_children(self.get_root_id()), self.get_root_id());
-        let (child1, child2) = (root_children[0], root_children[1]);
-        match ((self.is_leaf(child1)), (self.is_leaf(child2))){
-            (false, false) => {},
-            (true, false) => {
-                let other_leaf = self.get_node_children(child2).into_iter().filter(|id| self.is_leaf(Rc::clone(id))).collect_vec()[0];
-                self.spr((root, child1), (child2, other_leaf), (None, None));
-            },
-            (false, true) => {
-                let other_leaf = self.get_node_children(child1).into_iter().filter(|id| self.is_leaf(Rc::clone(id))).collect_vec()[0];
-                self.spr((root, child2), (child1, other_leaf), (None, None));
-            },
-            _ =>{}
-        }
-        self.clean()
-    }
+// pub trait RPhyTree<RHS=Self>: SimpleRootedTree + SPR + Sized
+// {
+//     /// Balance a binary tree of 4 taxa
+//     fn balance_subtree(&mut self){
+//         assert!(self.get_leaves().len()==4, "Quartets have 4 leaves!");
+//         assert!(!self.is_weighted(), "Cannot balance weighted tree!");
+//         assert!(self.is_binary(), "Cannot balance non-binary tree!");
+//         let (root_children, root) = (self.get_node_children(self.get_root_id()), self.get_root_id());
+//         let (child1, child2) = (root_children[0], root_children[1]);
+//         match ((self.is_leaf(child1)), (self.is_leaf(child2))){
+//             (false, false) => {},
+//             (true, false) => {
+//                 let other_leaf = self.get_node_children(child2).into_iter().filter(|id| self.is_leaf(Rc::clone(id))).collect_vec()[0];
+//                 self.spr((root, child1), (child2, other_leaf), (None, None));
+//             },
+//             (false, true) => {
+//                 let other_leaf = self.get_node_children(child1).into_iter().filter(|id| self.is_leaf(Rc::clone(id))).collect_vec()[0];
+//                 self.spr((root, child2), (child1, other_leaf), (None, None));
+//             },
+//             _ =>{}
+//         }
+//         self.clean()
+//     }
 
-}
+// }
