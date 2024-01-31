@@ -80,7 +80,7 @@ impl RootedTreeNode for Node
         self.parent.clone()
     }
     fn get_children(&self)->impl IntoIterator<Item=Self::NodeID>{
-        self.children.iter().map(|x| Rc::clone(x))
+        self.children.clone()
     }
     fn add_child(&mut self, child: Self::NodeID){
         self.children.push(child);
