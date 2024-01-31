@@ -1,5 +1,4 @@
 // use std::collections::{HashMap, HashSet};
-use std::slice::Iter;
 use std::fmt::{Display, Debug};
 use std::hash::Hash;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
@@ -10,7 +9,7 @@ pub trait SimpleRootedTree<RHS=Self> {
     type NodeID: Display + Debug + Hash + Drop + Clone + Ord;
     type EdgeWeight: Display + Debug + Clone + Add<Output = Self::EdgeWeight> + AddAssign + Sub<Output = Self::EdgeWeight> + SubAssign;
     type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord;
-    type Node: RootedTreeNode<NodeID = Self::NodeID, Taxa = Self::Taxa, Weight = Self::EdgeWeight> + Clone;
+    type Node: RootedTreeNode<NodeID = Self::NodeID, Taxa = Self::Taxa> + Clone;
 
     /// Returns reference to node by ID
     fn get_node(&self, node_id: Self::NodeID)->Option<&Self::Node>;
@@ -34,12 +33,6 @@ pub trait SimpleRootedTree<RHS=Self> {
     fn clean(&mut self);
 
     fn get_mrca(&self, node_id_list: &Vec<Self::NodeID>)->Self::NodeID;
-
-    // fn get_cluster(&self, node_id: Self::NodeID)-> Iter<Self::NodeID>;
-
-    // fn get_bipartition(&self, edge: (Self::NodeID, Self::NodeID))->(Iter<Self::NodeID>, Iter<Self::NodeID>);
-
-    fn get_edge_weight(&self, parent_id: Self::NodeID, child_id:Self::NodeID)->Option<Self::EdgeWeight>;
 }
 
 

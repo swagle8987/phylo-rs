@@ -11,7 +11,7 @@ pub enum NodeType
 
 pub trait RootedTreeNode
 {
-    type Weight: Display + Debug + Clone + Add<Output=Self::Weight> + AddAssign + Sub<Output=Self::Weight> + SubAssign;
+    // type Weight: Display + Debug + Clone + Add<Output=Self::Weight> + AddAssign + Sub<Output=Self::Weight> + SubAssign;
     type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord;
     type NodeID: Display + Debug + Hash + Clone + Drop + Ord;
     
@@ -20,8 +20,8 @@ pub trait RootedTreeNode
     fn flip(&mut self);
     fn get_taxa(&self)->Option<Self::Taxa>;
     fn set_taxa(&mut self, taxa: Option<Self::Taxa>);
-    fn get_weight(&self)->Option<Self::Weight>;
-    fn set_weight(&mut self, w: Option<Self::Weight>);
+    // fn get_weight(&self)->Option<Self::Weight>;
+    // fn set_weight(&mut self, w: Option<Self::Weight>);
     fn get_id(&self)->Self::NodeID;
     fn set_id(&mut self, id: Self::NodeID);
     fn get_parent(&self)->Option<Self::NodeID>;
@@ -60,4 +60,12 @@ pub trait RootedTreeNode
             false => {}
         }
     }
+}
+
+pub trait WeightedNode
+{
+    type Weight: Display + Debug + Clone + Add<Output=Self::Weight> + AddAssign + Sub<Output=Self::Weight> + SubAssign;
+
+    fn get_weight(&self)->Option<Self::Weight>;
+    fn set_weight(&mut self, w: Option<Self::Weight>);
 }
