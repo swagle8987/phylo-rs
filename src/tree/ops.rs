@@ -1,4 +1,4 @@
-use crate::tree::simple_rtree::SimpleRootedTree;
+use super::SimpleRootedTree;
 
 pub trait SPR
 where
@@ -24,4 +24,19 @@ where
     Self: SimpleRootedTree + Sized
 {
     fn nni(&mut self, parent_id: Self::NodeID);
+}
+
+pub trait Reroot
+where
+    Self: SimpleRootedTree + Sized
+{
+    fn reroot_at_node(&mut self, node_id: Self::NodeID);
+    fn reroot_at_edge(&mut self, edge: (Self::NodeID, Self::NodeID), edge_weights: (Option<Self::EdgeWeight>, Option<Self::EdgeWeight>));
+}
+
+pub trait Balance
+where
+    Self: SimpleRootedTree + Sized
+{
+    fn balance_subtree(&mut self);
 }
