@@ -1,5 +1,6 @@
 pub mod simple_rtree;
 pub mod ops;
+pub mod distances;
 
 use std::collections::{HashMap, HashSet};
 use itertools::Itertools;
@@ -7,6 +8,7 @@ use itertools::Itertools;
 use crate::node::*;
 use crate::tree::simple_rtree::SimpleRootedTree;
 use crate::tree::ops::SPR;
+use crate::tree::distances::*;
 use crate::iter::{node_iter::*, edge_iter::*};
 
 // pub struct UnrootedPhyloTree{
