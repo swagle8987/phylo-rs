@@ -20,7 +20,7 @@ pub trait SimpleRootedTree<RHS=Self> {
 
     fn add_child(&mut self, parent_id: Self::NodeID, child: Self::Node);
 
-    fn set_child(&mut self, parent_id: Self::NodeID, childId: Self::NodeID);
+    fn set_child(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID);
 
     /// Get root node ID
     fn get_root(&self)->Self::Node;
@@ -35,9 +35,9 @@ pub trait SimpleRootedTree<RHS=Self> {
 
     fn get_mrca(&self, node_id_list: &Vec<Self::NodeID>)->Self::NodeID;
 
-    fn get_cluster(&self, node_id: Self::NodeID)-> Iter<Self::NodeID>;
+    // fn get_cluster(&self, node_id: Self::NodeID)-> Iter<Self::NodeID>;
 
-    fn get_bipartition(&self, edge: (Self::NodeID, Self::NodeID))->(Iter<Self::NodeID>, Iter<Self::NodeID>);
+    // fn get_bipartition(&self, edge: (Self::NodeID, Self::NodeID))->(Iter<Self::NodeID>, Iter<Self::NodeID>);
 
     fn get_edge_weight(&self, parent_id: Self::NodeID, child_id:Self::NodeID)->Option<Self::EdgeWeight>;
 }
