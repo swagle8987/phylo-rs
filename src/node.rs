@@ -25,7 +25,7 @@ impl RootedTreeNode for Node
 
     fn new(id: NodeID, is_leaf: bool)->Self{
         Node{
-            id: Rc::new(id),
+            id: Rc::clone(&id),
             parent: None,
             children: vec![],
             taxa: None,
@@ -52,9 +52,9 @@ impl RootedTreeNode for Node
     }
 
     fn get_taxa(&self)->Option<Self::Taxa>{
-        match self.taxa{
+        match &self.taxa{
             None => None,
-            Some(t) => Some(Rc::clone(&t))
+            Some(t) => Some(t.to_string())
         }
     }
 
@@ -71,7 +71,7 @@ impl RootedTreeNode for Node
     }
 
     fn set_id(&mut self, id: Self::NodeID) {
-        self.id = Rc::new(id)
+        self.id = Rc::clone(&id)
     }
 
     fn set_taxa(&mut self, taxa: Option<String>){
@@ -84,7 +84,7 @@ impl RootedTreeNode for Node
         self.parent = parent;
     }
     fn get_parent(&self)->Option<Self::NodeID>{
-        self.parent.as_ref()
+        self.parent.clone()
     }
     fn get_children(&self)->impl Iterator<Item=Self::NodeID>{
         self.children.iter().map(|x| Rc::clone(x))
@@ -94,9 +94,6 @@ impl RootedTreeNode for Node
     }
     fn remove_child(&mut self, child:Self::NodeID) {
         self.children.retain(|x| x != &child);
-    }
-    fn remove_children(&mut self, children: impl Iterator<Item=Self::NodeID>){
-        self.children.retain(|x| children.contains(&x));
     }
 }
 
