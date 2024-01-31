@@ -5,6 +5,8 @@ use std::rc::Rc;
 
 use crate::node::simple_rnode::{RootedTreeNode, NodeType};
 
+use self::simple_rnode::WeightedNode;
+
 pub type NodeID = Rc<usize>;
 
 #[derive(Clone)]
@@ -21,7 +23,6 @@ impl RootedTreeNode for Node
 {
     type NodeID = NodeID;
     type Taxa = String;
-    type Weight = f64;
 
     fn new(id: NodeID, is_leaf: bool)->Self{
         Node{
@@ -58,14 +59,6 @@ impl RootedTreeNode for Node
         }
     }
 
-    fn get_weight(&self)->Option<Self::Weight>{
-        self.weight.clone()
-    }
-
-    fn set_weight(&mut self, w: Option<Self::Weight>){
-        self.weight = w;
-    }
-
     fn get_id(&self)->Self::NodeID {
         Rc::clone(&self.id)
     }
@@ -95,6 +88,20 @@ impl RootedTreeNode for Node
     fn remove_child(&mut self, child:Self::NodeID) {
         self.children.retain(|x| x != &child);
     }
+}
+
+impl WeightedNode for Node
+{
+    type Weight = f64;
+
+    fn get_weight(&self)->Option<Self::Weight>{
+        self.weight.clone()
+    }
+
+    fn set_weight(&mut self, w: Option<Self::Weight>){
+        self.weight = w;
+    }
+
 }
 
 impl Debug for Node

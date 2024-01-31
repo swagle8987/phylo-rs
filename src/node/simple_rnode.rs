@@ -20,8 +20,6 @@ pub trait RootedTreeNode
     fn flip(&mut self);
     fn get_taxa(&self)->Option<Self::Taxa>;
     fn set_taxa(&mut self, taxa: Option<Self::Taxa>);
-    // fn get_weight(&self)->Option<Self::Weight>;
-    // fn set_weight(&mut self, w: Option<Self::Weight>);
     fn get_id(&self)->Self::NodeID;
     fn set_id(&mut self, id: Self::NodeID);
     fn get_parent(&self)->Option<Self::NodeID>;
@@ -29,9 +27,7 @@ pub trait RootedTreeNode
     fn get_children(&self)->impl Iterator<Item=Self::NodeID>;
     fn add_child(&mut self, child:Self::NodeID);
     fn remove_child(&mut self, child:Self::NodeID);
-    fn unweight(&mut self){
-        self.set_weight(None);
-    }
+
     fn node_type(&self)->String{
         match self.is_leaf() {
             false => "Internal".to_string(),
@@ -63,9 +59,14 @@ pub trait RootedTreeNode
 }
 
 pub trait WeightedNode
+where
+    Self: RootedTreeNode
 {
     type Weight: Display + Debug + Clone + Add<Output=Self::Weight> + AddAssign + Sub<Output=Self::Weight> + SubAssign;
 
     fn get_weight(&self)->Option<Self::Weight>;
     fn set_weight(&mut self, w: Option<Self::Weight>);
+    fn unweight(&mut self){
+        self.set_weight(None);
+    }
 }
