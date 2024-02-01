@@ -4,11 +4,13 @@ pub mod distances;
 pub mod weighted;
 
 
-// use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 // use itertools::Itertools;
 
-// use crate::node::*;
-use crate::tree::simple_rtree::SimpleRootedTree;
+use crate::node::simple_rnode::RootedTreeNode;
+use crate::node::{NodeID, Node};
+use crate::tree::simple_rtree::RootedTree;
 // use crate::tree::ops::SPR;
 // use crate::tree::distances::*;
 // use crate::iter::{node_iter::*, edge_iter::*};
@@ -19,29 +21,89 @@ use crate::tree::simple_rtree::SimpleRootedTree;
 //     _leaves: HashMap<NodeID, String>,
 // }
 
-// #[derive(Debug)]
-// pub struct RootedPhyloTree{
-//     root: NodeID,
-//     nodes: HashMap<NodeID, NodeType>,
-//     children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>,
-//     parents: HashMap<NodeID, Option<NodeID>>,
-// }
+#[derive(Debug)]
+pub struct SimpleRootedTree{
+    root: NodeID,
+    nodes: HashMap<NodeID, Node>,
+}
 
-// impl Default for RootedPhyloTree {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
+impl SimpleRootedTree{
+    pub fn new()->Self{
+        let root_node = Node::new(Rc::new(0), false);
+        SimpleRootedTree { 
+            root: root_node.get_id(),
+            nodes: HashMap::from([(root_node.get_id(), root_node)]),
+        }
+    }
+}
 
-// impl RootedPhyloTree{
-//     pub fn new()->Self{
-//         RootedPhyloTree { 
-//             root: 0,
-//             nodes: HashMap::from([(0, NodeType::Internal(None))]),
-//             children: HashMap::from([(0, Vec::new())]),
-//             parents: HashMap::from([(0, None)]),
-//         }
-//     }
+impl Default for SimpleRootedTree {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RootedTree for SimpleRootedTree{
+    
+    type NodeID = NodeID;
+    type EdgeWeight = f64;
+    type Taxa = String;
+    type Node = Node;
+
+    /// Returns reference to node by ID
+    fn get_node(&self, node_id: Self::NodeID)->Option<&Self::Node>
+    {
+        todo!()
+    }
+
+    /// Returns reference to node by ID
+    fn set_node(&mut self, node_id: Self::Node)
+    {
+        todo!()
+    }
+
+    fn add_child(&mut self, parent_id: Self::NodeID, child: Self::Node)
+    {
+        todo!()
+    }
+
+    fn set_child(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID)
+    {
+        todo!()
+    }
+
+    /// Get root node ID
+    fn get_root(&self)->Self::Node
+    {
+        todo!()
+    }
+
+    fn remove_node(&mut self, node_id: Self::NodeID)
+    {
+        todo!()
+    }
+
+    fn contains_node(&self, node_id: Self::NodeID)
+    {
+        todo!()
+    }
+
+    fn delete_edge(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID)
+    {
+        todo!()
+    }
+
+    fn clean(&mut self)
+    {
+        todo!()
+    }
+
+    fn get_mrca(&self, node_id_list: &Vec<Self::NodeID>)->Self::NodeID
+    {
+        todo!()
+    }
+}
+
 
 //     pub fn from_newick(newick_string: String)->Self{
 //         let mut tree = RootedPhyloTree::new();
