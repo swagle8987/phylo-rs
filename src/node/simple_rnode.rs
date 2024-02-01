@@ -33,12 +33,12 @@ pub trait RootedTreeNode
             true => "Leaf".to_string(),
         }
     }
-    fn add_children(&mut self, children: impl Iterator<Item=Self::NodeID>){
+    fn add_children(&mut self, children: impl IntoIterator<Item=Self::NodeID>){
         for child in children.into_iter(){
             self.add_child(child);
         }
     }
-    fn remove_children(&mut self, children: impl Iterator<Item=Self::NodeID>){
+    fn remove_children(&mut self, children: impl IntoIterator<Item=Self::NodeID>){
         for child in children.into_iter(){
             self.remove_child(child);
         }
