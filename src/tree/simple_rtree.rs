@@ -5,10 +5,10 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use crate::node::simple_rnode::*;
 
-pub trait SimpleRootedTree<RHS=Self> {
+pub trait RootedTree<RHS=Self> {
     type NodeID: Display + Debug + Hash + Drop + Clone + Ord;
     type EdgeWeight: Display + Debug + Clone + Add<Output = Self::EdgeWeight> + AddAssign + Sub<Output = Self::EdgeWeight> + SubAssign;
-    type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord;
+    type Taxa: Debug + Eq + PartialEq + Clone + Ord;
     type Node: RootedTreeNode<NodeID = Self::NodeID, Taxa = Self::Taxa> + Clone;
 
     /// Returns reference to node by ID
@@ -34,7 +34,6 @@ pub trait SimpleRootedTree<RHS=Self> {
 
     fn get_mrca(&self, node_id_list: &Vec<Self::NodeID>)->Self::NodeID;
 }
-
 
 // pub trait SimpleRootedTree<RHS=Self> 
 // {

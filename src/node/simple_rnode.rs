@@ -11,7 +11,6 @@ pub enum NodeType
 
 pub trait RootedTreeNode
 {
-    // type Weight: Display + Debug + Clone + Add<Output=Self::Weight> + AddAssign + Sub<Output=Self::Weight> + SubAssign;
     type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord;
     type NodeID: Display + Debug + Hash + Clone + Drop + Ord;
     
