@@ -53,49 +53,88 @@ impl RootedTree for SimpleRootedTree{
     /// Returns reference to node by ID
     fn get_node(&self, node_id: Self::NodeID)->Option<&Self::Node>
     {
-        todo!()
+        self.nodes.get(&node_id)
+    }
+
+    fn get_node_mut(&mut self, node_id: Self::NodeID)->Option<&mut Self::Node>
+    {
+        self.nodes.get_mut(&node_id)
+    }
+
+    fn get_node_ids(&self)->impl IntoIterator<Item = Self::NodeID, IntoIter = impl ExactSizeIterator<Item = Self::NodeID>> 
+    {
+        self.nodes.clone().into_keys()    
+    }
+
+    fn get_nodes(&self)->impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>> 
+    {
+        self.nodes.clone().into_values()    
     }
 
     /// Returns reference to node by ID
-    fn set_node(&mut self, node_id: Self::Node)
+    fn set_node(&mut self, node: Self::Node)
     {
-        todo!()
+        self.nodes.insert(node.get_id(), node);
     }
 
     fn add_child(&mut self, parent_id: Self::NodeID, child: Self::Node)
     {
-        todo!()
-    }
-
-    fn set_child(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID)
-    {
-        todo!()
+        let new_child_id = child.get_id();
+        self.set_node(child);
+        self.get_node_mut(Rc::clone(&parent_id)).unwrap().add_child(Rc::clone(&new_child_id));
+        self.get_node_mut(new_child_id).unwrap().set_parent(Some(parent_id));
     }
 
     /// Get root node ID
-    fn get_root(&self)->Self::Node
+    fn get_root_id(&self)->Self::NodeID
     {
-        todo!()
+        Rc::clone(&self.root)
     }
 
-    fn remove_node(&mut self, node_id: Self::NodeID)
+    fn set_root(&mut self, node_id: Self::NodeID) 
     {
-        todo!()
+        self.root = Rc::clone(&node_id);
     }
 
-    fn contains_node(&self, node_id: Self::NodeID)
+    fn remove_node(&mut self, node_id: Self::NodeID)->Option<Self::Node>
     {
-        todo!()
+        self.nodes.remove(&node_id)
+    }
+
+    fn contains_node(&self, node_id: Self::NodeID)->bool
+    {
+        self.nodes.contains_key(&node_id)
     }
 
     fn delete_edge(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID)
     {
-        todo!()
+        self.get_node_mut(parent_id).unwrap().remove_child(Rc::clone(&child_id));
+        self.get_node_mut(child_id).unwrap().set_parent(None);
     }
 
     fn clean(&mut self)
     {
-        todo!()
+        // todo!()
+        let node_iter = self.get_nodes().into_iter().collect::<Vec<Self::Node>>();
+        for node in node_iter{
+            // remove root with only one child
+            let node_id = node.get_id();
+            if node.get_id()==self.get_root_id() && node.degree()<2{
+                let new_root = self.get_root().get_children().into_iter().next().unwrap();
+                self.set_root(new_root);
+                self.get_node_mut(Rc::clone(&self.root)).unwrap().set_parent(None);
+                // self.parents.entry(new_root).and_modify(|x| *x = None);
+                self.remove_node(node_id);
+            }
+            // remove nodes with only one child
+            else if !node.is_leaf() &&  node.degree()<3{
+                let parent_id = self.get_node_parent(node_id);
+                let child_id = node.get_children().into_iter().next().unwrap();
+                self.get_node_mut(Rc::clone(&child_id)).unwrap().set_parent(parent_id.clone());
+                self.get_node_mut(parent_id.unwrap()).unwrap().add_child(child_id);
+                self.remove_node(node.get_id());
+            }
+        }
     }
 
     fn get_mrca(&self, node_id_list: &Vec<Self::NodeID>)->Self::NodeID
