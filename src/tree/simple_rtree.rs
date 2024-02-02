@@ -60,7 +60,14 @@ pub trait RootedTree<RHS=Self> {
         // let node: <Self as RootedTree<RHS>>::Node = self.get_node(node_id).cloned().unwrap();
         // // node.get_children().into_iter().map(|x| self.get_node(x).cloned().unwrap())
         // vec![]
-        todo!()
+	let node = self.get_node(node_id).unwrap();
+	if node.is_leaf(){
+	    return vec![]
+	}
+	node.get_children()
+	    .into_iter()
+	    .map(|x| self.get_node(x).cloned().unwrap())
+	    .collect::<Vec<Self::Node>>()
     }
 
     fn node_degree(&self, node_id: Self::NodeID)->usize
