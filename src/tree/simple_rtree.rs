@@ -16,25 +16,49 @@ pub trait RootedTree<RHS=Self> {
 
     fn get_node_mut(&mut self, node_id: Self::NodeID)->Option<&mut Self::Node>;
 
+    fn get_node_ids(&self)->impl IntoIterator<Item = Self::NodeID, IntoIter = impl ExactSizeIterator<Item = Self::NodeID>>;
+
+    fn get_nodes(&self)->impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>;
+
+    fn get_root_id(&self)->Self::NodeID;
+
+    fn set_root(&mut self, node_id: Self::NodeID);
+
     /// Returns reference to node by ID
     fn set_node(&mut self, node: Self::Node);
 
     fn add_child(&mut self, parent_id: Self::NodeID, child: Self::Node);
 
-    fn set_child(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID);
+    fn remove_node(&mut self, node_id: Self::NodeID)->Option<Self::Node>;
 
-    /// Get root node ID
-    fn get_root(&self)->Self::Node;
-
-    fn remove_node(&mut self, node_id: Self::NodeID);
-
-    fn contains_node(&self, node_id: Self::NodeID);
+    fn contains_node(&self, node_id: Self::NodeID)->bool;
 
     fn delete_edge(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID);
 
     fn clean(&mut self);
 
     fn get_mrca(&self, node_id_list: &Vec<Self::NodeID>)->Self::NodeID;
+
+    /// Get root node
+    fn get_root(&self)->&Self::Node
+    {
+        self.get_node(self.get_root_id()).unwrap()
+    }
+
+    fn set_child(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID)
+    {
+        self.get_node_mut(parent_id).unwrap().add_child(child_id);
+    }
+
+    fn get_node_parent(&self, node_id: Self::NodeID)->Option<Self::NodeID>
+    {
+        self.get_node(node_id).unwrap().get_parent()
+    }
+
+    fn node_degree(&self, node_id: Self::NodeID)->usize
+    {
+        self.get_node(node_id).unwrap().degree()
+    }
 }
 
 // pub trait SimpleRootedTree<RHS=Self> 
