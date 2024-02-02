@@ -57,13 +57,7 @@ pub trait RootedTree<RHS=Self> {
 
     fn get_node_children(&self, node_id: Self::NodeID)->impl IntoIterator<Item=Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
     {
-        // let node: <Self as RootedTree<RHS>>::Node = self.get_node(node_id).cloned().unwrap();
-        // // node.get_children().into_iter().map(|x| self.get_node(x).cloned().unwrap())
-        // vec![]
 	let node = self.get_node(node_id).unwrap();
-	if node.is_leaf(){
-	    return vec![]
-	}
 	node.get_children()
 	    .into_iter()
 	    .map(|x| self.get_node(x).cloned().unwrap())
