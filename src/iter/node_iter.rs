@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use crate::{node::simple_rnode::RootedTreeNode, tree::simple_rtree::RootedTree};
 
 pub trait DFS
@@ -18,7 +20,23 @@ pub trait PreOrder
 where
     Self: RootedTree + Sized
 {
-    fn preord(&self)-> impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>;
+    fn preord(&self, start_node: Self::NodeID)-> impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    {
+        let mut stack = vec![self.get_node(start_node).cloned().unwrap()];
+        let mut out_vec = vec![];
+        match stack.pop() {
+            Some(node) => {
+                let children = self.get_node_children(node.get_id()).into_iter().collect_vec();
+                for child in children.into_iter().rev()
+                {
+                    stack.push(child)
+                }
+                out_vec.push(node.clone());
+            }
+            None => {},
+        };
+        out_vec
+    }
 }
 
 pub trait PostOrder
