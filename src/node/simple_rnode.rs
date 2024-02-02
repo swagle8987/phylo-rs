@@ -55,6 +55,18 @@ pub trait RootedTreeNode
             false => {}
         }
     }
+    fn num_children(&self)->usize
+    {
+        self.get_children().into_iter().collect::<Vec<Self::NodeID>>().len()
+    }
+    fn degree(&self)->usize
+    {
+        match self.get_parent()
+        {
+            Some(_) => self.num_children()+1,
+            None => self.num_children()
+        }
+    }
 }
 
 pub trait WeightedNode
