@@ -18,9 +18,13 @@ pub struct Node{
     weight: Option<f64>,
     node_type: NodeType,
 }
-impl Node{
 
-    pub fn new(id: NodeID, is_leaf: bool)->Self{
+impl RootedTreeNode for Node
+{
+    type NodeID = NodeID;
+    type Taxa = String;
+
+    fn new(id: NodeID, is_leaf: bool)->Self{
         Node{
             id: Rc::clone(&id),
             parent: None,
@@ -33,13 +37,6 @@ impl Node{
             },
         }
     }
-}
-
-impl RootedTreeNode for Node
-{
-    type NodeID = NodeID;
-    type Taxa = String;
-
 
     fn is_leaf(&self)->bool{
         match self.node_type{
