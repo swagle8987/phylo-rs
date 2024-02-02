@@ -11,10 +11,13 @@ pub trait UnrootedTreeNode{
     fn is_leaf(&self)->bool;
     fn flip(&mut self);
     fn get_taxa(&self)->Option<Self::Taxa>;
+    fn get_taxa_mut(&mut self)->Option<Self::Taxa>;
     fn set_taxa(&mut self, taxa: Option<Self::Taxa>);
     fn get_id(&self)->Self::NodeID;
+    fn get_id_mut(&mut self)->Self::NodeID;
     fn set_id(&mut self, id: Self::NodeID);
     fn get_neighbours(&self)->&Vec<(Self::NodeID, Weight)>;
+    fn get_neighbours_mut(&mut self)->&Vec<(Self::NodeID, Weight)>;
     fn add_neighbour(&mut self, child:(Self::NodeID, Weight));
     fn remove_neighbour(&mut self, child:Self::NodeID);
     fn node_type(&self)->String{

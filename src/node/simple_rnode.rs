@@ -14,7 +14,6 @@ pub trait RootedTreeNode
     type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord;
     type NodeID: Display + Debug + Hash + Clone + Drop + Ord;
     
-    fn new(id: Self::NodeID, is_leaf: bool)->Self;
     fn is_leaf(&self)->bool;
     fn flip(&mut self);
     fn get_taxa(&self)->Option<Self::Taxa>;

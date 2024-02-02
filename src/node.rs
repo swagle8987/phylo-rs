@@ -1,11 +1,11 @@
 pub mod simple_rnode;
 
 use std::fmt::{Debug, Display};
-use std::rc::Rc;
 
 use crate::node::simple_rnode::{RootedTreeNode, NodeType};
 
 use self::simple_rnode::WeightedNode;
+use std::rc::Rc;
 
 pub type NodeID = Rc<usize>;
 
@@ -18,13 +18,9 @@ pub struct Node{
     weight: Option<f64>,
     node_type: NodeType,
 }
+impl Node{
 
-impl RootedTreeNode for Node
-{
-    type NodeID = NodeID;
-    type Taxa = String;
-
-    fn new(id: NodeID, is_leaf: bool)->Self{
+    pub fn new(id: NodeID, is_leaf: bool)->Self{
         Node{
             id: Rc::clone(&id),
             parent: None,
@@ -37,6 +33,13 @@ impl RootedTreeNode for Node
             },
         }
     }
+}
+
+impl RootedTreeNode for Node
+{
+    type NodeID = NodeID;
+    type Taxa = String;
+
 
     fn is_leaf(&self)->bool{
         match self.node_type{

@@ -1,0 +1,17 @@
+So the simple_rtree "trait" does the following
+It gives a basic implementation for all possible rooted trees
+
+For a tree what is required
+- Node :: Implements hash  
+- Edge :: 
+
+
+do it simpler
+
+SimpleTree
+-add_node(&self) -> Node;
+-remove_node(&self) ->
+
+What should a tree do at it's most basis step
+- add_node(&self)-> Node;
+- set_child
