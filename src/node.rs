@@ -79,7 +79,7 @@ impl RootedTreeNode for Node
     fn get_parent(&self)->Option<Self::NodeID>{
         self.parent.clone()
     }
-    fn get_children(&self)->impl IntoIterator<Item=Self::NodeID>{
+    fn get_children(&self)->impl IntoIterator<Item=Self::NodeID, IntoIter = impl ExactSizeIterator<Item = Self::NodeID>>{
         self.children.clone()
     }
     fn add_child(&mut self, child: Self::NodeID){
