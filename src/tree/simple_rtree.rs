@@ -14,8 +14,10 @@ pub trait RootedTree<RHS=Self> {
     /// Returns reference to node by ID
     fn get_node(&self, node_id: Self::NodeID)->Option<&Self::Node>;
 
+    fn get_node_mut(&mut self, node_id: Self::NodeID)->Option<&mut Self::Node>;
+
     /// Returns reference to node by ID
-    fn set_node(&mut self, node_id: Self::Node);
+    fn set_node(&mut self, node: Self::Node);
 
     fn add_child(&mut self, parent_id: Self::NodeID, child: Self::Node);
 
