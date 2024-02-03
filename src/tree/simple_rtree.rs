@@ -11,6 +11,8 @@ pub trait RootedTree<RHS=Self> {
     type Taxa: Debug + Eq + PartialEq + Clone + Ord;
     type Node: RootedTreeNode<NodeID = Self::NodeID, Taxa = Self::Taxa> + Clone;
 
+    fn new(root_id: Self::NodeID)->Self;
+
     /// Returns reference to node by ID
     fn get_node(&self, node_id: Self::NodeID)->Option<&Self::Node>;
 
