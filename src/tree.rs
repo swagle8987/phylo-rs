@@ -2,15 +2,19 @@ pub mod simple_rtree;
 pub mod ops;
 pub mod distances;
 pub mod weighted;
+pub mod io;
 
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::rc::Rc;
-// use itertools::Itertools;
+use itertools::Itertools;
 
 use crate::node::simple_rnode::RootedTreeNode;
 use crate::node::{NodeID, Node};
 use crate::tree::simple_rtree::RootedTree;
+use crate::iter::node_iter::*;
+
+use self::io::Newick;
 // use crate::tree::ops::SPR;
 // use crate::tree::distances::*;
 // use crate::iter::{node_iter::*, edge_iter::*};
@@ -28,20 +32,20 @@ pub struct SimpleRootedTree{
 }
 
 impl SimpleRootedTree{
-    pub fn new()->Self{
-        let root_node = Node::new(Rc::new(0), false);
-        SimpleRootedTree { 
-            root: root_node.get_id(),
-            nodes: HashMap::from([(root_node.get_id(), root_node)]),
-        }
-    }
+    // pub fn new()->Self{
+    //     let root_node = Node::new(Rc::new(0), false);
+    //     SimpleRootedTree { 
+    //         root: root_node.get_id(),
+    //         nodes: HashMap::from([(root_node.get_id(), root_node)]),
+    //     }
+    // }
 }
 
-impl Default for SimpleRootedTree {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// impl Default for SimpleRootedTree {
+//     fn default() -> Self {
+//         Self::new()
+//     }
+// }
 
 impl RootedTree for SimpleRootedTree{
     
@@ -49,6 +53,14 @@ impl RootedTree for SimpleRootedTree{
     type EdgeWeight = f64;
     type Taxa = String;
     type Node = Node;
+
+    fn new(root_id: Self::NodeID)->Self{
+        let root_node = Node::new(root_id, false);
+        SimpleRootedTree { 
+            root: root_node.get_id(),
+            nodes: HashMap::from([(root_node.get_id(), root_node)]),
+        }
+    }
 
     /// Returns reference to node by ID
     fn get_node(&self, node_id: Self::NodeID)->Option<&Self::Node>
@@ -123,7 +135,6 @@ impl RootedTree for SimpleRootedTree{
                 let new_root = self.get_root().get_children().into_iter().next().unwrap();
                 self.set_root(new_root);
                 self.get_node_mut(Rc::clone(&self.root)).unwrap().set_parent(None);
-                // self.parents.entry(new_root).and_modify(|x| *x = None);
                 self.remove_node(node_id);
             }
             // remove nodes with only one child
@@ -139,7 +150,109 @@ impl RootedTree for SimpleRootedTree{
 
     fn get_mrca(&self, node_id_list: &Vec<Self::NodeID>)->Self::NodeID
     {
-        todo!()
+        let binding = self.euler_tour(self.get_root_id()).into_iter().map(|x| x.get_id()).collect_vec();
+        let mut euler_tour = binding.iter();
+        // let mut euler_tour = self.euler_tour(self.get_root_id()).into_iter().map(|x| x.get_id()).collect_vec().iter();
+        let depth_array: Vec<usize> = vec![];
+        let pos_vecs = node_id_list.iter().map(|x| vec![euler_tour.position(|r| r==x).unwrap(), euler_tour.rposition(|r| r==x).unwrap()]).flatten().collect_vec();
+        let min_pos = pos_vecs.iter().min().unwrap().clone();
+        let max_pos = pos_vecs.iter().max().unwrap().clone();
+        let depth_subarray_min_value = depth_array[min_pos..max_pos].iter().min().unwrap();
+        let depth_subarray_min_pos = depth_array[min_pos..max_pos].iter().position(|x| x==depth_subarray_min_value).unwrap();
+        Rc::clone(&euler_tour.collect_vec()[depth_subarray_min_pos])
+        // todo!()
+    }
+}
+
+impl PreOrder for SimpleRootedTree{}
+
+impl PostOrder for SimpleRootedTree{}
+
+impl DFS for SimpleRootedTree{}
+
+impl EulerTour for SimpleRootedTree{}
+
+impl Newick for SimpleRootedTree{
+    fn from_newick(newick_str: &[u8])->impl RootedTree {
+                let mut next_node_id = 0;
+                let mut tree = SimpleRootedTree::new(Rc::new(next_node_id.clone()));
+                next_node_id += 1;
+                let mut stack : Vec<NodeID> = Vec::new();
+                let mut context : NodeID = tree.get_root_id();
+                let mut taxa_str = String::new();
+                let mut decimal_str: String = String::new();
+                let mut str_ptr: usize = 0;
+                let newick_string = String::from_utf8(newick_str.to_vec()).unwrap().chars().filter(|c| !c.is_whitespace()).collect::<Vec<char>>();
+                // while str_ptr<newick_string.len(){
+                //     match newick_string[str_ptr]{
+                //         '(' => {
+                //             stack.push(context);
+                //             context = tree.add_node();
+                //             str_ptr +=1;
+                //         },
+                //         ')'|',' => {
+                //             // last context id
+                //             let last_context = stack.last().expect("Newick string ended abruptly!");
+                //             // add current context as a child to last context
+                //             tree.set_child(
+                //                 &context,
+                //                 last_context,
+                //                 decimal_str.parse::<EdgeWeight>().ok(),
+                //                 match taxa_str.is_empty(){
+                //                     true => None,
+                //                     false => Some(taxa_str.to_string())
+                //                 }
+                //             );
+                //             // we clear the strings
+                //             taxa_str.clear();
+                //             decimal_str.clear();
+        
+                //             match newick_string[str_ptr] {
+                //                 ',' => {
+                //                     context = tree.add_node();
+                //                     str_ptr += 1;
+                //                 }
+                //                 _ => {
+                //                     context = stack.pop().expect("Newick string ended abruptly!");
+                //                     str_ptr += 1;
+                //                 }
+                //             }
+                //         },
+                //         ';'=>{
+                //             if !taxa_str.is_empty(){
+                //                 tree.assign_taxa(&context, &taxa_str);
+                //             }
+                //             break;
+                //         }
+                //         ':' => {
+                //             // if the current context had a weight
+                //             if newick_string[str_ptr]==':'{
+                //                 str_ptr+=1;
+                //                 while newick_string[str_ptr].is_ascii_digit() || newick_string[str_ptr]=='.'{
+                //                     decimal_str.push(newick_string[str_ptr]); 
+                //                     str_ptr+=1;
+                //                 }
+                //             }
+                //         }
+                //         _ => {
+                //             // push taxa characters into taxa string
+                //             while newick_string[str_ptr]!=':'&&newick_string[str_ptr]!=')'&&newick_string[str_ptr]!=','&&newick_string[str_ptr]!='('&&newick_string[str_ptr]!=';'{
+                //                 taxa_str.push(newick_string[str_ptr]); 
+                //                 str_ptr+=1;
+                //             }
+                //         },
+                //     }
+                // }
+                // let mut leaf_ids = Vec::new();
+                // tree.leaves_of_node(tree.get_root(), &mut leaf_ids);
+                // for leaf_id in leaf_ids{
+                //     tree.set_leaf(&leaf_id);
+                // }
+                tree
+            }
+
+    fn to_newick(&self)->impl std::fmt::Display {
+        String::new()
     }
 }
 
