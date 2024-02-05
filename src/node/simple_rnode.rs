@@ -2,6 +2,8 @@ use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
+use itertools::Itertools;
+
 #[derive(Clone)]
 pub enum NodeType
 {
@@ -66,6 +68,15 @@ pub trait RootedTreeNode
             Some(_) => self.num_children()+1,
             None => self.num_children()
         }
+    }
+    fn neighbours(&self)->impl IntoIterator<Item=Self::NodeID, IntoIter = impl ExactSizeIterator<Item = Self::NodeID>>
+    {
+        let mut children = self.get_children().into_iter().collect_vec();
+        match self.get_parent(){
+            Some(p) => {children.push(p);},
+            None => {},
+        }
+        children
     }
 }
 
