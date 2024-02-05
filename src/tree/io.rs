@@ -1,10 +1,10 @@
 use std::fmt::Display;
 
-use super::simple_rtree::RootedTree;
+use super::{simple_rtree::RootedTree, weighted::WeightedTree};
 
 pub trait Newick
 where
-    Self: RootedTree + Sized
+    Self: WeightedTree + Sized
 {
     fn from_newick(newick_str: &[u8])->Self;
     fn subtree_to_newick(&self, node_id: Self::NodeID)-> impl Display;
