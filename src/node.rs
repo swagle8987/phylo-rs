@@ -107,7 +107,7 @@ impl WeightedNode for Node
 impl Debug for Node
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}", self.node_type(), match self.get_taxa(){
+        write!(f, "{}:{}:{}", self.get_id(),self.node_type(), match self.get_taxa(){
             None => "None".to_string(),
             Some(t) => t.to_string(),
         })
@@ -117,7 +117,7 @@ impl Debug for Node
 impl Display for Node
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}", self.node_type(), match self.get_taxa(){
+        write!(f, "{}:{}:{}", self.get_id(),self.node_type(), match self.get_taxa(){
             None => "None".to_string(),
             Some(t) => t.to_string(),
         })
