@@ -9,13 +9,14 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use itertools::Itertools;
 
-use crate::node::simple_rnode::RootedTreeNode;
+use crate::node::simple_rnode::{RootedTreeNode, WeightedNode};
 use crate::node::{Node, NodeID};
 use crate::tree::simple_rtree::RootedTree;
 use crate::iter::node_iter::*;
 
 use self::io::Newick;
 use self::ops::{Balance, Subtree, SPR};
+use self::weighted::WeightedTree;
 // use crate::tree::ops::SPR;
 // use crate::tree::distances::*;
 // use crate::iter::{node_iter::*, edge_iter::*};
@@ -199,6 +200,40 @@ impl RootedTree for SimpleRootedTree{
     }
 }
 
+impl WeightedTree for SimpleRootedTree {
+    type EdgeWeight = f64;
+
+    fn unweight(&mut self)
+    {
+        let node_ids = self.get_node_ids().into_iter().collect_vec();
+        for node_id in node_ids
+        {
+            self.get_node_mut(node_id).unwrap().set_weight(None);
+        }
+    }
+
+    fn set_edge_weight(&mut self, edge:(Self::NodeID, Self::NodeID), edge_weight:Option<Self::EdgeWeight>)
+    {
+        self.get_node_mut(edge.1).unwrap().set_weight(edge_weight);
+    }
+
+    fn is_weighted(&self)->bool
+    {
+        for node_id in self.get_node_ids()
+        {
+            if self.get_node(node_id).unwrap().get_weight()==None{
+                return false;
+            }
+        }
+        true
+    }
+
+    fn get_edge_weight(&self, _parent_id: Self::NodeID, child_id:Self::NodeID)->Option<Self::EdgeWeight>
+    {
+        self.get_node(child_id).unwrap().get_weight()
+    }
+}
+
 impl PreOrder for SimpleRootedTree{}
 
 impl PostOrder for SimpleRootedTree{}
@@ -213,6 +248,7 @@ impl Newick for SimpleRootedTree{
                 let mut stack : Vec<NodeID> = Vec::new();
                 let mut context : NodeID = tree.get_root_id();
                 let mut taxa_str = String::new();
+                let mut decimal_str: String = String::new();
                 let mut str_ptr: usize = 0;
                 let newick_string = String::from_utf8(newick_str.to_vec()).unwrap().chars().filter(|c| !c.is_whitespace()).collect::<Vec<char>>();
                 while str_ptr<newick_string.len(){
@@ -232,11 +268,13 @@ impl Newick for SimpleRootedTree{
                                 Rc::clone(last_context),
                                 Rc::clone(&context),
                             );
+                            tree.set_edge_weight((Rc::clone(last_context),Rc::clone(&context)), decimal_str.parse::<Self::EdgeWeight>().ok());
                             if !taxa_str.is_empty(){
                                 tree.set_node_taxa(context, Some(taxa_str.to_string()));
                             }
                             // we clear the strings
                             taxa_str.clear();
+                            decimal_str.clear();
         
                             match newick_string[str_ptr] {
                                 ',' => {
@@ -257,9 +295,19 @@ impl Newick for SimpleRootedTree{
                             }
                             break;
                         }
+                        ':' => {
+                                // if the current context had a weight
+                                if newick_string[str_ptr]==':'{
+                                    str_ptr+=1;
+                                    while newick_string[str_ptr].is_ascii_digit() || newick_string[str_ptr]=='.'{
+                                        decimal_str.push(newick_string[str_ptr]); 
+                                        str_ptr+=1;
+                                    }
+                                }
+                            }
                         _ => {
                             // push taxa characters into taxa string
-                            while newick_string[str_ptr]!=')'&&newick_string[str_ptr]!=','&&newick_string[str_ptr]!='('&&newick_string[str_ptr]!=';'{
+                            while newick_string[str_ptr]!=':'&&newick_string[str_ptr]!=')'&&newick_string[str_ptr]!=','&&newick_string[str_ptr]!='('&&newick_string[str_ptr]!=';'{
                                 taxa_str.push(newick_string[str_ptr]); 
                                 str_ptr+=1;
                             }
