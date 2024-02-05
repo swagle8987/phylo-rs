@@ -10,11 +10,12 @@ use std::rc::Rc;
 use itertools::Itertools;
 
 use crate::node::simple_rnode::RootedTreeNode;
-use crate::node::{NodeID, Node};
+use crate::node::{Node, NodeID};
 use crate::tree::simple_rtree::RootedTree;
 use crate::iter::node_iter::*;
 
 use self::io::Newick;
+use self::ops::{Balance, Subtree, SPR};
 // use crate::tree::ops::SPR;
 // use crate::tree::distances::*;
 // use crate::iter::{node_iter::*, edge_iter::*};
@@ -32,6 +33,19 @@ pub struct SimpleRootedTree{
 }
 
 impl SimpleRootedTree{
+    pub fn next_id(&self)->NodeID
+    {
+        match self.nodes.keys().map(|x| (*Rc::clone(x)).clone()).max()
+        {
+            Some(x) => Rc::new(x+1),
+            None => Rc::new(0)
+        }
+    }
+
+    pub fn next_node(&self)->Node
+    {
+        Node::new(self.next_id(), false)
+    }
     // pub fn new()->Self{
     //     let root_node = Node::new(Rc::new(0), false);
     //     SimpleRootedTree { 
@@ -50,7 +64,6 @@ impl SimpleRootedTree{
 impl RootedTree for SimpleRootedTree{
     
     type NodeID = NodeID;
-    type EdgeWeight = f64;
     type Taxa = String;
     type Node = Node;
 
@@ -110,6 +123,11 @@ impl RootedTree for SimpleRootedTree{
 
     fn remove_node(&mut self, node_id: Self::NodeID)->Option<Self::Node>
     {
+        match self.get_node_parent(node_id.clone())
+        {
+            Some(pid) => self.get_node_mut(pid).unwrap().remove_child(node_id.clone()),
+            None => {},
+        }
         self.nodes.remove(&node_id)
     }
 
@@ -128,38 +146,55 @@ impl RootedTree for SimpleRootedTree{
     {
         // todo!()
         let node_iter = self.get_nodes().into_iter().collect::<Vec<Self::Node>>();
-        for node in node_iter{
+        for node in node_iter.clone(){
             // remove root with only one child
             let node_id = node.get_id();
             if node.get_id()==self.get_root_id() && node.degree()<2{
                 let new_root = self.get_root().get_children().into_iter().next().unwrap();
                 self.set_root(new_root);
                 self.get_node_mut(Rc::clone(&self.root)).unwrap().set_parent(None);
-                self.remove_node(node_id);
+                self.remove_node(node_id.clone());
             }
             // remove nodes with only one child
-            else if !node.is_leaf() &&  node.degree()<3{
-                let parent_id = self.get_node_parent(node_id);
+            else if !node.is_leaf() && node.get_parent()!=None && node.degree()<3 {
+                let parent_id = self.get_node_parent(node_id.clone());
                 let child_id = node.get_children().into_iter().next().unwrap();
                 self.get_node_mut(Rc::clone(&child_id)).unwrap().set_parent(parent_id.clone());
                 self.get_node_mut(parent_id.unwrap()).unwrap().add_child(child_id);
                 self.remove_node(node.get_id());
+            }
+            for chid in node.get_children().into_iter()
+            {
+                if !node_iter.clone().into_iter().map(|x| x.get_id()).contains(&chid)
+                {
+                    self.get_node_mut(node_id.clone()).unwrap().remove_child(chid);
+                }
             }
         }
     }
 
     fn get_mrca(&self, node_id_list: &Vec<Self::NodeID>)->Self::NodeID
     {
-        let binding = self.euler_tour(self.get_root_id()).into_iter().map(|x| x.get_id()).collect_vec();
-        let mut euler_tour = binding.iter();
-        // let mut euler_tour = self.euler_tour(self.get_root_id()).into_iter().map(|x| x.get_id()).collect_vec().iter();
-        let depth_array: Vec<usize> = vec![];
-        let pos_vecs = node_id_list.iter().map(|x| vec![euler_tour.position(|r| r==x).unwrap(), euler_tour.rposition(|r| r==x).unwrap()]).flatten().collect_vec();
-        let min_pos = pos_vecs.iter().min().unwrap().clone();
-        let max_pos = pos_vecs.iter().max().unwrap().clone();
+        let euler_tour = self.euler_tour(self.get_root_id()).into_iter().map(|x| x.get_id()).collect_vec();
+        let depth_array: Vec<usize> = euler_tour.iter().map(|x| self.get_node_depth(x.clone())).collect_vec();   // todo
+        let mut min_pos = euler_tour.len();
+        let mut max_pos = 0;
+        for node_id in node_id_list
+        {
+            let pos = euler_tour.iter().position(|r| r == node_id).unwrap();
+            match pos<min_pos {
+                true => min_pos=pos,
+                false => {},
+            }
+            let pos = euler_tour.iter().rposition(|r| r == node_id).unwrap_or(0);
+            match pos>max_pos {
+                true => max_pos=pos,
+                false => {},
+            }
+        }
         let depth_subarray_min_value = depth_array[min_pos..max_pos].iter().min().unwrap();
         let depth_subarray_min_pos = depth_array[min_pos..max_pos].iter().position(|x| x==depth_subarray_min_value).unwrap();
-        Rc::clone(&euler_tour.collect_vec()[depth_subarray_min_pos])
+        Rc::clone(&euler_tour[min_pos..max_pos][depth_subarray_min_pos])
         // todo!()
     }
 }
@@ -173,89 +208,169 @@ impl DFS for SimpleRootedTree{}
 impl EulerTour for SimpleRootedTree{}
 
 impl Newick for SimpleRootedTree{
-    fn from_newick(newick_str: &[u8])->impl RootedTree {
-                let mut next_node_id = 0;
-                let mut tree = SimpleRootedTree::new(Rc::new(next_node_id.clone()));
-                next_node_id += 1;
+    fn from_newick(newick_str: &[u8])->Self {
+                let mut tree = SimpleRootedTree::new(Rc::new(0));
                 let mut stack : Vec<NodeID> = Vec::new();
                 let mut context : NodeID = tree.get_root_id();
                 let mut taxa_str = String::new();
-                let mut decimal_str: String = String::new();
                 let mut str_ptr: usize = 0;
                 let newick_string = String::from_utf8(newick_str.to_vec()).unwrap().chars().filter(|c| !c.is_whitespace()).collect::<Vec<char>>();
-                // while str_ptr<newick_string.len(){
-                //     match newick_string[str_ptr]{
-                //         '(' => {
-                //             stack.push(context);
-                //             context = tree.add_node();
-                //             str_ptr +=1;
-                //         },
-                //         ')'|',' => {
-                //             // last context id
-                //             let last_context = stack.last().expect("Newick string ended abruptly!");
-                //             // add current context as a child to last context
-                //             tree.set_child(
-                //                 &context,
-                //                 last_context,
-                //                 decimal_str.parse::<EdgeWeight>().ok(),
-                //                 match taxa_str.is_empty(){
-                //                     true => None,
-                //                     false => Some(taxa_str.to_string())
-                //                 }
-                //             );
-                //             // we clear the strings
-                //             taxa_str.clear();
-                //             decimal_str.clear();
+                while str_ptr<newick_string.len(){
+                    match newick_string[str_ptr]{
+                        '(' => {
+                            stack.push(context);
+                            let new_node = Node::new(tree.next_id(), false);
+                            context = new_node.get_id();
+                            tree.set_node(new_node);
+                            str_ptr +=1;
+                        },
+                        ')'|',' => {
+                            // last context id
+                            let last_context = stack.last().expect("Newick string ended abruptly!");
+                            // add current context as a child to last context
+                            tree.set_child(
+                                Rc::clone(last_context),
+                                Rc::clone(&context),
+                            );
+                            if !taxa_str.is_empty(){
+                                tree.set_node_taxa(context, Some(taxa_str.to_string()));
+                            }
+                            // we clear the strings
+                            taxa_str.clear();
         
-                //             match newick_string[str_ptr] {
-                //                 ',' => {
-                //                     context = tree.add_node();
-                //                     str_ptr += 1;
-                //                 }
-                //                 _ => {
-                //                     context = stack.pop().expect("Newick string ended abruptly!");
-                //                     str_ptr += 1;
-                //                 }
-                //             }
-                //         },
-                //         ';'=>{
-                //             if !taxa_str.is_empty(){
-                //                 tree.assign_taxa(&context, &taxa_str);
-                //             }
-                //             break;
-                //         }
-                //         ':' => {
-                //             // if the current context had a weight
-                //             if newick_string[str_ptr]==':'{
-                //                 str_ptr+=1;
-                //                 while newick_string[str_ptr].is_ascii_digit() || newick_string[str_ptr]=='.'{
-                //                     decimal_str.push(newick_string[str_ptr]); 
-                //                     str_ptr+=1;
-                //                 }
-                //             }
-                //         }
-                //         _ => {
-                //             // push taxa characters into taxa string
-                //             while newick_string[str_ptr]!=':'&&newick_string[str_ptr]!=')'&&newick_string[str_ptr]!=','&&newick_string[str_ptr]!='('&&newick_string[str_ptr]!=';'{
-                //                 taxa_str.push(newick_string[str_ptr]); 
-                //                 str_ptr+=1;
-                //             }
-                //         },
-                //     }
-                // }
-                // let mut leaf_ids = Vec::new();
-                // tree.leaves_of_node(tree.get_root(), &mut leaf_ids);
-                // for leaf_id in leaf_ids{
-                //     tree.set_leaf(&leaf_id);
-                // }
+                            match newick_string[str_ptr] {
+                                ',' => {
+                                    let new_node = Node::new(tree.next_id(), false);
+                                    context = new_node.get_id();
+                                    tree.set_node(new_node);
+                                    str_ptr += 1;
+                                }
+                                _ => {
+                                    context = stack.pop().expect("Newick string ended abruptly!");
+                                    str_ptr += 1;
+                                }
+                            }
+                        },
+                        ';'=>{
+                            if !taxa_str.is_empty(){
+                                tree.set_node_taxa(context, Some(taxa_str));
+                            }
+                            break;
+                        }
+                        _ => {
+                            // push taxa characters into taxa string
+                            while newick_string[str_ptr]!=')'&&newick_string[str_ptr]!=','&&newick_string[str_ptr]!='('&&newick_string[str_ptr]!=';'{
+                                taxa_str.push(newick_string[str_ptr]); 
+                                str_ptr+=1;
+                            }
+                        },
+                    }
+                }
+                let leaf_ids = tree.dfs(tree.get_root_id())
+                    .into_iter()
+                    .filter(|x| x.get_children().into_iter().collect_vec().is_empty())
+                    .map(|x| Rc::clone(&x.get_id()))
+                    .collect_vec();
+                tree.flip_nodes(leaf_ids.clone().into_iter());
                 tree
             }
 
-    fn to_newick(&self)->impl std::fmt::Display {
-        String::new()
+    fn subtree_to_newick(&self, node_id: Self::NodeID)-> impl std::fmt::Display {
+        let node  = self.get_node(dbg!(node_id)).unwrap();
+        let mut tmp = String::new();
+        if node.get_children().into_iter().len()!=0{
+            if node.get_children().into_iter().len()>1{
+                tmp.push('(');
+            }
+            for child_id in node.get_children().into_iter(){
+                let child_str = format!("{},", self.subtree_to_newick(child_id));
+                tmp.push_str(&child_str);
+            }
+            tmp.pop();
+            if node.get_children().into_iter().collect_vec().len()>1{
+                tmp.push(')');
+            }
+        }
+        tmp.push_str(&node.get_taxa().unwrap_or("".to_string()));
+        tmp
+
+        // String::new()
     }
 }
 
+impl SPR for SimpleRootedTree
+{
+    fn graft(&mut self, tree: Self, edge: (Self::NodeID, Self::NodeID)) {
+        let new_node = self.next_node();
+        let new_node_id = dbg!(new_node.get_id());
+        for node in tree.dfs(tree.get_root_id())
+        {
+            self.set_node(dbg!(node));
+        }
+        self.split_edge(edge, new_node);
+        self.set_child(dbg!(new_node_id), dbg!(tree.get_root_id()));
+
+    }
+    fn prune(&mut self, node_id: Self::NodeID)-> Self {
+        let mut pruned_tree = SimpleRootedTree::new(Rc::clone(&node_id));
+        let p_id = self.get_node_parent(Rc::clone(&node_id)).unwrap();
+        self.get_node_mut(p_id).unwrap().remove_child(Rc::clone(&node_id));
+        pruned_tree.get_node_mut(pruned_tree.get_root_id()).unwrap().add_children(self.get_node(Rc::clone(&node_id)).unwrap().get_children());
+        let dfs = self.dfs(node_id.clone()).into_iter().collect_vec().clone();
+        for node in dfs
+        {    
+            self.nodes.remove(&node.get_id());
+            pruned_tree.set_node(node);
+        }
+        pruned_tree
+    }
+}
+
+impl Clusters for SimpleRootedTree{}
+
+impl Balance for SimpleRootedTree{
+    fn balance_subtree(&mut self) 
+    {
+        assert!(self.get_cluster(self.get_root_id()).into_iter().collect_vec().len()==4, "Quartets have 4 leaves!");
+        assert!(self.is_binary(), "Cannot balance non-binary tree!");
+        let root_children = self.get_node_children(self.get_root_id()).into_iter().collect_vec();
+        let (child1, child2) = (root_children[0].get_id(), root_children[1].get_id());
+        let next_id = self.next_id();
+        let split_id = Rc::new(*self.next_id()+1);
+        match dbg!(((self.get_node(child1.clone()).unwrap().is_leaf()), (self.get_node(child2.clone()).unwrap().is_leaf()))){
+            (false, false) => {},
+            (true, false) => {
+                let mut leaf_node = self.remove_node(child1).unwrap();
+                leaf_node.set_id(next_id.clone());
+                let other_leaf_id = &self.get_node_children(child2.clone()).into_iter().filter(|node| node.is_leaf()).collect_vec()[0].get_id();
+                self.split_edge((child2, Rc::clone(other_leaf_id)), Node::new(split_id.clone(), false));
+                self.add_child(dbg!(split_id), leaf_node);
+            },
+            (false, true) => {
+                let mut leaf_node = self.remove_node(child2).unwrap();
+                leaf_node.set_id(next_id.clone());
+                let other_leaf_id = &self.get_node_children(child1.clone()).into_iter().filter(|node| node.is_leaf()).collect_vec()[0].get_id();
+                self.split_edge((child1, Rc::clone(other_leaf_id)), Node::new(split_id.clone(), false));
+                self.add_child(split_id, leaf_node);
+
+
+                // let mut p_t = self.prune(child2);
+                // dbg!(self.get_nodes().into_iter().collect_vec());
+                // p_t.get_node_mut(p_t.get_root_id()).unwrap().set_id(next_id.clone());
+                // p_t.set_root(next_id);
+                // let other_leaf = &self.get_node_children(child1.clone()).into_iter().filter(|node| node.is_leaf()).collect_vec()[0].get_id();
+                // self.graft(p_t, (child1, Rc::clone(other_leaf)));
+                // dbg!(self.get_nodes().into_iter().collect_vec());
+            },
+            _ =>{}
+        }
+        self.clean();
+    }
+}
+
+impl Ancestors for SimpleRootedTree{}
+
+impl Subtree for SimpleRootedTree {}
 
 //     pub fn from_newick(newick_string: String)->Self{
 //         let mut tree = RootedPhyloTree::new();
