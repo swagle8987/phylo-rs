@@ -5,16 +5,17 @@ use std::fmt::{Debug, Display};
 use crate::node::simple_rnode::{RootedTreeNode, NodeType};
 
 use self::simple_rnode::WeightedNode;
-use std::rc::Rc;
+// use std::rc::Rc;
+use std::sync::Arc;
 
-pub type NodeID = Rc<usize>;
+pub type NodeID = Arc<usize>;
 
 #[derive(Clone)]
 pub struct Node{
     id: NodeID,
     parent: Option<NodeID>,
     children: Vec<NodeID>,
-    taxa: Option<Rc<String>>,
+    taxa: Option<Arc<String>>,
     weight: Option<f64>,
     node_type: NodeType,
 }
@@ -26,7 +27,7 @@ impl RootedTreeNode for Node
 
     fn new(id: NodeID, is_leaf: bool)->Self{
         Node{
-            id: Rc::clone(&id),
+            id: Arc::clone(&id),
             parent: None,
             children: vec![],
             taxa: None,
@@ -60,17 +61,17 @@ impl RootedTreeNode for Node
     }
 
     fn get_id(&self)->Self::NodeID {
-        Rc::clone(&self.id)
+        Arc::clone(&self.id)
     }
 
     fn set_id(&mut self, id: Self::NodeID) {
-        self.id = Rc::clone(&id)
+        self.id = Arc::clone(&id)
     }
 
     fn set_taxa(&mut self, taxa: Option<String>){
         self.taxa = match taxa{
             None => None,
-            Some(t) => Some(Rc::new(t)),
+            Some(t) => Some(Arc::new(t)),
         };
     }
     fn set_parent(&mut self, parent: Option<Self::NodeID>){
