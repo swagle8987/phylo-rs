@@ -43,7 +43,7 @@ fn tree_iter() {
     dbg!(&tree.ancestors(Arc::new(5)).into_iter().collect_vec());
 }
 #[test]
-fn tree_mArca() {
+fn tree_mrca() {
     let mut tree = SimpleRootedTree::new(Arc::new(1));
     let new_node = Node::new(Arc::new(2), false);
     tree.add_child(tree.get_root_id(), new_node);
