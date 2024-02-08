@@ -1,8 +1,5 @@
-use itertools::Itertools;
-
-use crate::node::simple_rnode::RootedTreeNode;
 use crate::iter::node_iter::Ancestors;
-use super::{Clusters, RootedTree, DFS};
+use super::{weighted::WeightedTree, Clusters, RootedTree, DFS};
 
 pub trait SPR
 where
@@ -69,4 +66,25 @@ where
         subtree
 
     }
+}
+
+pub trait RobinsonFoulds
+where
+    Self: RootedTree + Sized
+{
+    fn rfs(&self, tree: Self)->usize;
+}
+
+pub trait ClusterAffinity
+where
+    Self: RootedTree + Sized
+{
+    fn rfs(&self, tree: Self)->usize;
+}
+
+pub trait WeightedRobinsonFoulds
+where
+    Self: WeightedTree + Sized
+{
+    fn rfs(&self, tree: Self)->usize;
 }
