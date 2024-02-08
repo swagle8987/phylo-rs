@@ -1,15 +1,17 @@
 use phylo::node::Node;
-use std::rc::Rc;
+// use std::Arc::Arc;
+use std::sync::Arc;
+
 use itertools::Itertools;
 use phylo::node::simple_rnode::RootedTreeNode;
 
 #[test]
 fn test_flip(){
-let mut n = Node::new(Rc::new(5),true);
+let mut n = Node::new(Arc::new(5),true);
 assert_eq!(n.is_leaf(),true);
 n.flip();
 assert_eq!(n.is_leaf(),false);
-let mut a = Node::new(Rc::new(0),false);
+let mut a = Node::new(Arc::new(0),false);
 assert_eq!(n.is_leaf(),false);
 a.flip();
 assert_eq!(a.is_leaf(),true);
@@ -18,16 +20,16 @@ assert_eq!(a.is_leaf(),true);
 
 #[test]
 fn test_set_id(){
-let mut n = Node::new(Rc::new(0),true);
-assert_eq!(n.get_id(),Rc::new(0));
-n.set_id(Rc::new(10));
-assert_eq!(n.get_id(),Rc::new(10));
+let mut n = Node::new(Arc::new(0),true);
+assert_eq!(n.get_id(),Arc::new(0));
+n.set_id(Arc::new(10));
+assert_eq!(n.get_id(),Arc::new(10));
 }
 
 
 #[test]
 fn test_set_taxa(){
-let mut n = Node::new(Rc::new(0),true);
+let mut n = Node::new(Arc::new(0),true);
 assert_eq!(n.get_taxa(),None);
 n.set_taxa(Some(String::from("A")));
 assert_eq!(n.get_taxa(),Some(String::from("A")));

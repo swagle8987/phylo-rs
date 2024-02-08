@@ -6,7 +6,9 @@ pub mod io;
 
 
 use std::collections::HashMap;
-use std::rc::Rc;
+// use std::Arc::Arc;
+use std::sync::Arc;
+
 use itertools::Itertools;
 
 use crate::node::simple_rnode::{RootedTreeNode, WeightedNode};
@@ -17,15 +19,6 @@ use crate::iter::node_iter::*;
 use self::io::Newick;
 use self::ops::{Balance, Subtree, SPR};
 use self::weighted::WeightedTree;
-// use crate::tree::ops::SPR;
-// use crate::tree::distances::*;
-// use crate::iter::{node_iter::*, edge_iter::*};
-
-// pub struct UnrootedPhyloTree{
-//     _nodes: HashMap<NodeID, NodeType>,
-//     _neighbours: HashMap<NodeID, HashSet<(Option<EdgeWeight>, NodeID)>>,
-//     _leaves: HashMap<NodeID, String>,
-// }
 
 #[derive(Debug)]
 pub struct SimpleRootedTree{
@@ -36,10 +29,10 @@ pub struct SimpleRootedTree{
 impl SimpleRootedTree{
     pub fn next_id(&self)->NodeID
     {
-        match self.nodes.keys().map(|x| (*Rc::clone(x)).clone()).max()
+        match self.nodes.keys().map(|x| (*Arc::clone(x)).clone()).max()
         {
-            Some(x) => Rc::new(x+1),
-            None => Rc::new(0)
+            Some(x) => Arc::new(x+1),
+            None => Arc::new(0)
         }
     }
 
@@ -95,19 +88,19 @@ impl RootedTree for SimpleRootedTree{
     {
         let new_child_id = child.get_id();
         self.set_node(child);
-        self.get_node_mut(Rc::clone(&parent_id)).unwrap().add_child(Rc::clone(&new_child_id));
+        self.get_node_mut(Arc::clone(&parent_id)).unwrap().add_child(Arc::clone(&new_child_id));
         self.get_node_mut(new_child_id).unwrap().set_parent(Some(parent_id));
     }
 
     /// Get root node ID
     fn get_root_id(&self)->Self::NodeID
     {
-        Rc::clone(&self.root)
+        Arc::clone(&self.root)
     }
 
     fn set_root(&mut self, node_id: Self::NodeID) 
     {
-        self.root = Rc::clone(&node_id);
+        self.root = Arc::clone(&node_id);
     }
 
     fn remove_node(&mut self, node_id: Self::NodeID)->Option<Self::Node>
@@ -127,13 +120,12 @@ impl RootedTree for SimpleRootedTree{
 
     fn delete_edge(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID)
     {
-        self.get_node_mut(parent_id).unwrap().remove_child(Rc::clone(&child_id));
+        self.get_node_mut(parent_id).unwrap().remove_child(Arc::clone(&child_id));
         self.get_node_mut(child_id).unwrap().set_parent(None);
     }
 
     fn clean(&mut self)
     {
-        // todo!()
         let node_iter = self.get_nodes().into_iter().collect::<Vec<Self::Node>>();
         for node in node_iter.clone(){
             // remove root with only one child
@@ -141,17 +133,18 @@ impl RootedTree for SimpleRootedTree{
             if node.get_id()==self.get_root_id() && node.degree()<2{
                 let new_root = self.get_root().get_children().into_iter().next().unwrap();
                 self.set_root(new_root);
-                self.get_node_mut(Rc::clone(&self.root)).unwrap().set_parent(None);
+                self.get_node_mut(Arc::clone(&self.root)).unwrap().set_parent(None);
                 self.remove_node(node_id.clone());
             }
             // remove nodes with only one child
             else if !node.is_leaf() && node.get_parent()!=None && node.degree()<3 {
                 let parent_id = self.get_node_parent(node_id.clone());
                 let child_id = node.get_children().into_iter().next().unwrap();
-                self.get_node_mut(Rc::clone(&child_id)).unwrap().set_parent(parent_id.clone());
+                self.get_node_mut(Arc::clone(&child_id)).unwrap().set_parent(parent_id.clone());
                 self.get_node_mut(parent_id.unwrap()).unwrap().add_child(child_id);
                 self.remove_node(node.get_id());
             }
+            // Removing dangling references to pruned children
             for chid in node.get_children().into_iter()
             {
                 if !node_iter.clone().into_iter().map(|x| x.get_id()).contains(&chid)
@@ -183,7 +176,7 @@ impl RootedTree for SimpleRootedTree{
         }
         let depth_subarray_min_value = depth_array[min_pos..max_pos].iter().min().unwrap();
         let depth_subarray_min_pos = depth_array[min_pos..max_pos].iter().position(|x| x==depth_subarray_min_value).unwrap();
-        Rc::clone(&euler_tour[min_pos..max_pos][depth_subarray_min_pos])
+        Arc::clone(&euler_tour[min_pos..max_pos][depth_subarray_min_pos])
     }
 }
 
@@ -231,7 +224,7 @@ impl EulerTour for SimpleRootedTree{}
 
 impl Newick for SimpleRootedTree{
     fn from_newick(newick_str: &[u8])->Self {
-                let mut tree = SimpleRootedTree::new(Rc::new(0));
+                let mut tree = SimpleRootedTree::new(Arc::new(0));
                 let mut stack : Vec<NodeID> = Vec::new();
                 let mut context : NodeID = tree.get_root_id();
                 let mut taxa_str = String::new();
@@ -252,10 +245,10 @@ impl Newick for SimpleRootedTree{
                             let last_context = stack.last().expect("Newick string ended abruptly!");
                             // add current context as a child to last context
                             tree.set_child(
-                                Rc::clone(last_context),
-                                Rc::clone(&context),
+                                Arc::clone(last_context),
+                                Arc::clone(&context),
                             );
-                            tree.set_edge_weight((Rc::clone(last_context),Rc::clone(&context)), decimal_str.parse::<Self::EdgeWeight>().ok());
+                            tree.set_edge_weight((Arc::clone(last_context),Arc::clone(&context)), decimal_str.parse::<Self::EdgeWeight>().ok());
                             if !taxa_str.is_empty(){
                                 tree.set_node_taxa(context, Some(taxa_str.to_string()));
                             }
@@ -304,7 +297,7 @@ impl Newick for SimpleRootedTree{
                 let leaf_ids = tree.dfs(tree.get_root_id())
                     .into_iter()
                     .filter(|x| x.get_children().into_iter().collect_vec().is_empty())
-                    .map(|x| Rc::clone(&x.get_id()))
+                    .map(|x| Arc::clone(&x.get_id()))
                     .collect_vec();
                 tree.flip_nodes(leaf_ids.clone().into_iter());
                 tree
@@ -347,10 +340,10 @@ impl SPR for SimpleRootedTree
 
     }
     fn prune(&mut self, node_id: Self::NodeID)-> Self {
-        let mut pruned_tree = SimpleRootedTree::new(Rc::clone(&node_id));
-        let p_id = self.get_node_parent(Rc::clone(&node_id)).unwrap();
-        self.get_node_mut(p_id).unwrap().remove_child(Rc::clone(&node_id));
-        pruned_tree.get_node_mut(pruned_tree.get_root_id()).unwrap().add_children(self.get_node(Rc::clone(&node_id)).unwrap().get_children());
+        let mut pruned_tree = SimpleRootedTree::new(Arc::clone(&node_id));
+        let p_id = self.get_node_parent(Arc::clone(&node_id)).unwrap();
+        self.get_node_mut(p_id).unwrap().remove_child(Arc::clone(&node_id));
+        pruned_tree.get_node_mut(pruned_tree.get_root_id()).unwrap().add_children(self.get_node(Arc::clone(&node_id)).unwrap().get_children());
         let dfs = self.dfs(node_id.clone()).into_iter().collect_vec().clone();
         for node in dfs
         {    
@@ -371,21 +364,21 @@ impl Balance for SimpleRootedTree{
         let root_children = self.get_node_children(self.get_root_id()).into_iter().collect_vec();
         let (child1, child2) = (root_children[0].get_id(), root_children[1].get_id());
         let next_id = self.next_id();
-        let split_id = Rc::new(*self.next_id()+1);
+        let split_id = Arc::new(*self.next_id()+1);
         match dbg!(((self.get_node(child1.clone()).unwrap().is_leaf()), (self.get_node(child2.clone()).unwrap().is_leaf()))){
             (false, false) => {},
             (true, false) => {
                 let mut leaf_node = self.remove_node(child1).unwrap();
                 leaf_node.set_id(next_id.clone());
                 let other_leaf_id = &self.get_node_children(child2.clone()).into_iter().filter(|node| node.is_leaf()).collect_vec()[0].get_id();
-                self.split_edge((child2, Rc::clone(other_leaf_id)), Node::new(split_id.clone(), false));
+                self.split_edge((child2, Arc::clone(other_leaf_id)), Node::new(split_id.clone(), false));
                 self.add_child(dbg!(split_id), leaf_node);
             },
             (false, true) => {
                 let mut leaf_node = self.remove_node(child2).unwrap();
                 leaf_node.set_id(next_id.clone());
                 let other_leaf_id = &self.get_node_children(child1.clone()).into_iter().filter(|node| node.is_leaf()).collect_vec()[0].get_id();
-                self.split_edge((child1, Rc::clone(other_leaf_id)), Node::new(split_id.clone(), false));
+                self.split_edge((child1, Arc::clone(other_leaf_id)), Node::new(split_id.clone(), false));
                 self.add_child(split_id, leaf_node);
 
 
@@ -394,7 +387,7 @@ impl Balance for SimpleRootedTree{
                 // p_t.get_node_mut(p_t.get_root_id()).unwrap().set_id(next_id.clone());
                 // p_t.set_root(next_id);
                 // let other_leaf = &self.get_node_children(child1.clone()).into_iter().filter(|node| node.is_leaf()).collect_vec()[0].get_id();
-                // self.graft(p_t, (child1, Rc::clone(other_leaf)));
+                // self.graft(p_t, (child1, Arc::clone(other_leaf)));
                 // dbg!(self.get_nodes().into_iter().collect_vec());
             },
             _ =>{}
@@ -590,24 +583,24 @@ impl Subtree for SimpleRootedTree {}
 //         )
 //     }
 
-//     fn get_mrca(&self, node_id_list: Vec<&NodeID>)->NodeID{
+//     fn get_mArca(&self, node_id_list: Vec<&NodeID>)->NodeID{
 //         let ancestor_iter_vec: Vec<std::vec::IntoIter<NodeID>> = node_id_list.iter().map(|x| self.get_ancestors_pre(x).into_iter()).collect();
-//         let mut mrca: NodeID = 0;
+//         let mut mArca: NodeID = 0;
 //         for mut iterator in ancestor_iter_vec{
 //             let temp: HashSet<NodeID> = HashSet::new();
 //             if let Some(x) = iterator.next() {
 //                 match temp.contains(&x){
-//                     true => {mrca = x},
+//                     true => {mArca = x},
 //                     false => {
 //                         match temp.is_empty(){
 //                             true => {},
-//                             false => {return mrca}
+//                             false => {return mArca}
 //                         }
 //                     }
 //                 }
 //             }
 //         }
-//         mrca
+//         mArca
 //     }
 
 //     fn is_leaf(&self, node_id: &NodeID)->bool{
@@ -822,7 +815,7 @@ impl Subtree for SimpleRootedTree {}
 //             nodes.insert(id.clone(), self.get_node(id).clone());
 //             nodes.extend(self.get_ancestors_pre(id).iter().map(|node_id| (node_id.clone(), self.get_node(node_id).clone())).collect::<HashMap<NodeID, NodeType>>());
 //         }
-//         let root = self.get_mrca(nodes.keys().collect_vec());
+//         let root = self.get_mArca(nodes.keys().collect_vec());
 //         let children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>> = nodes.keys()
 //             .map(|id| (id.clone(), self.get_node_children(id).into_iter().filter(|(child_id, _)| nodes.contains_key(child_id)).map(|i| i.clone()).collect_vec()))
 //             .collect();
