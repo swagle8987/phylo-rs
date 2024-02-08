@@ -47,20 +47,8 @@ impl SimpleRootedTree{
     {
         Node::new(self.next_id(), false)
     }
-    // pub fn new()->Self{
-    //     let root_node = Node::new(Rc::new(0), false);
-    //     SimpleRootedTree { 
-    //         root: root_node.get_id(),
-    //         nodes: HashMap::from([(root_node.get_id(), root_node)]),
-    //     }
-    // }
 }
 
-// impl Default for SimpleRootedTree {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
 
 impl RootedTree for SimpleRootedTree{
     
@@ -196,7 +184,6 @@ impl RootedTree for SimpleRootedTree{
         let depth_subarray_min_value = depth_array[min_pos..max_pos].iter().min().unwrap();
         let depth_subarray_min_pos = depth_array[min_pos..max_pos].iter().position(|x| x==depth_subarray_min_value).unwrap();
         Rc::clone(&euler_tour[min_pos..max_pos][depth_subarray_min_pos])
-        // todo!()
     }
 }
 
@@ -324,7 +311,7 @@ impl Newick for SimpleRootedTree{
             }
 
     fn subtree_to_newick(&self, node_id: Self::NodeID)-> impl std::fmt::Display {
-        let node  = self.get_node(dbg!(node_id)).unwrap();
+        let node  = self.get_node(node_id).unwrap();
         let mut tmp = String::new();
         if node.get_children().into_iter().len()!=0{
             if node.get_children().into_iter().len()>1{
