@@ -79,7 +79,7 @@ pub trait ClusterAffinity
 where
     Self: RootedTree + Sized
 {
-    fn rfs(&self, tree: Self)->usize;
+    fn ca(&self, tree: Self)->usize;
 }
 
 pub trait WeightedRobinsonFoulds
