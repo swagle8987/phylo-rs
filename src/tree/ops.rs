@@ -86,5 +86,5 @@ pub trait WeightedRobinsonFoulds
 where
     Self: WeightedTree + Sized
 {
-    fn rfs(&self, tree: Self)->usize;
+    fn wrfs(&self, tree: Self)->usize;
 }
