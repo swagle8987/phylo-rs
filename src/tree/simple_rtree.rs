@@ -126,20 +126,15 @@ pub trait RootedTree<RHS=Self> {
         }
         true
     }
-    fn get_taxa_id(&self, taxa: &Self::Taxa)->Option<Self::NodeID>
-    {
-        for node in self.get_nodes().into_iter()
-        {
-            if Some(taxa)==node.get_taxa().as_ref(){
-                return Some(node.get_id());
-            }
-        }
-        None
-    }
-    fn num_taxa(&self)->usize
-    {
-        self.get_nodes().into_iter().filter(|f| f.is_leaf()).collect_vec().len()
-    }
+}
+
+
+pub trait RootedPhyloTree
+{
+    type NodeID;
+    type Taxa;
+    fn get_taxa_id(&self, taxa: &Self::Taxa)->Option<Self::NodeID>;
+    fn num_taxa(&self)->usize;
 }
 
 // pub trait SimpleRootedTree<RHS=Self> 

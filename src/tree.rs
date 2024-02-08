@@ -13,7 +13,7 @@ use itertools::Itertools;
 
 use crate::node::simple_rnode::{RootedTreeNode, WeightedNode};
 use crate::node::{Node, NodeID};
-use crate::tree::simple_rtree::RootedTree;
+use crate::tree::simple_rtree::*;
 use crate::iter::node_iter::*;
 
 use self::io::Newick;
@@ -179,6 +179,8 @@ impl RootedTree for SimpleRootedTree{
         Arc::clone(&euler_tour[min_pos..max_pos][depth_subarray_min_pos])
     }
 }
+
+
 
 impl WeightedTree for SimpleRootedTree {
     type EdgeWeight = f64;
@@ -393,6 +395,26 @@ impl Balance for SimpleRootedTree{
             _ =>{}
         }
         self.clean();
+    }
+}
+
+impl RootedPhyloTree for SimpleRootedTree{
+    type NodeID = NodeID;
+    type Taxa = String;
+
+    fn get_taxa_id(&self, taxa: &Self::Taxa)->Option<Self::NodeID>
+    {
+        for node in self.get_nodes().into_iter()
+        {
+            if Some(taxa)==node.get_taxa().as_ref(){
+                return Some(node.get_id());
+            }
+        }
+        None
+    }
+    fn num_taxa(&self)->usize
+    {
+        self.get_nodes().into_iter().filter(|f| f.is_leaf()).collect_vec().len()
     }
 }
 
