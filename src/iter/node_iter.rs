@@ -1,75 +1,159 @@
-use crate::node::*;
-use crate::tree::simple_rtree::*;
-use std::collections::{HashMap, HashSet};
+use std::{collections::VecDeque, vec};
+
 use itertools::Itertools;
 
-pub struct PreOrdNodes
-{
-    stack: Vec<NodeID>,
-    nodes: HashMap<NodeID, HashSet<NodeID>>
-}
+use crate::{node::simple_rnode::RootedTreeNode, tree::simple_rtree::RootedTree};
 
-impl PreOrdNodes
+pub trait DFS
+where
+    Self: RootedTree + Sized
 {
-    pub fn new(start_node_id: &NodeID, children: &HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>)->Self{
-        Self { stack:vec![*start_node_id], nodes: children.iter()
-            .map(|(k, v)| (*k, v.iter()
-                .map(|ni| ni.0).collect::<HashSet<NodeID>>()))
-            .collect()}
-    }
-}
-
-impl Iterator for PreOrdNodes
-{
-    type Item = NodeID;
-
-    fn next(&mut self)->Option<Self::Item>{
-        match self.stack.pop() {
-            Some(node_id) => {
-                let children_ids:HashSet<NodeID> = self.nodes.get(&node_id).cloned().expect("Invalid Node ID!");
-                for child_node_id in children_ids.into_iter().sorted(){
-                    self.stack.push(child_node_id)
-            }
-            Some(node_id)
-            }
-            None => None,
+    fn dfs(&self, start_node_id: Self::NodeID)-> impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    {
+        let mut stack = VecDeque::from([self.get_node(start_node_id).cloned().unwrap()]);
+        let mut out_vec = vec![];
+        let mut visited = vec![];
+        while let Some(x) = stack.pop_front()
+        {
+            match visited.contains(&x.get_id())
+            {
+                false => {
+                    visited.push(x.get_id());
+                    out_vec.push(x.clone());
+                    for child_id in x.get_children().into_iter().collect_vec().into_iter().rev(){
+                        stack.push_front(self.get_node(child_id).cloned().unwrap());
+                    }
+                },
+                true => {}
+            };
         }
+        out_vec
     }
 }
 
-pub struct PostOrdNodes
+pub trait BFS
+where
+    Self: RootedTree + Sized
 {
-    stack: Vec<NodeID>,
-    nodes: HashMap<NodeID, HashSet<NodeID>>
+    fn bfs(&self)-> impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>;
 }
 
-impl PostOrdNodes
+pub trait PreOrder
+where
+    Self: RootedTree + Sized
 {
-    pub fn new(start_node_id: &NodeID, children: &HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>)->Self{
-        Self { stack:vec![*start_node_id], nodes: children.iter()
-                .map(|(k, v)| (*k, v.iter()
-                    .map(|ni| ni.0).collect::<HashSet<NodeID>>()))
-                .collect()}
+    fn preord(&self, start_node_id: Self::NodeID)-> impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    {
+        let mut stack = VecDeque::from([self.get_node(start_node_id).cloned().unwrap()]);
+        let mut out_vec = vec![];
+        let mut visited = vec![];
+        while let Some(x) = stack.pop_front()
+        {
+            match visited.contains(&x.get_id())
+            {
+                false => {
+                    visited.push(x.get_id());
+                    out_vec.push(x.clone());
+                    for child_id in x.get_children().into_iter().collect_vec().into_iter().rev(){
+                        stack.push_front(self.get_node(child_id).cloned().unwrap());
+                    }
+                },
+                true => {}
+            };
+        }
+        out_vec
     }
 }
 
-impl Iterator for PostOrdNodes
+pub trait PostOrder
+where
+    Self: RootedTree + Sized
 {
-    type Item = NodeID;
+    fn postord(&self, _start_node: Self::NodeID)-> impl IntoIterator<Item = <Self as RootedTree>::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    {
+        // let mut stack = vec![self.get_node(start_node).cloned().unwrap()];
+        // let mut out_vec = vec![];
+        // match stack.pop() {
+        //     Some(node) => {
+        //         out_vec.push(node.clone());
+        //         let children: Vec<<Self as RootedTree<Self>>::Node> = self.get_node_children(node.get_id()).into_iter().collect();
+        //         for child in children.into_iter().rev()
+        //         {
+        //             stack.push(child);
+        //         }
+        //     }
+        //     None => {},
+        // };
+        // out_vec
+        vec![]
+    }
+}
 
-    fn next(&mut self)->Option<Self::Item>{
-        while let Some(node_id) = self.stack.pop()  {
-            if self.nodes.contains_key(&node_id){
-                self.stack.push(node_id);
-                let children = self.nodes.remove(&node_id).unwrap();
-                for child_id in children.into_iter().sorted(){
-                    self.stack.push(child_id)
+pub trait Ancestors
+where
+    Self: RootedTree + Sized
+{
+    fn ancestors(&self, start_node_id: Self::NodeID)-> impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    {
+        let mut stack = VecDeque::from([self.get_node(start_node_id).cloned().unwrap()]);
+        while let Some(x) = stack.pop_front(){
+            stack.push_front(x.clone());
+            match x.get_parent()
+            {
+                Some(pid) => {stack.push_front(self.get_node(pid).cloned().unwrap());},
+                None => {break;},
+            }
+        }
+        stack
+    }
+}
+
+pub trait EulerTour
+where
+    Self: RootedTree + DFS + Sized
+{
+    fn euler_tour(&self, start_node_id: Self::NodeID)->impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    {
+        let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
+        let mut visited = vec![];
+        let mut out_vec = vec![];
+        while let Some(node) = stack.pop_front()
+        {
+            match visited.contains(&node.get_id())
+            {
+                true => {
+                    match node.get_parent(){
+                        Some(parent_id) => {out_vec.push(self.get_node(parent_id).cloned().unwrap())},
+                        None => {},
+                    };
+                },
+                false => {
+                    visited.push(node.get_id());
+                    out_vec.push(node.clone());
+                    stack.push_front(node);
+                    for child_id in node.get_children().into_iter().collect_vec().into_iter().rev(){
+                        stack.push_front(self.get_node(child_id).unwrap())
+                    }
                 }
             }
-            else{
-                return Some(node_id)
-            }
         }
-        None
+        out_vec
+    }
+}
+
+pub trait Clusters
+where
+    Self: DFS + Sized
+{
+    fn get_cluster(&self, node_id: Self::NodeID)-> impl IntoIterator<Item=Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    {
+        self.dfs(node_id).into_iter().filter(|x| x.is_leaf()).collect_vec()
+    }
+    fn get_bipartition(&self, edge: (Self::NodeID, Self::NodeID))->(impl IntoIterator<Item=Self::Node>, impl IntoIterator<Item=Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>)
+    {
+        let c2 = self.get_cluster(edge.1.clone());
+        let c2_ids = self.get_cluster(edge.1).into_iter().map(|x| x.get_id()).collect_vec();
+        let c1 = self.get_cluster(edge.0).into_iter().filter(|x| !c2_ids.contains(&x.get_id())).collect_vec();
+        (c1,c2)
     }
 }
