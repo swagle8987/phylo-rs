@@ -3,7 +3,7 @@ use phylo::node::Node;
 use std::sync::Arc;
 
 use itertools::Itertools;
-use phylo::node::simple_rnode::RootedTreeNode;
+use phylo::node::simple_rnode::{RootedTreeNode, RootedPhyloNode};
 
 #[test]
 fn test_flip(){

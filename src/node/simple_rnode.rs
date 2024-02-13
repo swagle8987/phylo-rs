@@ -13,14 +13,11 @@ pub enum NodeType
 
 pub trait RootedTreeNode
 {
-    type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord;
     type NodeID: Display + Debug + Hash + Clone + Drop + Ord;
     
     fn new(id: Self::NodeID, is_leaf: bool)->Self;
     fn is_leaf(&self)->bool;
     fn flip(&mut self);
-    fn get_taxa(&self)->Option<Self::Taxa>;
-    fn set_taxa(&mut self, taxa: Option<Self::Taxa>);
     fn get_id(&self)->Self::NodeID;
     fn set_id(&mut self, id: Self::NodeID);
     fn get_parent(&self)->Option<Self::NodeID>;
@@ -78,6 +75,17 @@ pub trait RootedTreeNode
         }
         children
     }
+}
+
+pub trait RootedPhyloNode
+where
+    Self: RootedTreeNode
+{
+    type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord;
+
+    fn get_taxa(&self)->Option<Self::Taxa>;
+    fn set_taxa(&mut self, taxa: Option<Self::Taxa>);
+
 }
 
 pub trait WeightedNode

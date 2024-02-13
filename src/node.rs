@@ -2,9 +2,8 @@ pub mod simple_rnode;
 
 use std::fmt::{Debug, Display};
 
-use crate::node::simple_rnode::{RootedTreeNode, NodeType};
+use crate::node::simple_rnode::{RootedTreeNode, RootedPhyloNode, WeightedNode, NodeType};
 
-use self::simple_rnode::WeightedNode;
 // use std::rc::Rc;
 use std::sync::Arc;
 
@@ -23,7 +22,6 @@ pub struct Node{
 impl RootedTreeNode for Node
 {
     type NodeID = NodeID;
-    type Taxa = String;
 
     fn new(id: NodeID, is_leaf: bool)->Self{
         Node{
@@ -53,13 +51,6 @@ impl RootedTreeNode for Node
         };
     }
 
-    fn get_taxa(&self)->Option<Self::Taxa>{
-        match &self.taxa{
-            None => None,
-            Some(t) => Some(t.to_string())
-        }
-    }
-
     fn get_id(&self)->Self::NodeID {
         Arc::clone(&self.id)
     }
@@ -68,12 +59,6 @@ impl RootedTreeNode for Node
         self.id = Arc::clone(&id)
     }
 
-    fn set_taxa(&mut self, taxa: Option<String>){
-        self.taxa = match taxa{
-            None => None,
-            Some(t) => Some(Arc::new(t)),
-        };
-    }
     fn set_parent(&mut self, parent: Option<Self::NodeID>){
         self.parent = parent;
     }
@@ -89,6 +74,26 @@ impl RootedTreeNode for Node
     fn remove_child(&mut self, child:Self::NodeID) {
         self.children.retain(|x| x != &child);
     }
+}
+
+impl RootedPhyloNode for Node
+{
+    type Taxa = String;
+
+    fn get_taxa(&self)->Option<Self::Taxa>{
+        match &self.taxa{
+            None => None,
+            Some(t) => Some(t.to_string())
+        }
+    }
+
+    fn set_taxa(&mut self, taxa: Option<String>){
+        self.taxa = match taxa{
+            None => None,
+            Some(t) => Some(Arc::new(t)),
+        };
+    }
+
 }
 
 impl WeightedNode for Node
