@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 
-use crate::node::simple_rnode::{RootedTreeNode, WeightedNode};
+use crate::node::simple_rnode::{RootedTreeNode, RootedPhyloNode, WeightedNode};
 use crate::node::{Node, NodeID};
 use crate::tree::simple_rtree::*;
 use crate::iter::node_iter::*;
@@ -46,7 +46,7 @@ impl SimpleRootedTree{
 impl RootedTree for SimpleRootedTree{
     
     type NodeID = NodeID;
-    type Taxa = String;
+    // type Taxa = String;
     type Node = Node;
 
     fn new(root_id: Self::NodeID)->Self{
@@ -399,7 +399,7 @@ impl Balance for SimpleRootedTree{
 }
 
 impl RootedPhyloTree for SimpleRootedTree{
-    type NodeID = NodeID;
+    type Node = Node;
     type Taxa = String;
 
     fn get_taxa_id(&self, taxa: &Self::Taxa)->Option<Self::NodeID>
@@ -415,6 +415,10 @@ impl RootedPhyloTree for SimpleRootedTree{
     fn num_taxa(&self)->usize
     {
         self.get_nodes().into_iter().filter(|f| f.is_leaf()).collect_vec().len()
+    }
+    fn set_node_taxa(&mut self, node_id: Self::NodeID, taxa: Option<Self::Taxa>) 
+    {
+        self.get_node_mut(node_id).unwrap().set_taxa(taxa)
     }
 }
 

@@ -7,8 +7,7 @@ use crate::node::simple_rnode::*;
 
 pub trait RootedTree<RHS=Self> {
     type NodeID: Display + Debug + Hash + Drop + Clone + Ord;
-    type Taxa: Debug + Eq + PartialEq + Clone + Ord;
-    type Node: RootedTreeNode<NodeID = Self::NodeID, Taxa = Self::Taxa> + Debug + Clone;
+    type Node: RootedTreeNode<NodeID = Self::NodeID> + Debug + Clone;
 
     fn new(root_id: Self::NodeID)->Self;
 
@@ -100,10 +99,6 @@ pub trait RootedTree<RHS=Self> {
         };
         depth
     }
-    fn set_node_taxa(&mut self, node_id: Self::NodeID, taxa: Option<<Self as RootedTree<RHS>>::Taxa>)
-    {
-        self.get_node_mut(node_id).unwrap().set_taxa(taxa)
-    }
     fn flip_node(&mut self, node_id: Self::NodeID)
     {
         self.get_node_mut(node_id).unwrap().flip();
@@ -129,12 +124,15 @@ pub trait RootedTree<RHS=Self> {
 }
 
 
-pub trait RootedPhyloTree
+pub trait RootedPhyloTree<RHS=Self>
+where
+    Self: RootedTree + Sized
 {
-    type NodeID;
-    type Taxa;
+    type Taxa: Debug + Eq + PartialEq + Clone + Ord;
+    type Node: RootedPhyloNode<Taxa = Self::Taxa> + Debug + Clone;
     fn get_taxa_id(&self, taxa: &Self::Taxa)->Option<Self::NodeID>;
     fn num_taxa(&self)->usize;
+    fn set_node_taxa(&mut self, node_id: Self::NodeID, taxa: Option<Self::Taxa>);
 }
 
 // pub trait SimpleRootedTree<RHS=Self> 
