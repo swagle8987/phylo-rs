@@ -1,5 +1,4 @@
 use phylo::node::Node;
-// use std::Arc::Arc;
 use std::sync::Arc;
 
 use itertools::Itertools;
