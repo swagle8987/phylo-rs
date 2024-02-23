@@ -15,16 +15,20 @@ pub trait RootedTreeNode
 {
     type NodeID: Display + Debug + Hash + Clone + Drop + Ord;
     
-    fn new(id: Self::NodeID, is_leaf: bool)->Self;
-    fn is_leaf(&self)->bool;
-    fn flip(&mut self);
+    fn new(id: Self::NodeID)->Self;
     fn get_id(&self)->Self::NodeID;
     fn set_id(&mut self, id: Self::NodeID);
     fn get_parent(&self)->Option<Self::NodeID>;
     fn set_parent(&mut self, parent: Option<Self::NodeID>);
     fn get_children(&self)->impl IntoIterator<Item=Self::NodeID, IntoIter = impl ExactSizeIterator<Item = Self::NodeID>>;
     fn add_child(&mut self, child:Self::NodeID);
-    fn remove_child(&mut self, child:Self::NodeID);
+    fn remove_child(&mut self, child:&Self::NodeID);
+
+    fn is_leaf(&self)->bool
+    {
+        self.get_children().into_iter().collect_vec().is_empty()
+    }
+
 
     fn node_type(&self)->String{
         match self.is_leaf() {
@@ -39,19 +43,7 @@ pub trait RootedTreeNode
     }
     fn remove_children(&mut self, children: impl IntoIterator<Item=Self::NodeID>){
         for child in children.into_iter(){
-            self.remove_child(child);
-        }
-    }
-    fn to_leaf(&mut self){
-        match self.is_leaf(){
-            true => {},
-            false => {self.flip()}
-        }
-    }
-    fn to_internal(&mut self){
-        match self.is_leaf(){
-            true => {self.flip()},
-            false => {}
+            self.remove_child(&child);
         }
     }
     fn num_children(&self)->usize
