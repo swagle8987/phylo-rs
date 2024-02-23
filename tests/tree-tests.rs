@@ -14,13 +14,13 @@ use phylo::tree::io::*;
 #[test]
 fn build_small_tree() {
     let mut tree = SimpleRootedTree::new(Arc::new(1));
-    let new_node = Node::new(Arc::new(2), false);
+    let new_node = Node::new(Arc::new(2));
     tree.add_child(tree.get_root_id(), new_node);
-    let new_node = Node::new(Arc::new(3), true);
+    let new_node = Node::new(Arc::new(3));
     tree.add_child(tree.get_root_id(), new_node);
-    let new_node: Node = Node::new(Arc::new(4), true);
+    let new_node: Node = Node::new(Arc::new(4));
     tree.add_child(Arc::new(2), new_node);
-    let new_node: Node = Node::new(Arc::new(5), true);
+    let new_node: Node = Node::new(Arc::new(5));
     tree.add_child(Arc::new(2), new_node);
     // dbg!(&tree, tree.get_node(Arc::new(1)).unwrap().get_children().into_iter().collect_vec());
     // dbg!(&tree.get_node_depth(Arc::new(2)));
@@ -28,13 +28,13 @@ fn build_small_tree() {
 #[test]
 fn tree_iter() {
     let mut tree = SimpleRootedTree::new(Arc::new(1));
-    let new_node = Node::new(Arc::new(2), false);
+    let new_node = Node::new(Arc::new(2));
     tree.add_child(tree.get_root_id(), new_node);
-    let new_node = Node::new(Arc::new(3), true);
+    let new_node = Node::new(Arc::new(3));
     tree.add_child(tree.get_root_id(), new_node);
-    let new_node: Node = Node::new(Arc::new(4), true);
+    let new_node: Node = Node::new(Arc::new(4));
     tree.add_child(Arc::new(2), new_node);
-    let new_node: Node = Node::new(Arc::new(5), true);
+    let new_node: Node = Node::new(Arc::new(5));
     tree.add_child(Arc::new(2), new_node);
     dbg!(&tree.get_node(Arc::new(1)).unwrap().get_children().into_iter().collect_vec());
     dbg!(&tree.dfs(tree.get_root_id()).into_iter().collect_vec());
@@ -45,13 +45,13 @@ fn tree_iter() {
 #[test]
 fn tree_mrca() {
     let mut tree = SimpleRootedTree::new(Arc::new(1));
-    let new_node = Node::new(Arc::new(2), false);
+    let new_node = Node::new(Arc::new(2));
     tree.add_child(tree.get_root_id(), new_node);
-    let new_node = Node::new(Arc::new(3), true);
+    let new_node = Node::new(Arc::new(3));
     tree.add_child(tree.get_root_id(), new_node);
-    let new_node: Node = Node::new(Arc::new(4), true);
+    let new_node: Node = Node::new(Arc::new(4));
     tree.add_child(Arc::new(2), new_node);
-    let new_node: Node = Node::new(Arc::new(5), true);
+    let new_node: Node = Node::new(Arc::new(5));
     tree.add_child(Arc::new(2), new_node);
     assert!(&tree.get_mrca(&vec![Arc::new(4), Arc::new(5), Arc::new(3)])==&Arc::new(1));
     assert!(&tree.get_mrca(&vec![Arc::new(4), Arc::new(3)])==&Arc::new(1));
