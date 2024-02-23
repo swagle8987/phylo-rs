@@ -38,7 +38,7 @@ impl SimpleRootedTree{
 
     pub fn next_node(&self)->Node
     {
-        Node::new(self.next_id(), false)
+        Node::new(self.next_id())
     }
 }
 
@@ -50,7 +50,7 @@ impl RootedTree for SimpleRootedTree{
     type Node = Node;
 
     fn new(root_id: Self::NodeID)->Self{
-        let root_node = Node::new(root_id, false);
+        let root_node = Node::new(root_id);
         SimpleRootedTree { 
             root: root_node.get_id(),
             nodes: HashMap::from([(root_node.get_id(), root_node)]),
@@ -107,7 +107,7 @@ impl RootedTree for SimpleRootedTree{
     {
         match self.get_node_parent(node_id.clone())
         {
-            Some(pid) => self.get_node_mut(pid).unwrap().remove_child(node_id.clone()),
+            Some(pid) => self.get_node_mut(pid).unwrap().remove_child(&node_id),
             None => {},
         }
         self.nodes.remove(&node_id)
@@ -120,7 +120,7 @@ impl RootedTree for SimpleRootedTree{
 
     fn delete_edge(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID)
     {
-        self.get_node_mut(parent_id).unwrap().remove_child(Arc::clone(&child_id));
+        self.get_node_mut(parent_id).unwrap().remove_child(&child_id);
         self.get_node_mut(child_id).unwrap().set_parent(None);
     }
 
@@ -149,7 +149,7 @@ impl RootedTree for SimpleRootedTree{
             {
                 if !node_iter.clone().into_iter().map(|x| x.get_id()).contains(&chid)
                 {
-                    self.get_node_mut(node_id.clone()).unwrap().remove_child(chid);
+                    self.get_node_mut(node_id.clone()).unwrap().remove_child(&chid);
                 }
             }
         }
@@ -237,7 +237,7 @@ impl Newick for SimpleRootedTree{
                     match newick_string[str_ptr]{
                         '(' => {
                             stack.push(context);
-                            let new_node = Node::new(tree.next_id(), false);
+                            let new_node = Node::new(tree.next_id());
                             context = new_node.get_id();
                             tree.set_node(new_node);
                             str_ptr +=1;
@@ -260,7 +260,7 @@ impl Newick for SimpleRootedTree{
         
                             match newick_string[str_ptr] {
                                 ',' => {
-                                    let new_node = Node::new(tree.next_id(), false);
+                                    let new_node = Node::new(tree.next_id());
                                     context = new_node.get_id();
                                     tree.set_node(new_node);
                                     str_ptr += 1;
@@ -296,12 +296,6 @@ impl Newick for SimpleRootedTree{
                         },
                     }
                 }
-                let leaf_ids = tree.dfs(tree.get_root_id())
-                    .into_iter()
-                    .filter(|x| x.get_children().into_iter().collect_vec().is_empty())
-                    .map(|x| Arc::clone(&x.get_id()))
-                    .collect_vec();
-                tree.flip_nodes(leaf_ids.clone().into_iter());
                 tree
             }
 
@@ -344,7 +338,7 @@ impl SPR for SimpleRootedTree
     fn prune(&mut self, node_id: Self::NodeID)-> Self {
         let mut pruned_tree = SimpleRootedTree::new(Arc::clone(&node_id));
         let p_id = self.get_node_parent(Arc::clone(&node_id)).unwrap();
-        self.get_node_mut(p_id).unwrap().remove_child(Arc::clone(&node_id));
+        self.get_node_mut(p_id).unwrap().remove_child(&node_id);
         pruned_tree.get_node_mut(pruned_tree.get_root_id()).unwrap().add_children(self.get_node(Arc::clone(&node_id)).unwrap().get_children());
         let dfs = self.dfs(node_id.clone()).into_iter().collect_vec().clone();
         for node in dfs
@@ -373,14 +367,14 @@ impl Balance for SimpleRootedTree{
                 let mut leaf_node = self.remove_node(child1).unwrap();
                 leaf_node.set_id(next_id.clone());
                 let other_leaf_id = &self.get_node_children(child2.clone()).into_iter().filter(|node| node.is_leaf()).collect_vec()[0].get_id();
-                self.split_edge((child2, Arc::clone(other_leaf_id)), Node::new(split_id.clone(), false));
+                self.split_edge((child2, Arc::clone(other_leaf_id)), Node::new(split_id.clone()));
                 self.add_child(dbg!(split_id), leaf_node);
             },
             (false, true) => {
                 let mut leaf_node = self.remove_node(child2).unwrap();
                 leaf_node.set_id(next_id.clone());
                 let other_leaf_id = &self.get_node_children(child1.clone()).into_iter().filter(|node| node.is_leaf()).collect_vec()[0].get_id();
-                self.split_edge((child1, Arc::clone(other_leaf_id)), Node::new(split_id.clone(), false));
+                self.split_edge((child1, Arc::clone(other_leaf_id)), Node::new(split_id.clone()));
                 self.add_child(split_id, leaf_node);
             },
             _ =>{}
