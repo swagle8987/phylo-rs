@@ -2,7 +2,7 @@ pub mod simple_rnode;
 
 use std::fmt::{Debug, Display};
 
-use crate::node::simple_rnode::{RootedTreeNode, RootedPhyloNode, WeightedNode, NodeType};
+use crate::node::simple_rnode::{RootedTreeNode, RootedPhyloNode, WeightedNode};
 
 // use std::rc::Rc;
 use std::sync::Arc;
@@ -16,39 +16,20 @@ pub struct Node{
     children: Vec<NodeID>,
     taxa: Option<Arc<String>>,
     weight: Option<f64>,
-    node_type: NodeType,
 }
 
 impl RootedTreeNode for Node
 {
     type NodeID = NodeID;
 
-    fn new(id: NodeID, is_leaf: bool)->Self{
+    fn new(id: NodeID)->Self{
         Node{
             id: Arc::clone(&id),
             parent: None,
             children: vec![],
             taxa: None,
             weight: None,
-            node_type: match is_leaf {
-                true => NodeType::Leaf,
-                false => NodeType::Internal,
-            },
         }
-    }
-
-    fn is_leaf(&self)->bool{
-        match self.node_type{
-            NodeType::Internal => false,
-            NodeType::Leaf => true,
-        }
-    }
-
-    fn flip(&mut self){
-        self.node_type= match self.node_type{
-            NodeType::Internal => NodeType::Leaf,
-            NodeType::Leaf => NodeType::Internal,
-        };
     }
 
     fn get_id(&self)->Self::NodeID {
@@ -71,8 +52,8 @@ impl RootedTreeNode for Node
     fn add_child(&mut self, child: Self::NodeID){
         self.children.push(child);
     }
-    fn remove_child(&mut self, child:Self::NodeID) {
-        self.children.retain(|x| x != &child);
+    fn remove_child(&mut self, child:&Self::NodeID) {
+        self.children.retain(|x| x != child);
     }
 }
 
