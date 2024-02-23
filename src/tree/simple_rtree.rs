@@ -33,7 +33,11 @@ pub trait RootedTree<RHS=Self> {
 
     fn contains_node(&self, node_id: Self::NodeID)->bool;
 
-    fn delete_edge(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID);
+    fn delete_edge(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID)
+    {
+        self.get_node_mut(parent_id).unwrap().remove_child(&child_id);
+        self.get_node_mut(child_id).unwrap().set_parent(None);
+    }
 
     fn clean(&mut self);
 
@@ -53,7 +57,7 @@ pub trait RootedTree<RHS=Self> {
         let c_id = edge.1;
         let n_id = node.get_id();
         self.set_node(node);
-        self.get_node_mut(p_id.clone()).unwrap().remove_child(c_id.clone());
+        self.get_node_mut(p_id.clone()).unwrap().remove_child(&c_id);
         self.set_child(p_id.clone(), n_id.clone());
         self.set_child(n_id, c_id);
 
@@ -98,17 +102,6 @@ pub trait RootedTree<RHS=Self> {
             depth+=1;start_id=parent_id;
         };
         depth
-    }
-    fn flip_node(&mut self, node_id: Self::NodeID)
-    {
-        self.get_node_mut(node_id).unwrap().flip();
-    }
-    fn flip_nodes(&mut self, node_ids: impl Iterator<Item = Self::NodeID>)
-    {
-        for node_id in node_ids
-        {
-            self.flip_node(node_id);
-        }
     }
     fn is_binary(&self)->bool
     {
