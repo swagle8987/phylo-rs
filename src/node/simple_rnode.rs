@@ -4,13 +4,6 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use itertools::Itertools;
 
-#[derive(Clone)]
-pub enum NodeType
-{
-    Internal,
-    Leaf,
-}
-
 pub trait RootedTreeNode
 {
     type NodeID: Display + Debug + Hash + Clone + Drop + Ord;
@@ -26,7 +19,7 @@ pub trait RootedTreeNode
 
     fn is_leaf(&self)->bool
     {
-        self.get_children().into_iter().collect_vec().is_empty()
+        self.get_children().into_iter().next().is_none()
     }
 
 
