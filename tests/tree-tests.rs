@@ -122,3 +122,10 @@ fn induce_tree() {
     dbg!(x.get_nodes().into_iter().collect_vec());
     dbg!(format!("{}", &x.to_newick()));
 }
+#[test]
+fn median_node() {
+    let input_str: String = String::from("(((A,B),C),D);");
+    let tree = SimpleRootedTree::from_newick(input_str.as_bytes());
+    dbg!(format!("{}", &tree.to_newick()));
+    dbg!(tree.get_cluster(tree.get_median_node_id()).into_iter().collect_vec());
+}
