@@ -156,4 +156,19 @@ where
         let c1 = self.get_cluster(edge.0).into_iter().filter(|x| !c2_ids.contains(&x.get_id())).collect_vec();
         (c1,c2)
     }
+
+    fn get_median_node(&self)->Self::Node
+    {
+        let mut median_node: Self::Node = self.get_root().clone();
+        let num_leaves = self.get_cluster(self.get_root_id()).into_iter().len();
+        while self.get_cluster(median_node.get_id()).into_iter().len()>(num_leaves/2){
+            median_node = self.get_node_children(median_node.get_id()).into_iter().max_by(|x, y| self.get_cluster(x.get_id()).into_iter().len().cmp(&self.get_cluster(y.get_id()).into_iter().len())).unwrap();
+        }
+        median_node
+    }
+
+    fn get_median_node_id(&self)->Self::NodeID
+    {
+        self.get_median_node().get_id()
+    }
 }
