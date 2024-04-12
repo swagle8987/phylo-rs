@@ -66,10 +66,10 @@ where
 
 pub trait RootedMetaNode: RootedTreeNode
 {
-    type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord;
+    type Meta: Display + Debug + Eq + PartialEq + Clone + Ord;
 
-    fn get_taxa(&self)->Option<Self::Taxa>;
-    fn set_taxa(&mut self, taxa: Option<Self::Taxa>);
+    fn get_taxa(&self)->Option<Self::Meta>;
+    fn set_taxa(&mut self, taxa: Option<Self::Meta>);
 
 }
 

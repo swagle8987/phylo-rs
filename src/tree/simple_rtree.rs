@@ -7,9 +7,11 @@ use num::{Num, NumCast};
 use crate::node::simple_rnode::*;
 
 pub trait RootedTree
+where
+    Self::Node: RootedTreeNode<NodeID=Self::NodeID>,
 {
-    type NodeID: Display + Debug + Hash + Clone + Drop + Ord;
-    type Node: RootedTreeNode<NodeID = Self::NodeID>;
+    type NodeID;
+    type Node;
 
     fn new(root_id: Self::NodeID)->Self;
 
@@ -143,12 +145,11 @@ pub trait RootedTree
 
 pub trait RootedMetaTree: RootedTree
 where
-    Self::NodeID: Display + Debug + Hash + Clone + Ord,
-    <Self as RootedTree>::Node : RootedMetaNode<Taxa = <Self as RootedMetaTree>::Taxa>
+    Self::Node : RootedMetaNode<Meta = Self::Meta>,
 {    
-    type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord;
+    type Meta;
 
-    fn get_taxa_node(&self, taxa: &Self::Taxa)->Option<Self::Node>
+    fn get_taxa_node(&self, taxa: &Self::Meta)->Option<Self::Node>
     {
         for node in self.get_nodes().into_iter()
         {
@@ -159,7 +160,7 @@ where
         None
     }
 
-    fn get_taxa_node_id(&self, taxa: &Self::Taxa)->Option<Self::NodeID>
+    fn get_taxa_node_id(&self, taxa: &Self::Meta)->Option<Self::NodeID>
     {
         match self.get_taxa_node(taxa){
             Some(node) => {return Some(node.get_id())},
@@ -170,15 +171,15 @@ where
     {
         self.get_nodes().into_iter().filter(|f| f.is_leaf()).collect_vec().len()
     }
-    fn set_node_taxa(&mut self, node_id: Self::NodeID, taxa: Option<Self::Taxa>)
+    fn set_node_taxa(&mut self, node_id: Self::NodeID, taxa: Option<Self::Meta>)
     {
         self.get_node_mut(node_id).unwrap().set_taxa(taxa)
     }
-    fn get_node_taxa(&self, node_id: Self::NodeID)->Option<Self::Taxa>
+    fn get_node_taxa(&self, node_id: Self::NodeID)->Option<Self::Meta>
     {
         self.get_node(node_id).unwrap().get_taxa()
     }
-    fn get_taxa_space(&self)->impl IntoIterator<Item=Self::Taxa, IntoIter = impl ExactSizeIterator<Item = Self::Taxa>>
+    fn get_taxa_space(&self)->impl IntoIterator<Item=Self::Meta, IntoIter = impl ExactSizeIterator<Item = Self::Meta>>
     {
         self.get_nodes().into_iter().filter(|x| x.get_taxa().is_some()).map(|x| x.get_taxa().unwrap()).collect_vec()
     }
@@ -186,10 +187,9 @@ where
 
 pub trait RootedWeightedTree: RootedTree
 where
-    Self::NodeID: Display + Debug + Hash + Clone + Ord,
-    <Self as RootedTree>::Node : RootedWeightedNode<Weight = Self::Weight>
+    Self::Node: RootedWeightedNode<Weight = Self::Weight>
 {
-    type Weight: Num + Clone + PartialOrd + NumCast + std::iter::Sum;
+    type Weight;
 
     fn unweight(&mut self)
     {
