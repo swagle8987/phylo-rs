@@ -69,7 +69,7 @@ pub trait PostOrder
 where
     Self: RootedTree + Sized
 {
-    fn postord(&self, _start_node: Self::NodeID)-> impl IntoIterator<Item = <Self as RootedTree>::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    fn postord(&self, _start_node: Self::NodeID)-> impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
     {
         // let mut stack = vec![self.get_node(start_node).cloned().unwrap()];
         // let mut out_vec = vec![];
@@ -93,7 +93,7 @@ pub trait Ancestors
 where
     Self: RootedTree + Sized
 {
-    fn ancestors(&self, start_node_id: Self::NodeID)-> impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    fn root_to_node(&self, start_node_id: Self::NodeID)-> impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
     {
         let mut stack = VecDeque::from([self.get_node(start_node_id).cloned().unwrap()]);
         while let Some(x) = stack.pop_front(){
@@ -106,13 +106,32 @@ where
         }
         stack
     }
+
+    fn node_to_root(&self, start_node_id: Self::NodeID)-> impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    {
+        let mut stack = VecDeque::from([self.get_node(start_node_id).cloned().unwrap()]);
+        while let Some(x) = stack.pop_front(){
+            stack.push_back(x.clone());
+            match x.get_parent()
+            {
+                Some(pid) => {stack.push_front(self.get_node(pid).cloned().unwrap());},
+                None => {break;},
+            }
+        }
+        stack
+    }
+
+    fn depth(&self, node_id: Self::NodeID)->usize
+    {
+        self.node_to_root(node_id).into_iter().len()-1
+    }
 }
 
-pub trait EulerTour
+pub trait EulerWalk
 where
-    Self: RootedTree + DFS + Sized
+    Self: RootedTree + Sized
 {
-    fn euler_tour(&self, start_node_id: Self::NodeID)->impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    fn euler_walk(&self, start_node_id: Self::NodeID)->impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
     {
         let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
         let mut visited = vec![];
@@ -139,11 +158,38 @@ where
         }
         out_vec
     }
+
+    fn get_lca(&self, node_id_1: Self::NodeID, node_id_2: Self::NodeID, walk: Option<Vec<Self::Node>>)-> Self::Node
+    {
+        let euler_walk = match walk{
+            None => self.euler_walk(self.get_root_id()).into_iter().collect_vec(),
+            Some(_) => walk.unwrap(),
+        };
+        let depth_array: Vec<usize> = euler_walk.iter().map(|x| self.get_node_depth(x.get_id())).collect_vec();   // todo
+        let mut min_pos = euler_walk.len();
+        let mut max_pos = 0;
+        let node_id_list = vec![node_id_1, node_id_2];
+        for node_id in node_id_list
+        {
+            let pos = euler_walk.iter().position(|r| r.get_id() == node_id).unwrap();
+            match pos<min_pos {
+                true => min_pos=pos,
+                false => {},
+            }
+            let pos = euler_walk.iter().rposition(|r| r.get_id() == node_id).unwrap_or(0);
+            match pos>max_pos {
+                true => max_pos=pos,
+                false => {},
+            }
+        }
+        let depth_subarray_min_value = depth_array[min_pos..max_pos].iter().min().unwrap();
+        let depth_subarray_min_pos = depth_array[min_pos..max_pos].iter().position(|x| x==depth_subarray_min_value).unwrap();
+        euler_walk[min_pos..max_pos][depth_subarray_min_pos].clone()
+
+    }
 }
 
-pub trait Clusters
-where
-    Self: DFS + Sized
+pub trait Clusters: DFS + Sized
 {
     fn get_cluster(&self, node_id: Self::NodeID)-> impl IntoIterator<Item=Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
     {

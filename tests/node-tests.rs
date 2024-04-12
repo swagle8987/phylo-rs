@@ -2,7 +2,7 @@ use phylo::node::Node;
 use std::sync::Arc;
 
 use itertools::Itertools;
-use phylo::node::simple_rnode::{RootedTreeNode, RootedPhyloNode};
+use phylo::node::simple_rnode::{RootedTreeNode, RootedMetaNode};
 
 #[test]
 fn test_set_id(){
