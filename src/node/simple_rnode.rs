@@ -1,13 +1,15 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
-use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use itertools::Itertools;
+use num::{Num, NumCast};
 
 pub trait RootedTreeNode
-{
+where
+    Self: Clone,
+{    
     type NodeID: Display + Debug + Hash + Clone + Drop + Ord;
-    
+
     fn new(id: Self::NodeID)->Self;
     fn get_id(&self)->Self::NodeID;
     fn set_id(&mut self, id: Self::NodeID);
@@ -62,9 +64,7 @@ pub trait RootedTreeNode
     }
 }
 
-pub trait RootedPhyloNode
-where
-    Self: RootedTreeNode
+pub trait RootedMetaNode: RootedTreeNode
 {
     type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord;
 
@@ -73,12 +73,10 @@ where
 
 }
 
-pub trait WeightedNode
-where
-    Self: RootedTreeNode
+pub trait RootedWeightedNode: RootedTreeNode
 {
-    type Weight: Display + Debug + Clone + Add<Output=Self::Weight> + AddAssign + Sub<Output=Self::Weight> + SubAssign;
-
+    type Weight: Num + Clone + PartialOrd + NumCast + std::iter::Sum;
+    
     fn get_weight(&self)->Option<Self::Weight>;
     fn set_weight(&mut self, w: Option<Self::Weight>);
     fn unweight(&mut self){
