@@ -7,10 +7,10 @@ use crate::node::simple_rnode::{RootedWeightedNode, RootedMetaNode};
 
 pub trait Newick: RootedTree
 where
-    <Self as RootedTree>::Node : RootedWeightedNode<Weight = Self::Weight> + RootedMetaNode<Taxa = Self::Taxa>
+    <Self as RootedTree>::Node : RootedWeightedNode<Weight = Self::Weight> + RootedMetaNode<Meta = Self::Meta>
 {
     type Weight: Num + Clone + PartialOrd + NumCast + std::iter::Sum;
-    type Taxa: Display + Debug + Eq + PartialEq + Clone + Ord;
+    type Meta: Display + Debug + Eq + PartialEq + Clone + Ord;
 
     fn from_newick(newick_str: &[u8])->Self;
     fn subtree_to_newick(&self, node_id: Self::NodeID)-> impl Display;
