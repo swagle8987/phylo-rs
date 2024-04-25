@@ -159,24 +159,24 @@ where
         out_vec
     }
 
-    fn get_lca(&self, node_id_1: Self::NodeID, node_id_2: Self::NodeID, walk: Option<Vec<Self::Node>>)-> Self::Node
+    fn get_lca_id(&self, node_id_1: Self::NodeID, node_id_2: Self::NodeID, walk: Option<Vec<Self::NodeID>>)-> Self::NodeID
     {
         let euler_walk = match walk{
-            None => self.euler_walk(self.get_root_id()).into_iter().collect_vec(),
+            None => self.euler_walk(self.get_root_id()).into_iter().map(|x| x.get_id()).collect_vec(),
             Some(_) => walk.unwrap(),
         };
-        let depth_array: Vec<usize> = euler_walk.iter().map(|x| self.get_node_depth(x.get_id())).collect_vec();   // todo
+        let depth_array: Vec<usize> = euler_walk.iter().map(|x| self.get_node_depth(x.clone())).collect_vec();   // todo
         let mut min_pos = euler_walk.len();
         let mut max_pos = 0;
         let node_id_list = vec![node_id_1, node_id_2];
         for node_id in node_id_list
         {
-            let pos = euler_walk.iter().position(|r| r.get_id() == node_id).unwrap();
+            let pos = euler_walk.iter().position(|r| r == &node_id).unwrap();
             match pos<min_pos {
                 true => min_pos=pos,
                 false => {},
             }
-            let pos = euler_walk.iter().rposition(|r| r.get_id() == node_id).unwrap_or(0);
+            let pos = euler_walk.iter().rposition(|r| r == &node_id).unwrap_or(0);
             match pos>max_pos {
                 true => max_pos=pos,
                 false => {},
@@ -185,7 +185,11 @@ where
         let depth_subarray_min_value = depth_array[min_pos..max_pos].iter().min().unwrap();
         let depth_subarray_min_pos = depth_array[min_pos..max_pos].iter().position(|x| x==depth_subarray_min_value).unwrap();
         euler_walk[min_pos..max_pos][depth_subarray_min_pos].clone()
+    }
 
+    fn get_lca(&self, node_id_1: Self::NodeID, node_id_2: Self::NodeID, walk: Option<Vec<Self::NodeID>>)-> Self::Node
+    {
+        self.get_node(self.get_lca_id(node_id_1, node_id_2, walk)).cloned().unwrap()
     }
 }
 
