@@ -1,16 +1,12 @@
-// use std::collections::{HashMap, HashSet};
-use std::fmt::{Display, Debug};
-use std::hash::Hash;
 use itertools::Itertools;
-use num::{Num, NumCast};
-
+use std::hash::Hash;
 use crate::node::simple_rnode::*;
 
 pub trait RootedTree
 where
     Self::Node: RootedTreeNode<NodeID=Self::NodeID>,
 {
-    type NodeID;
+    type NodeID: Clone + PartialEq + Eq + Hash;
     type Node;
 
     fn new(root_id: Self::NodeID)->Self;
@@ -65,6 +61,11 @@ where
         self.set_child(p_id.clone(), n_id.clone());
         self.set_child(n_id, c_id);
 
+    }
+
+    fn get_leaves(&self)->impl IntoIterator<Item=Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    {
+        self.get_nodes().into_iter().filter(|x| x.is_leaf()).collect_vec()
     }
 
     /// Get root node
@@ -128,12 +129,9 @@ where
         true
     }
 
-    fn supress_node(&mut self, node_id: Self::NodeID)
-    {
-        let node_children_ids = self.get_node_children(node_id.clone()).into_iter().map(|x| x.get_id());
-        let parent_id = self.get_node_parent_id(node_id.clone());
-        
-
+    fn supress_node(&mut self, _node_id: Self::NodeID)
+    {        
+        todo!()
     }
 
     fn supress_unifurcations(&mut self)
@@ -147,7 +145,7 @@ pub trait RootedMetaTree: RootedTree
 where
     Self::Node : RootedMetaNode<Meta = Self::Meta>,
 {    
-    type Meta;
+    type Meta: PartialEq;
 
     fn get_taxa_node(&self, taxa: &Self::Meta)->Option<Self::Node>
     {
@@ -189,7 +187,7 @@ pub trait RootedWeightedTree: RootedTree
 where
     Self::Node: RootedWeightedNode<Weight = Self::Weight>
 {
-    type Weight;
+    type Weight: PartialEq;
 
     fn unweight(&mut self)
     {
