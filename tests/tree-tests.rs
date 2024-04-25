@@ -11,6 +11,7 @@ use phylo::tree::ops::{Balance, SPR, Subtree};
 use phylo::tree::SimpleRootedTree;
 use phylo::tree::simple_rtree::{RootedMetaTree, RootedTree};
 use phylo::tree::io::*;
+use phylo::tree::ops::CopheneticDistance;
 
 #[test]
 fn build_small_tree() {
@@ -132,17 +133,19 @@ fn median_node() {
     dbg!(format!("{}", &tree.to_newick()));
     dbg!(tree.get_cluster(tree.get_median_node_id()).into_iter().collect_vec());
 }
-// #[test]
-// fn cophenetic_dist() {
-//     fn depth(tree: &SimpleRootedTree, node_id: <SimpleRootedTree as RootedTree>::NodeID)->usize
-//     {
-//         tree.depth(node_id)
-//     }
-//     let t1_input_str: String = String::from("(((A,B),C),D);");
-//     let t2_input_str: String = String::from("(A,(B,(C,D)));");
-//     let tree1 = SimpleRootedTree::from_newick(t1_input_str.as_bytes());
-//     let tree2 = SimpleRootedTree::from_newick(t2_input_str.as_bytes());
-//     dbg!(format!("{}", &tree1.to_newick()));
-//     dbg!(format!("{}", &tree2.to_newick()));
-//     dbg!(format!("{}", &tree1.cophen_dist(tree2, depth)));
-// }
+#[test]
+fn cophenetic_dist() {
+    fn depth(tree: &SimpleRootedTree, node_id: <SimpleRootedTree as RootedTree>::NodeID)->f64
+    {
+        tree.depth(node_id) as f64
+    }
+    let t1_input_str: String = String::from("(((A,B),C),D);");
+    let t2_input_str: String = String::from("(((D,C),B),A);");
+    let tree1 = SimpleRootedTree::from_newick(t1_input_str.as_bytes());
+    let tree2 = SimpleRootedTree::from_newick(t2_input_str.as_bytes());
+    dbg!(format!("{}", &tree1.to_newick()));
+    dbg!(format!("{}", &tree2.to_newick()));
+    dbg!(format!("{}", &tree1.cophen_dist(&tree2, depth, 1)));
+    dbg!(format!("{}", &tree1.cophen_dist_naive(&tree2, depth, 1)));
+}
+
