@@ -57,16 +57,16 @@ impl RootedTreeNode for Node
 
 impl RootedMetaNode for Node
 {
-    type Taxa = String;
+    type Meta = String;
     
-    fn get_taxa(&self)->Option<Self::Taxa>{
+    fn get_taxa(&self)->Option<Self::Meta>{
         match &self.taxa{
             None => None,
             Some(t) => Some(t.to_string())
         }
     }
 
-    fn set_taxa(&mut self, taxa: Option<Self::Taxa>){
+    fn set_taxa(&mut self, taxa: Option<Self::Meta>){
         self.taxa = match taxa{
             None => None,
             Some(t) => Some(t),
