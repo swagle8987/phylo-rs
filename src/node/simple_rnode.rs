@@ -8,7 +8,7 @@ pub trait RootedTreeNode
 where
     Self: Clone,
 {    
-    type NodeID: Display + Debug + Hash + Clone + Drop + Ord;
+    type NodeID: Display + Debug + Hash + Clone + Drop + Ord + PartialEq + Eq;
 
     fn new(id: Self::NodeID)->Self;
     fn get_id(&self)->Self::NodeID;
