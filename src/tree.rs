@@ -175,7 +175,7 @@ impl RootedTree for SimpleRootedTree{
 
 impl RootedMetaTree for SimpleRootedTree{
 
-    type Taxa = String;
+    type Meta = String;
 
 }
 
@@ -202,7 +202,7 @@ impl Clusters for SimpleRootedTree{}
 impl Newick for SimpleRootedTree
 {
     type Weight = f32;
-    type Taxa = String;
+    type Meta = String;
     fn from_newick(newick_str: &[u8])->Self {
                 let mut tree = SimpleRootedTree::new(Arc::new(0));
                 let mut stack : Vec<Self::NodeID> = Vec::new();
@@ -356,5 +356,8 @@ impl Balance for SimpleRootedTree{
         self.clean();
     }
 }
-// 
-// impl CopheneticDistance<usize> for SimpleRootedTree{}
+
+impl CopheneticDistance<f64> for SimpleRootedTree{
+    type Meta = String;
+
+}
