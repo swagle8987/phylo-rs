@@ -16,7 +16,7 @@ where
     fn subtree_to_newick(&self, node_id: Self::NodeID)-> impl Display;
     fn to_newick(&self)->impl Display
     {
-        self.subtree_to_newick(self.get_root_id())
+        format!("{};", self.subtree_to_newick(self.get_root_id()))
     }
 }
 
