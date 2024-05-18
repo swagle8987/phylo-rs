@@ -8,14 +8,14 @@ pub trait RootedTreeNode
 where
     Self: Clone,
 {    
-    type NodeID: Display + Debug + Hash + Clone + Drop + Ord + PartialEq + Eq;
+    type NodeID: Display + Debug + Hash + Clone + Ord + PartialEq + Eq;
 
     fn new(id: Self::NodeID)->Self;
     fn get_id(&self)->Self::NodeID;
     fn set_id(&mut self, id: Self::NodeID);
     fn get_parent(&self)->Option<Self::NodeID>;
     fn set_parent(&mut self, parent: Option<Self::NodeID>);
-    fn get_children(&self)->impl IntoIterator<Item=Self::NodeID, IntoIter = impl ExactSizeIterator<Item = Self::NodeID>>;
+    fn get_children(&self)->impl ExactSizeIterator<Item=Self::NodeID>;
     fn add_child(&mut self, child:Self::NodeID);
     fn remove_child(&mut self, child:&Self::NodeID);
 
@@ -31,12 +31,12 @@ where
             true => "Leaf".to_string(),
         }
     }
-    fn add_children(&mut self, children: impl IntoIterator<Item=Self::NodeID>){
+    fn add_children(&mut self, children: impl ExactSizeIterator<Item=Self::NodeID>){
         for child in children.into_iter(){
             self.add_child(child);
         }
     }
-    fn remove_children(&mut self, children: impl IntoIterator<Item=Self::NodeID>){
+    fn remove_children(&mut self, children: impl ExactSizeIterator<Item=Self::NodeID>){
         for child in children.into_iter(){
             self.remove_child(&child);
         }
@@ -53,14 +53,14 @@ where
             None => self.num_children()
         }
     }
-    fn neighbours(&self)->impl IntoIterator<Item=Self::NodeID, IntoIter = impl ExactSizeIterator<Item = Self::NodeID>>
+    fn neighbours(&self)->impl ExactSizeIterator<Item = Self::NodeID>
     {
         let mut children = self.get_children().into_iter().collect_vec();
         match self.get_parent(){
             Some(p) => {children.push(p);},
             None => {},
         }
-        children
+        children.into_iter()
     }
 }
 

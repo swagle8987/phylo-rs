@@ -4,25 +4,22 @@ use std::fmt::{Debug, Display};
 
 use crate::node::simple_rnode::{RootedTreeNode, RootedMetaNode, RootedWeightedNode};
 
-use std::sync::Arc;
-
-
 #[derive(Clone)]
 pub struct Node{
-    id: Arc<usize>,
-    parent: Option<Arc<usize>>,
-    children: Vec<Arc<usize>>,
+    id: usize,
+    parent: Option<usize>,
+    children: Vec<usize>,
     taxa: Option<String>,
     weight: Option<f32>,
 }
 
 impl RootedTreeNode for Node
 {
-    type NodeID = Arc<usize>;
+    type NodeID = usize;
 
     fn new(id: Self::NodeID)->Self{
         Node{
-            id: Arc::clone(&id),
+            id: id,
             parent: None,
             children: vec![],
             taxa: None,
@@ -31,11 +28,11 @@ impl RootedTreeNode for Node
     }
 
     fn get_id(&self)->Self::NodeID {
-        Arc::clone(&self.id)
+        self.id
     }
 
     fn set_id(&mut self, id: Self::NodeID) {
-        self.id = Arc::clone(&id)
+        self.id = id
     }
 
     fn set_parent(&mut self, parent: Option<Self::NodeID>){
@@ -44,8 +41,8 @@ impl RootedTreeNode for Node
     fn get_parent(&self)->Option<Self::NodeID>{
         self.parent.clone()
     }
-    fn get_children(&self)->impl IntoIterator<Item=Self::NodeID, IntoIter = impl ExactSizeIterator<Item = Self::NodeID>>{
-        self.children.clone()
+    fn get_children(&self)->impl ExactSizeIterator<Item = Self::NodeID>{
+        self.children.clone().into_iter()
     }
     fn add_child(&mut self, child: Self::NodeID){
         self.children.push(child);
