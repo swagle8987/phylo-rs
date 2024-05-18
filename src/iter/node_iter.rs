@@ -1,5 +1,7 @@
 use std::{collections::VecDeque, vec};
 
+use fxhash::FxHashMap as HashMap;
+
 use itertools::Itertools;
 
 use crate::{node::simple_rnode::RootedTreeNode, tree::simple_rtree::RootedTree};
@@ -131,6 +133,25 @@ pub trait EulerWalk
 where
     Self: RootedTree + Sized
 {
+    fn precompute_walk(&mut self);
+
+    fn get_precomputed_walk(&self)->Option<&Vec<<Self as RootedTree>::NodeID>>;
+
+    fn precompute_fai(&mut self);
+
+    fn get_precomputed_fai(&self)->Option<HashMap<Self::NodeID, usize>>;
+
+    fn precompute_da(&mut self);
+
+    fn get_precomputed_da(&self)->Option<&Vec<usize>>;
+
+    fn precompute_constant_time_lca(&mut self)
+    {
+        self.precompute_walk();
+        self.precompute_da();
+        self.precompute_fai();
+    }
+
     fn euler_walk(&self, start_node_id: Self::NodeID)->impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
     {
         let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
@@ -141,16 +162,13 @@ where
             match visited.contains(&node.get_id())
             {
                 true => {
-                    match node.get_parent(){
-                        Some(parent_id) => {out_vec.push(self.get_node(parent_id).cloned().unwrap())},
-                        None => {},
-                    };
+                    if let Some(parent_id) = node.get_parent() {out_vec.push(self.get_node(parent_id).cloned().unwrap())}
                 },
                 false => {
                     visited.push(node.get_id());
                     out_vec.push(node.clone());
                     stack.push_front(node);
-                    for child_id in node.get_children().into_iter().collect_vec().into_iter().rev(){
+                    for child_id in node.get_children().rev(){
                         stack.push_front(self.get_node(child_id).unwrap())
                     }
                 }
@@ -159,37 +177,100 @@ where
         out_vec
     }
 
-    fn get_lca_id(&self, node_id_1: Self::NodeID, node_id_2: Self::NodeID, walk: Option<Vec<Self::NodeID>>)-> Self::NodeID
+    fn is_euler_precomputed(&self)->bool
     {
-        let euler_walk = match walk{
-            None => self.euler_walk(self.get_root_id()).into_iter().map(|x| x.get_id()).collect_vec(),
-            Some(_) => walk.unwrap(),
-        };
-        let depth_array: Vec<usize> = euler_walk.iter().map(|x| self.get_node_depth(x.clone())).collect_vec();   // todo
-        let mut min_pos = euler_walk.len();
-        let mut max_pos = 0;
-        let node_id_list = vec![node_id_1, node_id_2];
-        for node_id in node_id_list
-        {
-            let pos = euler_walk.iter().position(|r| r == &node_id).unwrap();
-            match pos<min_pos {
-                true => min_pos=pos,
-                false => {},
-            }
-            let pos = euler_walk.iter().rposition(|r| r == &node_id).unwrap_or(0);
-            match pos>max_pos {
-                true => max_pos=pos,
-                false => {},
+        self.get_precomputed_walk().is_some()
+    }
+
+    /// returns the first appearance index of each node in the euler tour
+    fn first_appearance(&self)->HashMap<Self::NodeID, usize>
+    {
+        let mut fa: HashMap<Self::NodeID, usize> = [].into_iter().collect::<HashMap<_,_>>();
+        match self.get_precomputed_walk(){
+            Some(walk) => {
+                for (idx, node_id) in walk.iter().enumerate(){
+                    if fa.contains_key(node_id){}
+                    else {
+                        fa.insert(node_id.clone(), idx);
+                    }
+                }
+            },
+            None => {
+                let walk = self.euler_walk(self.get_root_id()).into_iter().map(|x| x.get_id());
+                for (idx, node_id) in walk.enumerate(){
+                    if fa.contains_key(&node_id){}
+                    else {
+                        fa.insert(node_id.clone(), idx);
+                    }
+                }
             }
         }
+
+        fa
+    }
+
+    fn is_fai_precomputed(&self)->bool
+    {
+        self.get_precomputed_fai().is_some()
+    }
+
+    fn get_fa_index(&self, node_id: &Self::NodeID)->usize
+    {
+        match self.get_precomputed_fai(){
+            Some(fai) => fai[node_id],
+            None => self.first_appearance()[node_id],
+        }
+
+    }
+
+    /// depth array for nodes
+    fn depth_array(&self)-> Vec<usize>
+    {
+        let da = match self.get_precomputed_walk() {
+            Some(walk) => walk.iter().map(|x| self.get_node_depth(x.clone())).collect_vec(),
+            None => {
+                self.euler_walk(self.get_root_id()).into_iter().map(|x| self.get_node_depth(x.get_id())).collect_vec()
+            }
+        };
+        da
+    }
+
+    fn is_da_precomputed(&self)->bool
+    {
+        self.get_precomputed_da().is_some()
+    }
+
+    fn constant_time_depth(&self, node_id: Self::NodeID)->usize
+    {
+        let depth_array: Vec<usize> = match self.get_precomputed_da(){
+            Some(da) => da.clone(),
+            None => self.depth_array(),
+        };
+        depth_array[self.get_fa_index(&node_id)]
+    }
+
+    /// constant time lca query
+    fn get_lca_id(&self, node_id_1: Self::NodeID, node_id_2: Self::NodeID)-> Self::NodeID
+    {
+        let euler_walk: Vec<<Self as RootedTree>::NodeID> = match self.get_precomputed_walk(){
+            Some(walk) => walk.clone(),
+            None => self.euler_walk(self.get_root_id()).into_iter().map(|x| x.get_id()).collect_vec()
+        };
+        let depth_array: Vec<usize> = match self.get_precomputed_da(){
+            Some(da) => da.clone(),
+            None => self.depth_array(),
+        };
+        let min_pos = std::cmp::min(self.get_fa_index(&node_id_1), self.get_fa_index(&node_id_2));
+        let max_pos = std::cmp::max(self.get_fa_index(&node_id_1), self.get_fa_index(&node_id_2));
+
         let depth_subarray_min_value = depth_array[min_pos..max_pos].iter().min().unwrap();
         let depth_subarray_min_pos = depth_array[min_pos..max_pos].iter().position(|x| x==depth_subarray_min_value).unwrap();
         euler_walk[min_pos..max_pos][depth_subarray_min_pos].clone()
     }
 
-    fn get_lca(&self, node_id_1: Self::NodeID, node_id_2: Self::NodeID, walk: Option<Vec<Self::NodeID>>)-> Self::Node
+    fn get_lca(&self, node_id_1: Self::NodeID, node_id_2: Self::NodeID)-> Self::Node
     {
-        self.get_node(self.get_lca_id(node_id_1, node_id_2, walk)).cloned().unwrap()
+        self.get_node(self.get_lca_id(node_id_1, node_id_2)).cloned().unwrap()
     }
 }
 

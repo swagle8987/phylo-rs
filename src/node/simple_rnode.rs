@@ -15,7 +15,7 @@ where
     fn set_id(&mut self, id: Self::NodeID);
     fn get_parent(&self)->Option<Self::NodeID>;
     fn set_parent(&mut self, parent: Option<Self::NodeID>);
-    fn get_children(&self)->impl ExactSizeIterator<Item=Self::NodeID>;
+    fn get_children(&self)->impl ExactSizeIterator<Item=Self::NodeID> + DoubleEndedIterator;
     fn add_child(&mut self, child:Self::NodeID);
     fn remove_child(&mut self, child:&Self::NodeID);
 

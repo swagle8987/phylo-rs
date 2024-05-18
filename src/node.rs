@@ -41,7 +41,8 @@ impl RootedTreeNode for Node
     fn get_parent(&self)->Option<Self::NodeID>{
         self.parent.clone()
     }
-    fn get_children(&self)->impl ExactSizeIterator<Item = Self::NodeID>{
+    fn get_children(&self)->impl ExactSizeIterator<Item = Self::NodeID> + DoubleEndedIterator
+    {
         self.children.clone().into_iter()
     }
     fn add_child(&mut self, child: Self::NodeID){
