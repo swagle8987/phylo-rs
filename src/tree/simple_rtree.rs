@@ -1,15 +1,13 @@
 use itertools::Itertools;
-use std::hash::Hash;
+use std::{fmt::Debug, hash::Hash};
 use crate::node::simple_rnode::*;
 
-pub trait RootedTree
+pub trait RootedTree: Clone + Sync
 where
     Self::Node: RootedTreeNode<NodeID=Self::NodeID>,
 {
-    type NodeID: Clone + PartialEq + Eq + Hash;
+    type NodeID: Clone + PartialEq + Eq + Hash + Debug + Send;
     type Node;
-
-    fn new(root_id: Self::NodeID)->Self;
 
     /// Returns reference to node by ID
     fn get_node(&self, node_id: Self::NodeID)->Option<&Self::Node>;
@@ -31,11 +29,22 @@ where
 
     fn remove_node(&mut self, node_id: Self::NodeID)->Option<Self::Node>;
 
+    fn delete_node(&mut self, node_id: Self::NodeID);
+
     fn contains_node(&self, node_id: Self::NodeID)->bool;
 
     fn clean(&mut self);
 
-    fn get_mrca(&self, node_id_list: &Vec<Self::NodeID>)->Self::NodeID;
+    // fn get_mrca(&self, node_id_list: &Vec<Self::NodeID>)->Self::NodeID;
+
+    fn clear(&mut self)
+    {
+        let node_ids = self.get_node_ids().into_iter().filter(|x| x!=&self.get_root_id()).collect_vec();
+        for node_id in node_ids{
+            self.delete_node(dbg!(node_id));
+        }
+        self.remove_all_children(self.get_root_id());
+    }
 
     fn delete_edge(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID)
     {
@@ -63,9 +72,17 @@ where
 
     }
 
-    fn get_leaves(&self)->impl IntoIterator<Item=Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    fn add_sibling(&mut self, node_id: Self::NodeID, split_node: Self::Node, sibling_node: Self::Node)
     {
-        self.get_nodes().into_iter().filter(|x| x.is_leaf()).collect_vec()
+        let node_parent_id = self.get_node_parent_id(node_id.clone()).unwrap();
+        let split_node_id = split_node.get_id();
+        self.split_edge((node_parent_id, node_id), split_node);
+        self.add_child(split_node_id, sibling_node);
+    }
+
+    fn get_leaves(&self)->impl Iterator<Item=Self::Node>
+    {
+        self.get_nodes().into_iter().filter(|x| x.is_leaf())
     }
 
     /// Get root node
@@ -74,10 +91,34 @@ where
         self.get_node(self.get_root_id()).unwrap()
     }
 
+    fn get_root_mut(&mut self)->&mut Self::Node
+    {
+        self.get_node_mut(self.get_root_id()).unwrap()
+    }
+
     fn set_child(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID)
     {
         self.get_node_mut(parent_id.clone()).unwrap().add_child(child_id.clone());
         self.get_node_mut(child_id).unwrap().set_parent(Some(parent_id));
+    }
+
+    fn remove_child(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID)
+    {
+        self.get_node_mut(parent_id).unwrap().remove_child(&child_id);
+    }
+
+    fn remove_children(&mut self, parent_id: Self::NodeID, child_ids: Vec<Self::NodeID>)
+    {
+        for child_id in child_ids{
+            self.get_node_mut(parent_id.clone()).unwrap().remove_child(&child_id);
+        }
+    }
+
+    fn remove_all_children(&mut self, node_id: Self::NodeID)
+    {
+        let node_children_ids = self.get_node_children_ids(node_id.clone()).into_iter().collect_vec();
+        self.remove_children(node_id, node_children_ids);
+        
     }
 
     fn get_node_parent_id(&self, node_id: Self::NodeID)->Option<Self::NodeID>
@@ -101,6 +142,11 @@ where
 	    .into_iter()
 	    .map(|x| self.get_node(x).cloned().unwrap())
 	    .collect::<Vec<Self::Node>>()
+    }
+
+    fn get_node_children_ids(&self, node_id: Self::NodeID)->impl IntoIterator<Item=Self::NodeID, IntoIter = impl ExactSizeIterator<Item = Self::NodeID>>
+    {
+        self.get_node(node_id).unwrap().get_children().into_iter().collect_vec()
     }
 
     fn node_degree(&self, node_id: Self::NodeID)->usize
@@ -145,7 +191,7 @@ pub trait RootedMetaTree: RootedTree
 where
     Self::Node : RootedMetaNode<Meta = Self::Meta>,
 {    
-    type Meta: PartialEq;
+    type Meta: PartialEq + Send + Sync;
 
     fn get_taxa_node(&self, taxa: &Self::Meta)->Option<Self::Node>
     {
