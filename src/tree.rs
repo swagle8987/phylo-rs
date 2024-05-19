@@ -3,7 +3,7 @@ pub mod ops;
 pub mod distances;
 pub mod io;
 
-// use std::collections::HashMap;
+use std::ops::Index;
 
 // use std::collections::HashMap;
 use fxhash::FxHashMap as HashMap;
@@ -23,7 +23,7 @@ pub struct SimpleRootedTree{
     nodes: HashMap<usize, Node>,
     taxa_node_id_map: HashMap<String, usize>,
     precomputed_euler: Option<Vec<usize>>,
-    precomputed_fai: Option<HashMap<usize, usize>>,    
+    precomputed_fai: Option<Vec<Option<usize>>>,    
     precomputed_da: Option<Vec<usize>>,    
 }
 
@@ -62,16 +62,18 @@ impl SimpleRootedTree{
         let new_node = Node::new(1);
         tree.add_child(0, new_node);
         tree.set_node_taxa(1, Some("0".to_string()));
+        let mut current_leaf_ids = vec![1];
         for i in 1..num_taxa{
-            let rand_leaf_id = tree.get_leaves().into_iter().map(|x| x.get_id()).choose(&mut rand::thread_rng()).unwrap();
-            let rand_leaf_parent_id = tree.get_node_parent_id(rand_leaf_id).unwrap();
+            let rand_leaf_id = current_leaf_ids.iter().choose(&mut rand::thread_rng()).unwrap();
+            let rand_leaf_parent_id = tree.get_node_parent_id(rand_leaf_id.clone()).unwrap();
             let split_node = Node::new(tree.next_id());
             let split_node_id = split_node.get_id();
-            tree.split_edge((rand_leaf_parent_id, rand_leaf_id), split_node);
+            tree.split_edge((rand_leaf_parent_id, rand_leaf_id.clone()), split_node);
             let new_leaf = Node::new(tree.next_id());
             let new_leaf_id = new_leaf.get_id();
             tree.add_child(split_node_id, new_leaf);
-            tree.set_node_taxa(new_leaf_id, Some(i.to_string()));
+            tree.set_node_taxa(new_leaf_id.clone(), Some(i.to_string()));
+            current_leaf_ids.push(new_leaf_id);
         }
         Ok(tree)
     }
@@ -81,14 +83,17 @@ impl SimpleRootedTree{
         let mut new_node = Node::new(1);
         new_node.set_taxa(Some("0".to_string()));
         tree.add_child(0, new_node);
+        let mut current_node_ids = vec![1];
         for i in 1..num_taxa{
-            let rand_leaf_id = tree.get_nodes().into_iter().map(|x| x.get_id()).choose(&mut rand::thread_rng()).unwrap();
-            let rand_leaf_parent_id = tree.get_node_parent_id(rand_leaf_id).unwrap();
+            let rand_leaf_id = current_node_ids.iter().choose(&mut rand::thread_rng()).unwrap().clone();
+            let rand_leaf_parent_id = tree.get_node_parent_id(rand_leaf_id.clone()).unwrap();
             let split_node = Node::new(tree.next_id());
             let split_node_id = split_node.get_id();
-            tree.split_edge((rand_leaf_parent_id, rand_leaf_id), split_node);
+            current_node_ids.push(split_node_id.clone());
+            tree.split_edge((rand_leaf_parent_id, rand_leaf_id.clone()), split_node);
             let mut new_leaf = Node::new(tree.next_id());
             new_leaf.set_taxa(Some(i.to_string()));
+            current_node_ids.push(new_leaf.get_id());
             tree.add_child(split_node_id, new_leaf)
         }
         Ok(tree)
@@ -227,7 +232,7 @@ impl RootedMetaTree for SimpleRootedTree{
         self.taxa_node_id_map.len()
     }
 
-    fn get_taxa_space(&self)->impl ExactSizeIterator<Item=Self::Meta> {
+    fn get_taxa_space(&self)->impl ExactSizeIterator<Item=Self::Meta> + Clone {
         self.taxa_node_id_map.keys().cloned()
     }
 
@@ -252,7 +257,13 @@ impl DFS for SimpleRootedTree{}
 impl EulerWalk for SimpleRootedTree{
 
     fn precompute_fai(&mut self) {
-        self.precomputed_fai = Some(self.first_appearance());
+        let max_id = self.next_id();
+        let index = self.first_appearance();
+        let mut fai_vec = vec![None; max_id];
+        for ids in self.get_node_ids().into_iter(){
+            fai_vec[ids.clone()] = Some(index[&(ids.clone())]);
+        }
+        self.precomputed_fai = Some(fai_vec);
     }
 
     fn precompute_da(&mut self) {
@@ -267,8 +278,18 @@ impl EulerWalk for SimpleRootedTree{
         self.precomputed_euler.as_ref()
     }
 
-    fn get_precomputed_fai(&self)->Option<HashMap<Self::NodeID, usize>> {
-        self.precomputed_fai.clone()
+    fn get_precomputed_fai(&self)->Option<impl Index<&Self::NodeID, Output = usize>> {
+        match &self.precomputed_fai{
+            Some(fai_vec) => {
+                let hashmap = fai_vec.iter()
+                    .enumerate()
+                    .filter(|(_, idx)| idx.is_some())
+                    .map(|(id, idx)| (id, idx.clone().unwrap()))
+                    .collect::<HashMap<Self::NodeID, usize>>();
+                return Some(hashmap);
+            },
+            None => None,
+        }
     }
 
     fn get_precomputed_da(&self)->Option<&Vec<usize>> {
@@ -278,6 +299,54 @@ impl EulerWalk for SimpleRootedTree{
     fn is_euler_precomputed(&self)->bool {
         self.precomputed_euler.is_some()
     }
+
+    fn first_appearance(&self)->HashMap<Self::NodeID, usize>
+    {
+        let mut fa: HashMap<Self::NodeID, usize> = [].into_iter().collect::<HashMap<_,_>>();
+        match self.get_precomputed_walk(){
+            Some(walk) => {
+                for (idx, node_id) in walk.iter().enumerate(){
+                    if fa.contains_key(node_id){}
+                    else {
+                        fa.insert(node_id.clone(), idx);
+                    }
+                }
+            },
+            None => {
+                let walk = self.euler_walk(self.get_root_id()).into_iter().map(|x| x.get_id());
+                for (idx, node_id) in walk.enumerate(){
+                    if fa.contains_key(&node_id){}
+                    else {
+                        fa.insert(node_id.clone(), idx);
+                    }
+                }
+            }
+        }
+
+        fa
+    }
+
+    fn get_fa_index(&self, node_id: &Self::NodeID)->usize
+    {
+        match &self.precomputed_fai{
+            Some(fai) => fai[node_id.clone()].unwrap(),
+            None => self.first_appearance()[node_id],
+        }
+
+    }
+
+    fn get_lca_id(&self, node_id_1: Self::NodeID, node_id_2: Self::NodeID)-> Self::NodeID
+    {
+        let min_pos = std::cmp::min(self.get_fa_index(&node_id_1), self.get_fa_index(&node_id_2));
+        let max_pos = std::cmp::max(self.get_fa_index(&node_id_1), self.get_fa_index(&node_id_2));
+
+
+        let depth_subarray_min_value = self.get_da_slice(min_pos, max_pos).into_iter().min().unwrap();
+        let depth_subarray_min_pos = self.get_da_slice(min_pos, max_pos).into_iter().position(|x| x==depth_subarray_min_value).unwrap();
+        self.get_euler_pos(min_pos+depth_subarray_min_pos).clone()
+    }
+
+
 }
 
 impl Clusters for SimpleRootedTree{}
