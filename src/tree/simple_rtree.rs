@@ -175,6 +175,11 @@ where
         true
     }
 
+    fn num_nodes(&self)->usize
+    {
+        self.get_nodes().into_iter().len()
+    }
+
     fn supress_node(&mut self, _node_id: Self::NodeID)
     {        
         todo!()
@@ -223,9 +228,9 @@ where
     {
         self.get_node(node_id).unwrap().get_taxa()
     }
-    fn get_taxa_space(&self)->impl IntoIterator<Item=Self::Meta, IntoIter = impl ExactSizeIterator<Item = Self::Meta>>
+    fn get_taxa_space(&self)->impl Iterator<Item = Self::Meta>
     {
-        self.get_nodes().into_iter().filter(|x| x.get_taxa().is_some()).map(|x| x.get_taxa().unwrap()).collect_vec()
+        self.get_nodes().into_iter().filter(|x| x.get_taxa().is_some()).map(|x| x.get_taxa().unwrap())
     }
 }
 
