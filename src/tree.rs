@@ -16,6 +16,7 @@ use crate::node::simple_rnode::*;
 use crate::node::Node;
 use crate::tree::{simple_rtree::*, io::*, ops::*};
 use crate::iter::node_iter::*;
+use vers_vecs::BinaryRmq;
 
 #[derive(Debug, Clone)]
 pub struct SimpleRootedTree{
@@ -24,7 +25,8 @@ pub struct SimpleRootedTree{
     taxa_node_id_map: HashMap<String, usize>,
     precomputed_euler: Option<Vec<usize>>,
     precomputed_fai: Option<Vec<Option<usize>>>,    
-    precomputed_da: Option<Vec<usize>>,    
+    precomputed_da: Option<Vec<usize>>,
+    precomputed_rmq: Option<BinaryRmq>,
 }
 
 impl SimpleRootedTree{
@@ -38,6 +40,7 @@ impl SimpleRootedTree{
             taxa_node_id_map: [].into_iter().collect::<HashMap<_,_>>(),
             precomputed_fai: None,
             precomputed_da: None,
+            precomputed_rmq: None,
         }
     }
 
@@ -62,8 +65,11 @@ impl SimpleRootedTree{
         let new_node = Node::new(1);
         tree.add_child(0, new_node);
         tree.set_node_taxa(1, Some("0".to_string()));
-        let mut current_leaf_ids = vec![1];
-        for i in 1..num_taxa{
+        let new_node = Node::new(2);
+        tree.add_child(0, new_node);
+        tree.set_node_taxa(2, Some("1".to_string()));
+        let mut current_leaf_ids = vec![1,2];
+        for i in 2..num_taxa{
             let rand_leaf_id = current_leaf_ids.iter().choose(&mut rand::thread_rng()).unwrap();
             let rand_leaf_parent_id = tree.get_node_parent_id(rand_leaf_id.clone()).unwrap();
             let split_node = Node::new(tree.next_id());
@@ -267,6 +273,10 @@ impl EulerWalk for SimpleRootedTree{
     }
 
     fn precompute_da(&mut self) {
+        let da = self.depth_array();
+        let rmq = BinaryRmq::from_vec(da.iter().map(|x| x.clone() as u64).collect_vec());
+        self.precomputed_rmq = Some(rmq);
+
         self.precomputed_da = Some(self.depth_array());
     }
 
@@ -277,6 +287,14 @@ impl EulerWalk for SimpleRootedTree{
     fn get_precomputed_walk(&self)->Option<&Vec<<Self as RootedTree>::NodeID>> {
         self.precomputed_euler.as_ref()
     }
+
+    fn precompute_constant_time_lca(&mut self)
+    {
+        self.precompute_walk();
+        self.precompute_da();
+        self.precompute_fai();
+    }
+
 
     fn get_precomputed_fai(&self)->Option<impl Index<&Self::NodeID, Output = usize>> {
         match &self.precomputed_fai{
@@ -340,10 +358,13 @@ impl EulerWalk for SimpleRootedTree{
         let min_pos = std::cmp::min(self.get_fa_index(&node_id_1), self.get_fa_index(&node_id_2));
         let max_pos = std::cmp::max(self.get_fa_index(&node_id_1), self.get_fa_index(&node_id_2));
 
+        if min_pos==max_pos{
+            return min_pos;
+        }
+        let dp = self.precomputed_rmq.as_ref().unwrap();
+        
+        return self.get_euler_pos(dp.range_min(min_pos, max_pos));
 
-        let depth_subarray_min_value = self.get_da_slice(min_pos, max_pos).into_iter().min().unwrap();
-        let depth_subarray_min_pos = self.get_da_slice(min_pos, max_pos).into_iter().position(|x| x==depth_subarray_min_value).unwrap();
-        self.get_euler_pos(min_pos+depth_subarray_min_pos).clone()
     }
 
 
