@@ -12,16 +12,19 @@ use itertools::Itertools;
 use anyhow::Result;
 use rand::prelude::IteratorRandom;
 
+use crate::node;
 use crate::node::simple_rnode::*;
 use crate::node::Node;
 use crate::tree::{simple_rtree::*, io::*, ops::*};
 use crate::iter::node_iter::*;
 use vers_vecs::BinaryRmq;
 
+use self::distances::PathFunction;
+
 #[derive(Debug, Clone)]
 pub struct SimpleRootedTree{
     root: usize,
-    nodes: HashMap<usize, Node>,
+    nodes: Vec<Option<Node>>,
     taxa_node_id_map: HashMap<String, usize>,
     precomputed_euler: Option<Vec<usize>>,
     precomputed_fai: Option<Vec<Option<usize>>>,    
@@ -33,9 +36,11 @@ impl SimpleRootedTree{
 
     pub fn new(root_id: usize)->Self{
         let root_node = Node::new(root_id);
+        let mut nodes = vec![None;root_id+1];
+        nodes[root_id] = Some(root_node);
         SimpleRootedTree { 
-            root: root_node.get_id(),
-            nodes: [(root_node.get_id(), root_node)].into_iter().collect::<HashMap<_,_>>(),
+            root: root_id,
+            nodes: nodes,
             precomputed_euler: None,
             taxa_node_id_map: [].into_iter().collect::<HashMap<_,_>>(),
             precomputed_fai: None,
@@ -47,10 +52,10 @@ impl SimpleRootedTree{
 
     pub fn next_id(&self)->usize
     {
-        match self.nodes.keys().max()
+        match &self.nodes.iter().position(|r| r.is_none())
         {
-            Some(x) => x+1,
-            None => 0
+            Some(x) => x.clone(),
+            None => self.nodes.len()
         }
     }
 
@@ -62,12 +67,18 @@ impl SimpleRootedTree{
     pub fn yule(num_taxa: usize)->Result<SimpleRootedTree>
     {   
         let mut tree = SimpleRootedTree::new(0);
+        if num_taxa<3{
+            return Ok(tree);
+        }
         let new_node = Node::new(1);
         tree.add_child(0, new_node);
         tree.set_node_taxa(1, Some("0".to_string()));
         let new_node = Node::new(2);
         tree.add_child(0, new_node);
         tree.set_node_taxa(2, Some("1".to_string()));
+        if num_taxa<4{
+            return Ok(tree);
+        }
         let mut current_leaf_ids = vec![1,2];
         for i in 2..num_taxa{
             let rand_leaf_id = current_leaf_ids.iter().choose(&mut rand::thread_rng()).unwrap();
@@ -86,10 +97,19 @@ impl SimpleRootedTree{
     pub fn unif(num_taxa: usize)->Result<SimpleRootedTree>
     {   
         let mut tree = SimpleRootedTree::new(0);
-        let mut new_node = Node::new(1);
-        new_node.set_taxa(Some("0".to_string()));
+        if num_taxa<3{
+            return Ok(tree);
+        }
+        let new_node = Node::new(1);
         tree.add_child(0, new_node);
-        let mut current_node_ids = vec![1];
+        tree.set_node_taxa(1, Some("0".to_string()));
+        let new_node = Node::new(2);
+        tree.add_child(0, new_node);
+        tree.set_node_taxa(2, Some("1".to_string()));
+        if num_taxa<3{
+            return Ok(tree);
+        }
+        let mut current_node_ids = vec![1,2];
         for i in 1..num_taxa{
             let rand_leaf_id = current_node_ids.iter().choose(&mut rand::thread_rng()).unwrap().clone();
             let rand_leaf_parent_id = tree.get_node_parent_id(rand_leaf_id.clone()).unwrap();
@@ -115,28 +135,40 @@ impl RootedTree for SimpleRootedTree{
     /// Returns reference to node by ID
     fn get_node(&self, node_id: Self::NodeID)->Option<&Node>
     {
-        self.nodes.get(&node_id)
+        self.nodes[node_id].as_ref()
     }
 
     fn get_node_mut(&mut self, node_id: Self::NodeID)->Option<&mut Node>
     {
-        self.nodes.get_mut(&node_id)
+        self.nodes[node_id].as_mut()
     }
 
-    fn get_node_ids(&self)->impl IntoIterator<Item = Self::NodeID, IntoIter = impl ExactSizeIterator<Item = Self::NodeID>> 
+    fn get_node_ids(&self)->impl Iterator<Item = Self::NodeID>
     {
-        self.nodes.clone().into_keys()    
+        (0..self.nodes.len()).filter(|x| self.nodes[x.clone()].is_some())
     }
 
-    fn get_nodes(&self)->impl IntoIterator<Item = Node, IntoIter = impl ExactSizeIterator<Item = Node>> 
+    fn get_nodes(&self)->impl ExactSizeIterator<Item = Node>
     {
-        self.nodes.clone().into_values()    
+        self.nodes.clone().into_iter().filter(|x| x.is_some()).map(|x| x.unwrap()).collect_vec().into_iter()
     }
 
     /// Returns reference to node by ID
     fn set_node(&mut self, node: Node)
     {
-        self.nodes.insert(node.get_id(), node);
+        let node_id = node.get_id();
+        match node.get_taxa(){
+            None => {},
+            Some(taxa) => {self.taxa_node_id_map.insert(taxa, node.get_id());},
+        };
+        match self.nodes.len()>node_id{
+            true => {self.nodes[node_id] = Some(node)},
+            false => {
+                let new_len = node.get_id()-self.nodes.len();
+                self.nodes.extend((0..new_len+1).map(|_| None));
+                self.nodes[node_id] = Some(node);
+            }
+        };
     }
 
     fn add_child(&mut self, parent_id: Self::NodeID, child: Node)
@@ -161,16 +193,16 @@ impl RootedTree for SimpleRootedTree{
     fn remove_node(&mut self, node_id: Self::NodeID)->Option<Node>
     {
         if let Some(pid) = self.get_node_parent_id(node_id) {self.get_node_mut(pid).unwrap().remove_child(&node_id)}
-        self.nodes.remove(&node_id)
+        std::mem::replace(&mut self.nodes[node_id], None)
     }
 
     fn delete_node(&mut self, node_id: Self::NodeID) {
-        self.nodes.remove(&node_id);
+        let _ = std::mem::replace(&mut self.nodes[node_id], None);
     }
 
     fn contains_node(&self, node_id: Self::NodeID)->bool
     {
-        self.nodes.contains_key(&node_id)
+        self.nodes[node_id].is_some()
     }
 
     fn delete_edge(&mut self, parent_id: Self::NodeID, child_id: Self::NodeID)
@@ -209,6 +241,18 @@ impl RootedTree for SimpleRootedTree{
             }
         }
     }
+
+    fn clear(&mut self) {
+        let root_node = self.get_root().clone();
+        let root_node_id = root_node.get_id();
+        self.nodes = vec![None;root_node_id+1];
+        self.nodes[root_node_id] = Some(root_node);
+        self.taxa_node_id_map.clear();
+        // self.precomputed_da = None;
+        // self.precomputed_euler = None;
+        // self.precomputed_fai = None;
+        // self.precomputed_rmq = None;
+    }
 }
 
 
@@ -220,18 +264,18 @@ impl RootedMetaTree for SimpleRootedTree{
         self.taxa_node_id_map.get(taxa).cloned()
     }
 
-    fn get_taxa_node(&self, taxa: &Self::Meta)->Option<Self::Node> {
-        self.nodes.get(&self.get_taxa_node_id(taxa).unwrap()).cloned()
+    fn get_taxa_node(&self, taxa: &Self::Meta)->Option<&Self::Node> {
+        match self.taxa_node_id_map.get(taxa){
+            None => None,
+            Some(node_id) => {
+                self.get_node(*node_id)
+            }
+        }
     }
 
     fn set_node_taxa(&mut self, node_id: Self::NodeID, taxa: Option<Self::Meta>) {
         self.get_node_mut(node_id).unwrap().set_taxa(taxa.clone());
-        if let Some(t) = taxa {self.taxa_node_id_map.insert(t, node_id);}
-        // match taxa{
-        //     Some(t) => {self.taxa_node_id_map.insert(t, node_id);},
-        //     None => {},
-        // };
-        
+        if let Some(t) = taxa {self.taxa_node_id_map.insert(t, node_id);}        
     }
 
     fn num_taxa(&self)->usize {
@@ -250,24 +294,48 @@ impl RootedWeightedTree for SimpleRootedTree {
 
 }
 
+impl PathFunction for SimpleRootedTree{
+    fn get_zeta(&self, node_id: Self::NodeID)->Option<f32> {
+        self.get_node(node_id).unwrap().get_zeta()
+    }
+    fn set_zeta(&mut self, zeta_func: fn(&Self, Self::NodeID) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta) {
+        let zetas = self.get_node_ids().map(|node_id| (node_id, Some(zeta_func(self, node_id)))).collect_vec();
+        for (node_id, zeta) in zetas{
+            self.get_node_mut(node_id).unwrap().set_zeta(zeta)
+        }
+    }
+}
+
 impl Ancestors for SimpleRootedTree{}
 
 impl Subtree for SimpleRootedTree{}
 
 impl PreOrder for SimpleRootedTree{}
 
-impl PostOrder for SimpleRootedTree{}
+impl DFS for SimpleRootedTree{
+    fn postord(&self, start_node: Self::NodeID)-> impl Iterator<Item = Self::Node> 
+        {
+            DFSPostOrderIterator::new(self, start_node)
+        }
+}
 
-impl DFS for SimpleRootedTree{}
+impl BFS for SimpleRootedTree{
+    fn bfs(&self, start_node_id: Self::NodeID)-> impl Iterator<Item = Self::Node>
+    {
+        BFSIterator::new(self, start_node_id)
+    }
+}
+
+impl ContractTree for SimpleRootedTree{}
 
 impl EulerWalk for SimpleRootedTree{
 
     fn precompute_fai(&mut self) {
-        let max_id = self.next_id();
+        let max_id = self.nodes.len();
         let index = self.first_appearance();
         let mut fai_vec = vec![None; max_id];
-        for ids in self.get_node_ids().into_iter(){
-            fai_vec[ids.clone()] = Some(index[&(ids.clone())]);
+        for id in self.get_node_ids(){
+            fai_vec[id] = Some(index[&id]);
         }
         self.precomputed_fai = Some(fai_vec);
     }
@@ -323,12 +391,15 @@ impl EulerWalk for SimpleRootedTree{
         let mut fa: HashMap<Self::NodeID, usize> = [].into_iter().collect::<HashMap<_,_>>();
         match self.get_precomputed_walk(){
             Some(walk) => {
-                for (idx, node_id) in walk.iter().enumerate(){
-                    if fa.contains_key(node_id){}
-                    else {
-                        fa.insert(node_id.clone(), idx);
-                    }
+                for node_id in self.get_node_ids(){
+                    fa.insert(node_id, walk.iter().position(|x| x==&node_id).unwrap());
                 }
+                // for (idx, node_id) in walk.iter().enumerate(){
+                //     if fa.contains_key(node_id){}
+                //     else {
+                //         fa.insert(node_id.clone(), idx);
+                //     }
+                // }
             },
             None => {
                 let walk = self.euler_walk(self.get_root_id()).into_iter().map(|x| x.get_id());
@@ -353,10 +424,10 @@ impl EulerWalk for SimpleRootedTree{
 
     }
 
-    fn get_lca_id(&self, node_id_1: Self::NodeID, node_id_2: Self::NodeID)-> Self::NodeID
+    fn get_lca_id(&self, node_id_vec: &Vec<Self::NodeID>)-> Self::NodeID
     {
-        let min_pos = std::cmp::min(self.get_fa_index(&node_id_1), self.get_fa_index(&node_id_2));
-        let max_pos = std::cmp::max(self.get_fa_index(&node_id_1), self.get_fa_index(&node_id_2));
+        let min_pos = node_id_vec.iter().map(|x| self.get_fa_index(&x)).min().unwrap();
+        let max_pos = node_id_vec.iter().map(|x| self.get_fa_index(&x)).max().unwrap();
 
         if min_pos==max_pos{
             return min_pos;
@@ -492,7 +563,7 @@ impl SPR for SimpleRootedTree
         let dfs = self.dfs(node_id).into_iter().collect_vec();
         for node in dfs
         {    
-            self.nodes.remove(&node.get_id());
+            self.nodes.remove(node.get_id());
             pruned_tree.set_node(node);
         }
         pruned_tree
@@ -530,7 +601,7 @@ impl Balance for SimpleRootedTree{
     }
 }
 
-impl CopheneticDistance<f32> for SimpleRootedTree{
+impl CopheneticDistance for SimpleRootedTree{
     type Meta = String;
 
 }

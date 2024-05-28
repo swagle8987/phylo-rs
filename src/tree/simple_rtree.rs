@@ -4,9 +4,9 @@ use crate::node::simple_rnode::*;
 
 pub trait RootedTree: Clone + Sync
 where
-    Self::Node: RootedTreeNode<NodeID=Self::NodeID>,
+    Self::Node: RootedTreeNode<NodeID=Self::NodeID> + Debug,
 {
-    type NodeID: Clone + PartialEq + Eq + Hash + Debug + Send;
+    type NodeID: Copy + PartialEq + Eq + Hash + Debug + Send;
     type Node;
 
     /// Returns reference to node by ID
@@ -14,9 +14,9 @@ where
 
     fn get_node_mut(&mut self, node_id: Self::NodeID)->Option<&mut Self::Node>;
 
-    fn get_node_ids(&self)->impl IntoIterator<Item = Self::NodeID, IntoIter = impl ExactSizeIterator<Item = Self::NodeID>>;
+    fn get_node_ids(&self)->impl Iterator<Item = Self::NodeID>;
 
-    fn get_nodes(&self)->impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>;
+    fn get_nodes(&self)->impl ExactSizeIterator<Item = Self::Node>;
 
     fn get_root_id(&self)->Self::NodeID;
 
@@ -35,13 +35,11 @@ where
 
     fn clean(&mut self);
 
-    // fn get_mrca(&self, node_id_list: &Vec<Self::NodeID>)->Self::NodeID;
-
     fn clear(&mut self)
     {
         let node_ids = self.get_node_ids().into_iter().filter(|x| x!=&self.get_root_id()).collect_vec();
         for node_id in node_ids{
-            self.delete_node(dbg!(node_id));
+            self.delete_node(node_id);
         }
         self.remove_all_children(self.get_root_id());
     }
@@ -80,9 +78,9 @@ where
         self.add_child(split_node_id, sibling_node);
     }
 
-    fn get_leaves(&self)->impl Iterator<Item=Self::Node>
+    fn get_leaves(&self)->impl ExactSizeIterator<Item=Self::Node>
     {
-        self.get_nodes().into_iter().filter(|x| x.is_leaf())
+        self.get_nodes().into_iter().filter(|x| x.is_leaf()).collect_vec().into_iter()
     }
 
     /// Get root node
@@ -135,18 +133,17 @@ where
         }
     }
 
-    fn get_node_children(&self, node_id: Self::NodeID)->impl IntoIterator<Item=Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    fn get_node_children(&self, node_id: Self::NodeID)->impl ExactSizeIterator<Item = Self::Node>
     {
 	let node = self.get_node(node_id).unwrap();
 	node.get_children()
 	    .into_iter()
 	    .map(|x| self.get_node(x).cloned().unwrap())
-	    .collect::<Vec<Self::Node>>()
     }
 
-    fn get_node_children_ids(&self, node_id: Self::NodeID)->impl IntoIterator<Item=Self::NodeID, IntoIter = impl ExactSizeIterator<Item = Self::NodeID>>
+    fn get_node_children_ids(&self, node_id: Self::NodeID)->impl ExactSizeIterator<Item = Self::NodeID>
     {
-        self.get_node(node_id).unwrap().get_children().into_iter().collect_vec()
+        self.get_node(node_id).unwrap().get_children().into_iter().collect_vec().into_iter()
     }
 
     fn node_degree(&self, node_id: Self::NodeID)->usize
@@ -198,16 +195,7 @@ where
 {    
     type Meta: PartialEq + Send + Sync;
 
-    fn get_taxa_node(&self, taxa: &Self::Meta)->Option<Self::Node>
-    {
-        for node in self.get_nodes().into_iter()
-        {
-            if Some(taxa)==node.get_taxa().as_ref(){
-                return Some(node);
-            }
-        }
-        None
-    }
+    fn get_taxa_node(&self, taxa: &Self::Meta)->Option<&Self::Node>;
 
     fn get_taxa_node_id(&self, taxa: &Self::Meta)->Option<Self::NodeID>
     {
