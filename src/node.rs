@@ -2,42 +2,39 @@ pub mod simple_rnode;
 
 use std::fmt::{Debug, Display};
 
-use crate::node::simple_rnode::{RootedTreeNode, RootedPhyloNode, WeightedNode};
-
-// use std::rc::Rc;
-use std::sync::Arc;
-
-pub type NodeID = Arc<usize>;
+use crate::node::simple_rnode::{RootedTreeNode, RootedMetaNode, RootedWeightedNode, RootedZetaNode};
 
 #[derive(Clone)]
 pub struct Node{
-    id: NodeID,
-    parent: Option<NodeID>,
-    children: Vec<NodeID>,
-    taxa: Option<Arc<String>>,
-    weight: Option<f64>,
+    id: usize,
+    parent: Option<usize>,
+    children: Vec<usize>,
+    taxa: Option<String>,
+    weight: Option<f32>,
+    zeta: Option<f32>,
 }
 
 impl RootedTreeNode for Node
 {
-    type NodeID = NodeID;
+    type NodeID = usize;
 
-    fn new(id: NodeID)->Self{
+    fn new(id: Self::NodeID)->Self{
         Node{
-            id: Arc::clone(&id),
+            id: id,
             parent: None,
             children: vec![],
             taxa: None,
             weight: None,
+            zeta: None,
         }
     }
 
     fn get_id(&self)->Self::NodeID {
-        Arc::clone(&self.id)
+        self.id
     }
 
     fn set_id(&mut self, id: Self::NodeID) {
-        self.id = Arc::clone(&id)
+        self.id = id
     }
 
     fn set_parent(&mut self, parent: Option<Self::NodeID>){
@@ -46,8 +43,9 @@ impl RootedTreeNode for Node
     fn get_parent(&self)->Option<Self::NodeID>{
         self.parent.clone()
     }
-    fn get_children(&self)->impl IntoIterator<Item=Self::NodeID, IntoIter = impl ExactSizeIterator<Item = Self::NodeID>>{
-        self.children.clone()
+    fn get_children(&self)->impl ExactSizeIterator<Item = Self::NodeID> + DoubleEndedIterator
+    {
+        self.children.clone().into_iter()
     }
     fn add_child(&mut self, child: Self::NodeID){
         self.children.push(child);
@@ -57,29 +55,29 @@ impl RootedTreeNode for Node
     }
 }
 
-impl RootedPhyloNode for Node
+impl RootedMetaNode for Node
 {
-    type Taxa = String;
-
-    fn get_taxa(&self)->Option<Self::Taxa>{
+    type Meta = String;
+    
+    fn get_taxa(&self)->Option<Self::Meta>{
         match &self.taxa{
             None => None,
             Some(t) => Some(t.to_string())
         }
     }
 
-    fn set_taxa(&mut self, taxa: Option<String>){
+    fn set_taxa(&mut self, taxa: Option<Self::Meta>){
         self.taxa = match taxa{
             None => None,
-            Some(t) => Some(Arc::new(t)),
+            Some(t) => Some(t),
         };
     }
 
 }
 
-impl WeightedNode for Node
+impl RootedWeightedNode for Node
 {
-    type Weight = f64;
+    type Weight = f32;
 
     fn get_weight(&self)->Option<Self::Weight>{
         self.weight.clone()
@@ -91,17 +89,35 @@ impl WeightedNode for Node
 
 }
 
+impl RootedZetaNode for Node
+{
+    type Zeta = f32;
+
+    fn get_zeta(&self)->Option<Self::Zeta>{
+        self.zeta.clone()
+    }
+
+    fn set_zeta(&mut self, w: Option<Self::Zeta>){
+        self.zeta = w;
+    }
+
+}
+
 impl Debug for Node
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}:{}:{}", self.get_id(),self.node_type(), match self.get_taxa(){
-            None => "None".to_string(),
+        write!(f, "{}:{}:{}:{}:{}", self.get_id(),self.node_type(), match self.get_taxa(){
+            None => "No Taxa".to_string(),
             Some(t) => t.to_string(),
         },
         match self.get_weight() {
-            None => "".to_string(),
+            None => "Unweighted".to_string(),
             Some(t) => t.to_string(),
 
+        },
+        match self.get_zeta(){
+            None => "No Zeta".to_string(),
+            Some(z) => z.to_string(),
         }
     )
     }
@@ -110,7 +126,7 @@ impl Debug for Node
 impl Display for Node
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}:{}:{}", self.get_id(),self.node_type(), match self.get_taxa(){
+        write!(f, "{}:{}:{}:{}:{}", self.get_id(),self.node_type(), match self.get_taxa(){
             None => "None".to_string(),
             Some(t) => t.to_string(),
         },
@@ -118,7 +134,12 @@ impl Display for Node
             None => "".to_string(),
             Some(t) => t.to_string(),
 
+        },
+        match self.get_zeta(){
+            None => "No Zeta".to_string(),
+            Some(z) => z.to_string(),
         }
     )
     }
 }
+
