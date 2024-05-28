@@ -2,7 +2,7 @@ pub mod simple_rnode;
 
 use std::fmt::{Debug, Display};
 
-use crate::node::simple_rnode::{RootedTreeNode, RootedMetaNode, RootedWeightedNode};
+use crate::node::simple_rnode::{RootedTreeNode, RootedMetaNode, RootedWeightedNode, RootedZetaNode};
 
 #[derive(Clone)]
 pub struct Node{
@@ -11,6 +11,7 @@ pub struct Node{
     children: Vec<usize>,
     taxa: Option<String>,
     weight: Option<f32>,
+    zeta: Option<f32>,
 }
 
 impl RootedTreeNode for Node
@@ -24,6 +25,7 @@ impl RootedTreeNode for Node
             children: vec![],
             taxa: None,
             weight: None,
+            zeta: None,
         }
     }
 
@@ -87,17 +89,35 @@ impl RootedWeightedNode for Node
 
 }
 
+impl RootedZetaNode for Node
+{
+    type Zeta = f32;
+
+    fn get_zeta(&self)->Option<Self::Zeta>{
+        self.zeta.clone()
+    }
+
+    fn set_zeta(&mut self, w: Option<Self::Zeta>){
+        self.zeta = w;
+    }
+
+}
+
 impl Debug for Node
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}:{}:{}", self.get_id(),self.node_type(), match self.get_taxa(){
-            None => "None".to_string(),
+        write!(f, "{}:{}:{}:{}:{}", self.get_id(),self.node_type(), match self.get_taxa(){
+            None => "No Taxa".to_string(),
             Some(t) => t.to_string(),
         },
         match self.get_weight() {
-            None => "".to_string(),
+            None => "Unweighted".to_string(),
             Some(t) => t.to_string(),
 
+        },
+        match self.get_zeta(){
+            None => "No Zeta".to_string(),
+            Some(z) => z.to_string(),
         }
     )
     }
@@ -106,7 +126,7 @@ impl Debug for Node
 impl Display for Node
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}:{}:{}", self.get_id(),self.node_type(), match self.get_taxa(){
+        write!(f, "{}:{}:{}:{}:{}", self.get_id(),self.node_type(), match self.get_taxa(){
             None => "None".to_string(),
             Some(t) => t.to_string(),
         },
@@ -114,6 +134,10 @@ impl Display for Node
             None => "".to_string(),
             Some(t) => t.to_string(),
 
+        },
+        match self.get_zeta(){
+            None => "No Zeta".to_string(),
+            Some(z) => z.to_string(),
         }
     )
     }

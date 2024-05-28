@@ -8,7 +8,7 @@ pub trait RootedTreeNode
 where
     Self: Clone,
 {    
-    type NodeID: Display + Debug + Hash + Clone + Ord + PartialEq + Eq;
+    type NodeID: Display + Debug + Hash + Ord + PartialEq + Eq + Copy;
 
     fn new(id: Self::NodeID)->Self;
     fn get_id(&self)->Self::NodeID;
@@ -41,9 +41,20 @@ where
             self.remove_child(&child);
         }
     }
+    fn remove_all_children(&mut self)
+    {
+        let children = self.get_children().collect_vec();
+        for child in children{
+            self.remove_child(&child);
+        }
+    }
     fn num_children(&self)->usize
     {
         self.get_children().into_iter().collect::<Vec<Self::NodeID>>().len()
+    }
+    fn has_children(&self)->bool
+    {
+        self.num_children()>0
     }
     fn degree(&self)->usize
     {
@@ -81,5 +92,21 @@ pub trait RootedWeightedNode: RootedTreeNode
     fn set_weight(&mut self, w: Option<Self::Weight>);
     fn unweight(&mut self){
         self.set_weight(None);
+    }
+}
+
+pub trait RootedZetaNode: RootedTreeNode
+{
+    type Zeta: Num + Clone + PartialOrd + NumCast + std::iter::Sum;
+    
+    fn get_zeta(&self)->Option<Self::Zeta>;
+    fn set_zeta(&mut self, w: Option<Self::Zeta>);
+    fn is_zeta_set(&self)->bool
+    {
+        self.get_zeta().is_some()
+    }
+    fn remove_zeta(&mut self)
+    {
+        self.set_zeta(None);
     }
 }
