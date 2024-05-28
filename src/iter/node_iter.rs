@@ -4,12 +4,97 @@ use fxhash::FxHashMap as HashMap;
 // use argminmax::ArgMinMax;
 use itertools::Itertools;
 
-use crate::{node::simple_rnode::RootedTreeNode, tree::simple_rtree::RootedTree};
+use crate::{node::{simple_rnode::RootedTreeNode, Node}, tree::simple_rtree::RootedTree};
+
+#[derive(Clone)]
+pub struct BFSIterator{
+    stack: VecDeque<<Node as RootedTreeNode>::NodeID>,
+    nodes: HashMap<<Node as RootedTreeNode>::NodeID,Node>,
+}
+
+#[derive(Clone)]
+pub struct DFSPostOrderIterator{
+    stack: VecDeque<Node>,
+    nodes: HashMap<<Node as RootedTreeNode>::NodeID,Node>,
+}
+
+impl BFSIterator
+{
+    pub fn new(tree: &impl RootedTree<NodeID = usize, Node = Node>, start_id: <Node as RootedTreeNode>::NodeID) -> BFSIterator
+    {
+        BFSIterator{
+            stack: vec![start_id].into(),
+            nodes: tree.get_nodes().into_iter().map(|x| (x.get_id(), x)).collect::<HashMap<_,_>>(),
+        }
+    }
+}
+
+impl DFSPostOrderIterator
+{
+    pub fn new(tree: &impl RootedTree<NodeID = usize, Node = Node>, start_id: <Node as RootedTreeNode>::NodeID) -> DFSPostOrderIterator
+    {
+        let mut nodes = tree.get_nodes().map(|x| (x.get_id(), x)).collect::<HashMap<_,_>>();
+        let start_node = nodes.remove(&start_id).unwrap();
+        DFSPostOrderIterator{
+            stack: vec![start_node].into(),
+            nodes: nodes,
+        }
+    }
+}
+
+impl Iterator for BFSIterator
+{
+    type Item = Node;
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.stack.pop_front(){
+            None => return None,
+            Some(curr_node_id) => {
+                let curr_node = self.nodes.remove(&curr_node_id).unwrap();
+                curr_node.get_children()
+                    .for_each(|x| {
+                        self.stack.push_back(x)
+                    });
+                return Some(curr_node);
+
+            },
+        };
+    }
+}
+
+impl Iterator for DFSPostOrderIterator
+{
+    type Item = Node;
+    
+    fn next(&mut self) -> Option<Self::Item> {
+
+        while let Some(node) = self.stack.pop_front(){
+            let node_children = node.get_children()
+                .map(|chid| self.nodes.remove(&chid))
+                .filter(|chn| chn.is_some())
+                .map(|x| x.unwrap())
+                .collect_vec();
+            if node_children.len()>0{
+                self.stack.push_front(node);
+                for child in node_children.into_iter().rev(){
+                    self.stack.push_front(child)
+                }
+            }
+            else{
+                return Some(node);
+            }
+        }
+        return None;
+    }
+}
+
 
 pub trait DFS
 where
     Self: RootedTree + Sized
 {
+    fn postord(&self, start_node: Self::NodeID)-> impl Iterator<Item = Self::Node>;
+
     fn dfs(&self, start_node_id: Self::NodeID)-> impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
     {
         let mut stack = VecDeque::from([self.get_node(start_node_id).cloned().unwrap()]);
@@ -37,7 +122,7 @@ pub trait BFS
 where
     Self: RootedTree + Sized
 {
-    fn bfs(&self)-> impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>;
+    fn bfs(&self, start_node_id: Self::NodeID)-> impl Iterator<Item = Self::Node>;
 }
 
 pub trait PreOrder
@@ -67,29 +152,6 @@ where
     }
 }
 
-pub trait PostOrder
-where
-    Self: RootedTree + Sized
-{
-    fn postord(&self, _start_node: Self::NodeID)-> impl IntoIterator<Item = Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
-    {
-        // let mut stack = vec![self.get_node(start_node).cloned().unwrap()];
-        // let mut out_vec = vec![];
-        // match stack.pop() {
-        //     Some(node) => {
-        //         out_vec.push(node.clone());
-        //         let children: Vec<<Self as RootedTree<Self>>::Node> = self.get_node_children(node.get_id()).into_iter().collect();
-        //         for child in children.into_iter().rev()
-        //         {
-        //             stack.push(child);
-        //         }
-        //     }
-        //     None => {},
-        // };
-        // out_vec
-        vec![]
-    }
-}
 
 pub trait Ancestors
 where
@@ -275,45 +337,74 @@ where
     }
 
     /// constant time lca query
-    fn get_lca_id(&self, node_id_1: Self::NodeID, node_id_2: Self::NodeID)-> Self::NodeID
+    fn get_lca_id(&self, node_id_vec: &Vec<Self::NodeID>)-> Self::NodeID
     {
-        let min_pos = std::cmp::min(self.get_fa_index(&node_id_1), self.get_fa_index(&node_id_2));
-        let max_pos = std::cmp::max(self.get_fa_index(&node_id_1), self.get_fa_index(&node_id_2));
+        let min_pos = node_id_vec.iter().map(|x| self.get_fa_index(&x)).min().unwrap();
+        let max_pos = node_id_vec.iter().map(|x| self.get_fa_index(&x)).max().unwrap();
 
-
-        let depth_subarray_min_value = self.get_da_slice(min_pos, max_pos).into_iter().min().unwrap();
+        let depth_subarray_min_value = self.get_da_slice(min_pos.clone(), max_pos.clone()).into_iter().min().unwrap();
         let depth_subarray_min_pos = self.get_da_slice(min_pos, max_pos).into_iter().position(|x| x==depth_subarray_min_value).unwrap();
         self.get_euler_pos(min_pos+depth_subarray_min_pos).clone()
     }
 
-    fn get_lca(&self, node_id_1: Self::NodeID, node_id_2: Self::NodeID)-> Self::Node
+    fn get_lca(&self, node_id_vec: &Vec<Self::NodeID>)-> Self::Node
     {
-        self.get_node(self.get_lca_id(node_id_1, node_id_2)).cloned().unwrap()
+        self.get_node(self.get_lca_id(node_id_vec)).cloned().unwrap()
     }
 }
 
-pub trait Clusters: DFS + Sized
+pub trait Clusters: DFS + BFS + Sized
 {
-    fn get_cluster(&self, node_id: Self::NodeID)-> impl IntoIterator<Item=Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>
+    fn get_cluster(&self, node_id: Self::NodeID)-> impl ExactSizeIterator<Item = Self::Node>
     {
-        self.dfs(node_id).into_iter().filter(|x| x.is_leaf()).collect_vec()
+        self.dfs(node_id).into_iter().filter(|x| x.is_leaf()).collect_vec().into_iter()
     }
-    fn get_bipartition(&self, edge: (Self::NodeID, Self::NodeID))->(impl IntoIterator<Item=Self::Node>, impl IntoIterator<Item=Self::Node, IntoIter = impl ExactSizeIterator<Item = Self::Node>>)
+    fn get_cluster_ids(&self, node_id: Self::NodeID)-> impl ExactSizeIterator<Item = Self::NodeID>
+    {
+        self.get_cluster(node_id).map(|x| x.get_id())
+    }
+    fn get_cluster_size(&self, node_id: Self::NodeID)->usize
+    {
+        self.get_cluster(node_id).len()
+    }
+
+    fn get_bipartition(&self, edge: (Self::NodeID, Self::NodeID))->(impl ExactSizeIterator<Item = Self::Node>, impl ExactSizeIterator<Item = Self::Node>)
     {
         let c2 = self.get_cluster(edge.1.clone());
         let c2_ids = self.get_cluster(edge.1).into_iter().map(|x| x.get_id()).collect_vec();
         let c1 = self.get_cluster(edge.0).into_iter().filter(|x| !c2_ids.contains(&x.get_id())).collect_vec();
-        (c1,c2)
+        (c1.into_iter(),c2.into_iter())
+    }
+
+    fn get_median_node_id_for_leaves(&self, taxa_set : impl ExactSizeIterator<Item=Self::NodeID>)->Self::NodeID
+    {
+        let mut median_node_id: Self::NodeID = self.get_root_id();
+        let leaf_ids = taxa_set.collect_vec();
+        loop {
+            median_node_id = self.get_node_children_ids(median_node_id)
+                .max_by(|x, y| {
+                    let x_cluster = self.get_cluster_ids(x.clone()).filter(|nids| leaf_ids.contains(nids)).collect_vec();
+                    let y_cluster = self.get_cluster_ids(y.clone()).filter(|nids| leaf_ids.contains(nids)).collect_vec();
+                    return x_cluster.len().cmp(&y_cluster.len());
+                })
+                .unwrap();
+            let num_leaves = self.get_cluster_ids(median_node_id.clone()).filter(|nids| leaf_ids.contains(nids)).collect_vec().len();
+            if (num_leaves)<=(leaf_ids.len()/2){
+                break;
+            }
+        }
+        median_node_id
+    }
+
+    fn get_median_node_for_leaves(&self, taxa_set : impl ExactSizeIterator<Item=Self::NodeID>)->Self::Node
+    {
+        self.get_node(self.get_median_node_id_for_leaves(taxa_set)).cloned().unwrap()
     }
 
     fn get_median_node(&self)->Self::Node
     {
-        let mut median_node: Self::Node = self.get_root().clone();
-        let num_leaves = self.get_cluster(self.get_root_id()).into_iter().len();
-        while self.get_cluster(median_node.get_id()).into_iter().len()>(num_leaves/2){
-            median_node = self.get_node_children(median_node.get_id()).into_iter().max_by(|x, y| self.get_cluster(x.get_id()).into_iter().len().cmp(&self.get_cluster(y.get_id()).into_iter().len())).unwrap();
-        }
-        median_node
+        let leaves = self.get_leaves().map(|x| x.get_id());
+        self.get_median_node_for_leaves(leaves)
     }
 
     fn get_median_node_id(&self)->Self::NodeID
