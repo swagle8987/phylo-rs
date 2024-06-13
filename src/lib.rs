@@ -3,7 +3,7 @@ pub mod tree;
 pub mod taxa;
 pub mod iter;
 
-mod prelude{
+pub mod prelude{
     pub use crate::tree::*;
     pub use crate::node::*;
     pub use crate::taxa::*;
