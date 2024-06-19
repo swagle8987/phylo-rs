@@ -339,6 +339,9 @@ where
     /// constant time lca query
     fn get_lca_id(&self, node_id_vec: &Vec<Self::NodeID>)-> Self::NodeID
     {
+        if node_id_vec.len()==1{
+            return node_id_vec[0];
+        }
         let min_pos = node_id_vec.iter().map(|x| self.get_fa_index(&x)).min().unwrap();
         let max_pos = node_id_vec.iter().map(|x| self.get_fa_index(&x)).max().unwrap();
 
