@@ -200,6 +200,12 @@ where
     type Meta: Display + Debug + Eq + PartialEq + Clone + Ord + Hash + Send + Sync;
 
     // helper functions
+    
+    // Returns zeta of leaf by taxa
+    fn get_zeta_taxa(&self, taxa: &<Self as CopheneticDistance>::Meta)-><<Self as RootedTree>::Node as RootedZetaNode>::Zeta
+    {
+        self.get_zeta(self.get_taxa_node_id(taxa).unwrap()).unwrap()
+    }    
 
     /// Reurns the nth norm of an iterator composed of floating point values
     fn compute_norm(vector: impl Iterator<Item=<<Self as RootedTree>::Node as RootedZetaNode>::Zeta>, norm: u32)-><<Self as RootedTree>::Node as RootedZetaNode>::Zeta
@@ -230,15 +236,34 @@ where
     /// Returns the Cophenetic distance between two trees restricted to a taxa set using the \theta(n^2) naive algorithm. 
     fn cophen_dist_naive_by_taxa(&self, tree: &Self, norm: u32, taxa_set: impl Iterator<Item=<Self as RootedMetaTree>::Meta>+Clone)-><<Self as RootedTree>::Node as RootedZetaNode>::Zeta
     {
-        let dist = Self::compute_norm(taxa_set
-            .combinations(2)
+        let taxa_set = taxa_set.collect_vec();
+        let cophen_vec = taxa_set.iter()
+            .combinations_with_replacement(2)
             .map(|x| {
-                let t_lca_id = self.get_lca_id(&x.iter().map(|a| self.get_taxa_node_id(&a).unwrap()).collect_vec());
-                let t_hat_lca_id = tree.get_lca_id(&x.iter().map(|a| tree.get_taxa_node_id(&a).unwrap()).collect_vec());
-                let zeta_1 = self.get_zeta(t_lca_id).unwrap();
-                let zeta_2 = tree.get_zeta(t_hat_lca_id).unwrap();
-                return (zeta_1-zeta_2).abs()
-                }), norm);
+                match x[0]==x[1]{
+                    true => return vec![x[0]],
+                    false => return x,
+                }
+            })
+            .map(|x| {
+                match x.len(){
+                    1 => {
+                        let zeta_1 = self.get_zeta_taxa(x[0]);
+                        let zeta_2 = tree.get_zeta_taxa(x[0]);
+                        return (zeta_1-zeta_2).abs()        
+                    },
+                    _ => {
+                        let t_lca_id = self.get_lca_id(&x.iter().map(|a| self.get_taxa_node_id(&a).unwrap()).collect_vec());
+                        let t_hat_lca_id = tree.get_lca_id(&x.iter().map(|a| tree.get_taxa_node_id(&a).unwrap()).collect_vec());
+                        let zeta_1 = self.get_zeta(t_lca_id).unwrap();
+                        let zeta_2 = tree.get_zeta(t_hat_lca_id).unwrap();
+                        return (zeta_1-zeta_2).abs()        
+                    }
+                }
+            })
+            .collect_vec();
+        
+        let dist = Self::compute_norm(cophen_vec.into_iter(), norm);
         return dist;
     }
 }
