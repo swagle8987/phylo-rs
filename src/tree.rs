@@ -4,8 +4,6 @@ pub mod distances;
 pub mod io;
 
 use std::ops::Index;
-
-// use std::collections::HashMap;
 use fxhash::FxHashMap as HashMap;
 
 use itertools::Itertools;
@@ -147,9 +145,16 @@ impl RootedTree for SimpleRootedTree{
         (0..self.nodes.len()).filter(|x| self.nodes[x.clone()].is_some())
     }
 
-    fn get_nodes(&self)->impl ExactSizeIterator<Item = Node>
+    fn get_nodes(&self)->impl ExactSizeIterator<Item = &Node>
     {
-        self.nodes.clone().into_iter().filter(|x| x.is_some()).map(|x| x.unwrap()).collect_vec().into_iter()
+        let node_ids = self.nodes.iter()
+            .enumerate()
+            .filter(|(_, node)| {
+                node.is_some()
+            })
+            .map(|(id, _)| id)
+            .collect_vec();
+        node_ids.into_iter().map(|id| self.nodes[id].as_ref().unwrap())
     }
 
     /// Returns reference to node by ID
@@ -212,7 +217,7 @@ impl RootedTree for SimpleRootedTree{
 
     fn clean(&mut self)
     {
-        let node_iter = self.get_nodes().into_iter().collect_vec();
+        let node_iter = self.get_nodes().into_iter().map(|x| x.clone()).collect_vec();
         for node in &node_iter{
             // remove root with only one child
             let node_id = node.get_id();
@@ -247,10 +252,6 @@ impl RootedTree for SimpleRootedTree{
         self.nodes = vec![None;root_node_id+1];
         self.nodes[root_node_id] = Some(root_node);
         self.taxa_node_id_map.clear();
-        // self.precomputed_da = None;
-        // self.precomputed_euler = None;
-        // self.precomputed_fai = None;
-        // self.precomputed_rmq = None;
     }
 }
 
@@ -281,7 +282,8 @@ impl RootedMetaTree for SimpleRootedTree{
         self.taxa_node_id_map.len()
     }
 
-    fn get_taxa_space(&self)->impl ExactSizeIterator<Item=Self::Meta> + Clone {
+    fn get_taxa_space(&self)->impl ExactSizeIterator<Item=Self::Meta> + Clone
+    {
         self.taxa_node_id_map.keys().cloned()
     }
 

@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use std::{fmt::Debug, hash::Hash};
 use crate::node::simple_rnode::*;
-
+// use std::ops::Deref;
 /// A trait describing the behaviour of a rooted tree
 pub trait RootedTree: Clone + Sync
 where
@@ -18,7 +18,7 @@ where
 
     fn get_node_ids(&self)->impl Iterator<Item = Self::NodeID>;
 
-    fn get_nodes(&self)->impl ExactSizeIterator<Item = Self::Node>;
+    fn get_nodes(&self)->impl ExactSizeIterator<Item = &Self::Node>;
 
     fn get_root_id(&self)->Self::NodeID;
 
@@ -80,7 +80,7 @@ where
         self.add_child(split_node_id, sibling_node);
     }
 
-    fn get_leaves(&self)->impl ExactSizeIterator<Item=Self::Node>
+    fn get_leaves(&self)->impl ExactSizeIterator<Item=&Self::Node>
     {
         self.get_nodes().into_iter().filter(|x| x.is_leaf()).collect_vec().into_iter()
     }

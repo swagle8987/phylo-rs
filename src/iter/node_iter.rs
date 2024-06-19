@@ -24,7 +24,7 @@ impl BFSIterator
     {
         BFSIterator{
             stack: vec![start_id].into(),
-            nodes: tree.get_nodes().into_iter().map(|x| (x.get_id(), x)).collect::<HashMap<_,_>>(),
+            nodes: tree.get_nodes().into_iter().map(|x| (x.get_id(), x.clone())).collect::<HashMap<_,_>>(),
         }
     }
 }
@@ -33,7 +33,7 @@ impl DFSPostOrderIterator
 {
     pub fn new(tree: &impl RootedTree<NodeID = usize, Node = Node>, start_id: <Node as RootedTreeNode>::NodeID) -> DFSPostOrderIterator
     {
-        let mut nodes = tree.get_nodes().map(|x| (x.get_id(), x)).collect::<HashMap<_,_>>();
+        let mut nodes = tree.get_nodes().map(|x| (x.get_id(), x.clone())).collect::<HashMap<_,_>>();
         let start_node = nodes.remove(&start_id).unwrap();
         DFSPostOrderIterator{
             stack: vec![start_node].into(),
