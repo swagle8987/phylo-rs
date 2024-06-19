@@ -564,7 +564,7 @@ impl SPR for SimpleRootedTree
         let dfs = self.dfs(node_id).into_iter().collect_vec();
         for node in dfs
         {    
-            self.nodes.remove(node.get_id());
+            // self.nodes.remove(node.get_id());
             pruned_tree.set_node(node);
         }
         pruned_tree

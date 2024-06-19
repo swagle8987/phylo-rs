@@ -145,28 +145,6 @@ fn uniform() {
 }
 
 #[test]
-fn benchmark_lca() {
-    let num_taxa = 10000;
-    println!("Simulating tree!");
-    let mut tree = SimpleRootedTree::yule(num_taxa).unwrap();
-    println!("Precomputing RMQ");
-    tree.precompute_constant_time_lca();
-    let num_pairs = (num_taxa as f32)*((num_taxa-1) as f32)/(2_f32);
-    println!("Computing average time");
-    let mean_time = tree.get_taxa_space()
-        .tuple_combinations::<(_,_)>()
-        .map(|(a,b)| {
-            let a_id = tree.get_taxa_node_id(&a).unwrap();
-            let b_id = tree.get_taxa_node_id(&b).unwrap();
-            let now = Instant::now();
-            let _ = tree.get_lca_id(&vec![a_id, b_id]);
-            return now.elapsed();
-            })
-        .sum::<Duration>()/(num_pairs as u32);
-    dbg!(mean_time);
-}
-
-#[test]
 fn contract_tree() {
     fn depth(tree: &SimpleRootedTree, node_id: <SimpleRootedTree as RootedTree>::NodeID)->f32
     {
@@ -186,36 +164,6 @@ fn contract_tree() {
     let mut new_tree = tree.contract_tree(&taxa_subset);
     println!("{}", new_tree.to_newick());
     new_tree.precompute_constant_time_lca();
-}
-
-
-#[test]
-fn benchmark_yule() {
-    let num_taxa = 100;
-    let num_iter = 100;
-    println!("Computing average time");
-    let mean_time = (0..num_iter).map(|_| {
-            let now = Instant::now();
-            let _ = SimpleRootedTree::yule(num_taxa).unwrap();
-            return now.elapsed();
-        })
-        .sum::<Duration>()/(num_iter);
-    dbg!(mean_time);
-}
-
-#[test]
-fn benchmark_precompute_rmq() {
-    let num_taxa = 100;
-    let num_iter = 100;
-    println!("Computing average time");
-    let mean_rmq_time = (0..num_iter).map(|_| {
-            let mut tree = SimpleRootedTree::yule(num_taxa).unwrap();
-            let now = Instant::now();
-            tree.precompute_constant_time_lca();
-            return now.elapsed();
-        })
-        .sum::<Duration>()/(num_iter);
-    dbg!(mean_rmq_time);
 }
 
     
