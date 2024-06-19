@@ -1,12 +1,8 @@
 use std::collections::HashSet;
-// use std::Arc::Arc;
-use std::sync::Arc;
-use std::time::{Duration, Instant};
-
 
 use itertools::Itertools;
 use phylo::iter::node_iter::{Ancestors, Clusters, EulerWalk, BFS, DFS};
-use phylo::node::simple_rnode::{RootedTreeNode, RootedWeightedNode, RootedZetaNode};
+use phylo::node::simple_rnode::RootedTreeNode;
 use phylo::node::Node;
 use phylo::tree::ops::{Balance, ContractTree, Subtree, SPR};
 use phylo::tree::SimpleRootedTree;

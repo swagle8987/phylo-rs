@@ -16,7 +16,9 @@ use crate::tree::{simple_rtree::*, io::*, ops::*};
 use crate::iter::node_iter::*;
 use vers_vecs::BinaryRmq;
 
-use self::distances::PathFunction;
+use crate::prelude::{BFSIterator, DFSPostOrderIterator};
+
+use crate::prelude::distances::PathFunction;
 
 #[derive(Debug, Clone)]
 pub struct SimpleRootedTree{
