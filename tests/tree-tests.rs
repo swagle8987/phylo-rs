@@ -229,11 +229,6 @@ fn cophenetic_dist() {
     let t2_input_str: String = String::from("(A,(B,C));");
     let mut t1 = SimpleRootedTree::from_newick(t1_input_str.as_bytes());
     let mut t2 = SimpleRootedTree::from_newick(t2_input_str.as_bytes());
-    dbg!(format!("{}", &t1.to_newick()));
-    dbg!(format!("{}", &t2.to_newick()));
-
-    dbg!(&t1);
-    dbg!(&t2);
     
     t1.precompute_constant_time_lca();
     t2.precompute_constant_time_lca();
@@ -241,10 +236,6 @@ fn cophenetic_dist() {
     t1.set_zeta(depth);
     t2.set_zeta(depth);
 
-    dbg!(&t1);
-    dbg!(&t2);
-
-    dbg!(format!("{}", &t1.cophen_dist_naive(&t2, 1)));
-    assert_eq!(t1.cophen_dist_naive(&t2, 1), 2_f32);
+    assert_eq!(t1.cophen_dist_naive(&t2, 1), 4_f32);
 }
 

@@ -2,10 +2,12 @@ use itertools::Itertools;
 use std::{fmt::Debug, hash::Hash};
 use crate::node::simple_rnode::*;
 
+/// A trait describing the behaviour of a rooted tree
 pub trait RootedTree: Clone + Sync
 where
     Self::Node: RootedTreeNode<NodeID=Self::NodeID> + Debug,
 {
+    // identifier for nodes
     type NodeID: Copy + PartialEq + Eq + Hash + Debug + Send;
     type Node;
 

@@ -4,43 +4,68 @@ use std::hash::Hash;
 use itertools::Itertools;
 use num::{Num, NumCast};
 
+/// A trait describing the behaviour of a Node in a n-ary tree
 pub trait RootedTreeNode
 where
     Self: Clone,
-{    
+{
+    // Associate type for node identifier. Should be unique within a tree
     type NodeID: Display + Debug + Hash + Ord + PartialEq + Eq + Copy;
 
+    /// Creates a new node with provided id
     fn new(id: Self::NodeID)->Self;
+
+    /// Returns id of node
     fn get_id(&self)->Self::NodeID;
+
+    /// Changes id of node
     fn set_id(&mut self, id: Self::NodeID);
+    
+    /// Returns id of node parent
     fn get_parent(&self)->Option<Self::NodeID>;
+    
+    /// Sets parent of node
     fn set_parent(&mut self, parent: Option<Self::NodeID>);
+    
+    /// Returns Iterator containing children node ids
     fn get_children(&self)->impl ExactSizeIterator<Item=Self::NodeID> + DoubleEndedIterator;
+    
+    /// Add NodeID to node children
     fn add_child(&mut self, child:Self::NodeID);
+    
+    /// Remove NodeID from node children
     fn remove_child(&mut self, child:&Self::NodeID);
 
+    /// Checks if node is a leaf node
     fn is_leaf(&self)->bool
     {
         self.get_children().into_iter().next().is_none()
     }
 
-
+    
+    /// Returns Node type as String
     fn node_type(&self)->String{
         match self.is_leaf() {
             false => "Internal".to_string(),
             true => "Leaf".to_string(),
         }
     }
-    fn add_children(&mut self, children: impl ExactSizeIterator<Item=Self::NodeID>){
+
+    /// Adds NodeIDs from Iterator as children
+    fn add_children(&mut self, children: impl Iterator<Item=Self::NodeID>){
         for child in children.into_iter(){
             self.add_child(child);
         }
     }
-    fn remove_children(&mut self, children: impl ExactSizeIterator<Item=Self::NodeID>){
+
+    /// Removes NodeIDs from Iterator from node children
+    fn remove_children(&mut self, children: impl Iterator<Item=Self::NodeID>){
         for child in children.into_iter(){
             self.remove_child(&child);
         }
     }
+
+    /// Removes all children from node
     fn remove_all_children(&mut self)
     {
         let children = self.get_children().collect_vec();
@@ -48,14 +73,20 @@ where
             self.remove_child(&child);
         }
     }
+
+    /// Returns number of children of the node.
     fn num_children(&self)->usize
     {
         self.get_children().into_iter().collect::<Vec<Self::NodeID>>().len()
     }
+
+    /// Returns true if node as children.
     fn has_children(&self)->bool
     {
         self.num_children()>0
     }
+
+    /// Returns degree of node.
     fn degree(&self)->usize
     {
         match self.get_parent()
@@ -64,6 +95,8 @@ where
             None => self.num_children()
         }
     }
+
+    /// Returns ids of all nodes connected to self, including parent if exists.
     fn neighbours(&self)->impl ExactSizeIterator<Item = Self::NodeID>
     {
         let mut children = self.get_children().into_iter().collect_vec();
@@ -75,36 +108,53 @@ where
     }
 }
 
+/// A trait describing the behaviour of a Node in a n-ary tree that carries node annotations
 pub trait RootedMetaNode: RootedTreeNode
 {
     type Meta: Display + Debug + Eq + PartialEq + Clone + Ord;
-
+    
+    /// Returns node annotation
     fn get_taxa(&self)->Option<Self::Meta>;
-    fn set_taxa(&mut self, taxa: Option<Self::Meta>);
 
+    /// Sets node annotation
+    fn set_taxa(&mut self, taxa: Option<Self::Meta>);
 }
 
+/// A trait describing the behaviour of a Node in a n-ary tree that has numeric edge annotations
 pub trait RootedWeightedNode: RootedTreeNode
 {
     type Weight: Num + Clone + PartialOrd + NumCast + std::iter::Sum;
-    
+        
+    /// Returns weight of edge leading into node
     fn get_weight(&self)->Option<Self::Weight>;
-    fn set_weight(&mut self, w: Option<Self::Weight>);
+       
+    /// Sets weight of edge leading into node
+    fn set_weight(&mut self, w: Option<Self::Weight>);    
+    
+    /// Sets weight of edge leading into node as None
     fn unweight(&mut self){
         self.set_weight(None);
     }
 }
 
+/// A trait describing the behaviour of a Node in a n-ary tree with numeric node annotations
 pub trait RootedZetaNode: RootedTreeNode
 {
     type Zeta: Num + Clone + PartialOrd + NumCast + std::iter::Sum;
-    
+        
+    /// Returns node annotation
     fn get_zeta(&self)->Option<Self::Zeta>;
+
+    /// Sets node annotation.
     fn set_zeta(&mut self, w: Option<Self::Zeta>);
+    
+    /// Returns true if zeta of node is set
     fn is_zeta_set(&self)->bool
     {
         self.get_zeta().is_some()
     }
+
+    /// Sets node zeta to false
     fn remove_zeta(&mut self)
     {
         self.set_zeta(None);
