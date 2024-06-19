@@ -1,179 +1,89 @@
 pub mod node_iter;
 pub mod edge_iter;
 
-// use crate::node::*;
-// use crate::tree::simple_rtree::*;
-// use std::collections::HashMap;
-// use crate::iter::node_iter::{PostOrdNodes, PreOrdNodes};
-// use crate::tree::RootedPhyloTree;
+use std::collections::VecDeque;
+use fxhash::FxHashMap as HashMap;
+use itertools::Itertools;
+use crate::{node::{simple_rnode::RootedTreeNode, Node}, tree::simple_rtree::RootedTree};
 
-// pub struct PreOrdEdges
-// {
-//     node_iter: PreOrdNodes,
-//     parents: HashMap<NodeID, (Option<NodeID>, Option<EdgeWeight>)>,
-// }
+#[derive(Clone)]
+pub struct BFSIterator{
+    stack: VecDeque<<Node as RootedTreeNode>::NodeID>,
+    nodes: HashMap<<Node as RootedTreeNode>::NodeID,Node>,
+}
 
-// impl PreOrdEdges
-// {
-//     pub fn new(tree: &RootedPhyloTree, start_node: &NodeID)->Self{
-//         Self { 
-//             node_iter: PreOrdNodes::new(
-//                 start_node,
-//                 tree.get_children(),
-//             ),
-//             parents: tree.get_parents().into_iter()
-//             .filter(|(_child_id, parent_id)| parent_id!=&&None)
-//             .map(|(child_id, parent_id)| (child_id.clone(), (parent_id.clone(), tree.get_edge_weight(parent_id.as_ref().unwrap(), child_id).cloned()))).collect(),
-//         }
-//     }
-// }
+#[derive(Clone)]
+pub struct DFSPostOrderIterator{
+    stack: VecDeque<Node>,
+    nodes: HashMap<<Node as RootedTreeNode>::NodeID,Node>,
+}
 
-// impl Iterator for PreOrdEdges
-// {
-//     type Item = (NodeID, NodeID, Option<EdgeWeight>);
+impl BFSIterator
+{
+    pub fn new(tree: &impl RootedTree<NodeID = usize, Node = Node>, start_id: <Node as RootedTreeNode>::NodeID) -> BFSIterator
+    {
+        BFSIterator{
+            stack: vec![start_id].into(),
+            nodes: tree.get_nodes().into_iter().map(|x| (x.get_id(), x.clone())).collect::<HashMap<_,_>>(),
+        }
+    }
+}
 
-//     fn next(&mut self)->Option<Self::Item>{
-//         while let Some(next_node) = self.node_iter.next() {
-//             match next_node {
-//                 0 => {
-//                     continue;
-//                 }
-//                 _ => {
-//                     let parents = self.parents.get(&next_node).unwrap();
-//                     return Some((parents.0.unwrap(), next_node, parents.1));
-//                 }
-//             }
-//         }
-//         None
-//     }
-// }
+impl DFSPostOrderIterator
+{
+    pub fn new(tree: &impl RootedTree<NodeID = usize, Node = Node>, start_id: <Node as RootedTreeNode>::NodeID) -> DFSPostOrderIterator
+    {
+        let mut nodes = tree.get_nodes().map(|x| (x.get_id(), x.clone())).collect::<HashMap<_,_>>();
+        let start_node = nodes.remove(&start_id).unwrap();
+        DFSPostOrderIterator{
+            stack: vec![start_node].into(),
+            nodes: nodes,
+        }
+    }
+}
 
-// pub struct PostOrdEdges
-// {
-//     stack: Vec<(NodeID, NodeID, Option<EdgeWeight>)>,
-//     node_iter: PostOrdNodes,
-//     children: HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>,
-//     parents: HashMap<NodeID, Option<NodeID>>,
-// }
+impl Iterator for BFSIterator
+{
+    type Item = Node;
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.stack.pop_front(){
+            None => return None,
+            Some(curr_node_id) => {
+                let curr_node = self.nodes.remove(&curr_node_id).unwrap();
+                curr_node.get_children()
+                    .for_each(|x| {
+                        self.stack.push_back(x)
+                    });
+                return Some(curr_node);
 
-// impl PostOrdEdges
-// {
-//     pub fn new(tree: &RootedPhyloTree, start_node: &NodeID)->Self{
-//         Self { 
-//             stack:vec![], 
-//             node_iter: PostOrdNodes::new(
-//                 start_node,
-//                 tree.get_children(),
-//             ),
-//             children: tree.get_children().clone(),
-//             parents: tree.get_parents().clone(),
-//         }
-//     }
-// }
+            },
+        };
+    }
+}
 
-// impl Iterator for PostOrdEdges
-// {
-//     type Item = (NodeID, NodeID, Option<EdgeWeight>);
+impl Iterator for DFSPostOrderIterator
+{
+    type Item = Node;
+    
+    fn next(&mut self) -> Option<Self::Item> {
 
-//     fn next(&mut self)->Option<Self::Item>{
-//         match self.stack.pop(){
-//             Some((n1, n2, w)) => Some((n1, n2, w)),
-//             None => {
-//                 match self.node_iter.next(){
-//                     Some(node_id) => {
-//                         let node_id_parent = self.parents.get(&node_id).unwrap();
-//                         match node_id_parent {
-//                             Some(parent_id) => {
-//                                 let mut w: Option<EdgeWeight> = None;
-//                                 for (child_node_id, weight) in self.children.get(parent_id).unwrap(){
-//                                     if child_node_id==&node_id{
-//                                         w = *weight;
-//                                     }
-//                                 }
-//                                 Some((*parent_id, node_id, w))
-//                             },
-//                             None => None,
-//                         }
-//                     },
-//                     None => None
-//                 }
-//             }
-//         }    }
-// }
-
-// use crate::node::*;
-// use crate::tree::simple_rtree::*;
-// use crate::node::NodeID;
-// use std::collections::{HashMap, HashSet};
-// use itertools::Itertools;
-
-// pub struct PreOrdNodes
-// {
-//     stack: Vec<NodeID>,
-//     nodes: HashMap<NodeID, HashSet<NodeID>>
-// }
-
-// impl PreOrdNodes
-// {
-//     pub fn new(start_node: &NodeID, children: &HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>)->Self{
-//         Self { stack:vec![*start_node_id], nodes: children.iter()
-//             .map(|(k, v)| (*k, v.iter()
-//                 .map(|ni| ni.0).collect::<HashSet<NodeID>>()))
-//             .collect()}
-//     }
-// }
-
-// impl Iterator for PreOrdNodes
-// {
-//     type Item = NodeID;
-
-//     fn next(&mut self)->Option<Self::Item>{
-//         match self.stack.pop() {
-//             Some(node_id) => {
-//                 let children_ids:HashSet<NodeID> = self.nodes.get(&node_id).cloned().expect("Invalid Node ID!");
-//                 for child_node_id in children_ids.into_iter().sorted(){
-//                     self.stack.push(child_node_id)
-//             }
-//             Some(node_id)
-//             }
-//             None => None,
-//         }
-//     }
-// }
-
-// pub struct PostOrdNodes
-// {
-//     stack: Vec<NodeID>,
-//     nodes: HashMap<NodeID, HashSet<NodeID>>
-// }
-
-// impl PostOrdNodes
-// {
-//     pub fn new(start_node_id: &NodeID, children: &HashMap<NodeID, Vec<(NodeID, Option<EdgeWeight>)>>)->Self{
-//         Self { stack:vec![*start_node_id], nodes: children.iter()
-//                 .map(|(k, v)| (*k, v.iter()
-//                     .map(|ni| ni.0).collect::<HashSet<NodeID>>()))
-//                 .collect()}
-//     }
-// }
-
-// impl Iterator for PostOrdNodes
-// {
-//     type Item = NodeID;
-
-//     fn next(&mut self)->Option<Self::Item>{
-//         while let Some(node_id) = self.stack.pop()  {
-//             if self.nodes.contains_key(&node_id){
-//                 self.stack.push(node_id);
-//                 let children = self.nodes.remove(&node_id).unwrap();
-//                 for child_id in children.into_iter().sorted(){
-//                     self.stack.push(child_id)
-//                 }
-//             }
-//             else{
-//                 return Some(node_id)
-//             }
-//         }
-//         None
-//     }
-// }
+        while let Some(node) = self.stack.pop_front(){
+            let node_children = node.get_children()
+                .map(|chid| self.nodes.remove(&chid))
+                .filter(|chn| chn.is_some())
+                .map(|x| x.unwrap())
+                .collect_vec();
+            if node_children.len()>0{
+                self.stack.push_front(node);
+                for child in node_children.into_iter().rev(){
+                    self.stack.push_front(child)
+                }
+            }
+            else{
+                return Some(node);
+            }
+        }
+        return None;
+    }
+}
