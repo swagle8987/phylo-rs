@@ -12,7 +12,6 @@ use itertools::Itertools;
 use anyhow::Result;
 use rand::prelude::IteratorRandom;
 
-use crate::node;
 use crate::node::simple_rnode::*;
 use crate::node::Node;
 use crate::tree::{simple_rtree::*, io::*, ops::*};
