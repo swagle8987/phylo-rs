@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use std::{fmt::Debug, hash::Hash};
 use crate::node::simple_rnode::*;
-// use std::ops::Deref;
+
 /// A trait describing the behaviour of a rooted tree
 pub trait RootedTree: Clone + Sync
 where
