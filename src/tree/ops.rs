@@ -2,13 +2,10 @@ use fxhash::FxHashSet as HashSet;
 use fxhash::FxHashMap as HashMap;
 
 use itertools::Itertools;
-use num::{Float, NumCast, Signed, Zero};
+use num::{Float, NumCast, Signed};
 use std::{fmt::{Debug, Display}, hash::Hash};
-use std::time::Instant;
-use rayon::prelude::*;
 
-
-use crate::{iter::node_iter::{Ancestors, BFS}, node::simple_rnode::{RootedMetaNode, RootedTreeNode}, tree::simple_rtree::RootedMetaTree};
+use crate::{iter::node_iter::Ancestors, node::simple_rnode::{RootedMetaNode, RootedTreeNode}, tree::simple_rtree::RootedMetaTree};
 use super::{distances::PathFunction, Clusters, EulerWalk, RootedTree, RootedZetaNode, DFS};
 
 
