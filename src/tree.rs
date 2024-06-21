@@ -10,15 +10,11 @@ use itertools::Itertools;
 use anyhow::Result;
 use rand::prelude::IteratorRandom;
 
-use crate::node::simple_rnode::*;
+use crate::prelude::*;
+
 use crate::node::Node;
-use crate::tree::{simple_rtree::*, io::*, ops::*};
-use crate::iter::node_iter::*;
 use vers_vecs::BinaryRmq;
-
-use crate::prelude::{BFSIterator, DFSPostOrderIterator};
-
-use crate::prelude::distances::PathFunction;
+use crate::iter::{BFSIterator, DFSPostOrderIterator};
 
 #[derive(Debug, Clone)]
 pub struct SimpleRootedTree{
@@ -435,9 +431,17 @@ impl EulerWalk for SimpleRootedTree{
         if min_pos==max_pos{
             return min_pos;
         }
-        let dp = self.precomputed_rmq.as_ref().unwrap();
-        
-        return self.get_euler_pos(dp.range_min(min_pos, max_pos));
+
+        match self.precomputed_rmq.as_ref(){
+            Some(dp) => {
+                return self.get_euler_pos(dp.range_min(min_pos, max_pos));
+            },
+            None => {
+                let da = self.depth_array();
+                let rmq = BinaryRmq::from_vec(da.iter().map(|x| x.clone() as u64).collect_vec());
+                return self.get_euler_pos(rmq.range_min(min_pos, max_pos));
+            },
+        };
 
     }
 
