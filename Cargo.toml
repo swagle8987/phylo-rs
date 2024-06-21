@@ -3,7 +3,23 @@ name = "phylo"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = [
+  "Sriram Vijendran"
+]
+license = "MIT"
+readme = ""
+
+repository = "https://github.com/sriram98v/phylo-rs"
+documentation = ""
+
+description = "A Phylogenetics library written in rust"
+
+keywords = ["bioinformatics", "phylogenetics"]
+categories = ["data-structures", "science"]
+
+[lib]
+name = "phylo"
+path = "src/lib.rs"
 
 [dependencies]
 anyhow = "1.0.83"
@@ -11,7 +27,7 @@ itertools = "0.11.0"
 num = "0.4.1"
 rand = "0.8.5"
 clap = {version="4.5.4", optional=true}
-indicatif = {optional=true}
+indicatif = {version="0.17.8", optional=true}
 rayon = "1.10.0"
 fxhash = "0.2.1"
 vers-vecs = "1.3.1"
@@ -30,7 +46,3 @@ build-binary = ["clap", "indicatif"]
 name = "phylo-rs"
 path = "src/bin.rs"
 required-features = ["build-binary"]
-
-[lib]
-name = "phylo"
-path = "src/lib.rs"
