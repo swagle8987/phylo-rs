@@ -106,7 +106,7 @@ pub trait ContractTree: EulerWalk + DFS
                 true => {
                     match leaf_ids.contains(&node.get_id())
                     {
-                        true => {node_map.insert(node.get_id(), node.clone());},
+                        true => {node_map.insert(node.get_id(), node);},
                         false => {},
                     }
                 },
