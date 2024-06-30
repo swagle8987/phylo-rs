@@ -427,7 +427,10 @@ impl ContractTree for SimpleRootedTree {
         let new_tree_root_id = self.get_lca_id(leaf_ids);
         let new_nodes = self.contracted_tree_nodes(leaf_ids).collect_vec();
         let max_id = new_nodes.iter().map(|x| x.get_id()).max().unwrap();
-        let nodes = vec![None;max_id+1];
+        let mut nodes = vec![None;max_id+1];
+        new_nodes.into_iter().for_each(|x| {
+            nodes[x.get_id()] = Some(x.clone());
+        });
         SimpleRootedTree{
             root: new_tree_root_id,
             nodes,
