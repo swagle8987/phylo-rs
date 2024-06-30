@@ -4,7 +4,7 @@ use phylo::tree::SimpleRootedTree;
 use rand::{seq::IteratorRandom, thread_rng};
 
 
-const NUM_TAXA: usize = 1000;
+const NUM_TAXA: usize = 10000;
 const NORM: u32 = 1;
 
 fn main() {
@@ -21,7 +21,6 @@ fn benchmark_constant_time_lca(bencher: divan::Bencher) {
 #[divan::bench]
 fn benchmark_lca(bencher: divan::Bencher) {
     let tree = SimpleRootedTree::yule(NUM_TAXA).unwrap();
-    // tree.precompute_constant_time_lca();
     bencher.bench(||   tree.get_lca_id(&vec![10, 20]));
 }
 
