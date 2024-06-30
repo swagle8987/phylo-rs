@@ -5,6 +5,7 @@ use itertools::Itertools;
 
 use crate::{node::simple_rnode::RootedTreeNode, tree::simple_rtree::RootedTree};
 
+/// Trait describing post-order iteration of nodes in a tree
 pub trait DFS
 where
     Self: RootedTree + Sized
