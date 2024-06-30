@@ -323,7 +323,107 @@ impl BFS for SimpleRootedTree {
     }
 }
 
-impl ContractTree for SimpleRootedTree {}
+impl ContractTree for SimpleRootedTree {
+    fn contracted_tree_nodes(
+        &self,
+        leaf_ids: &Vec<Self::NodeID>,
+    ) -> impl ExactSizeIterator<Item = Self::Node> {
+        let new_tree_root_id = self.get_lca_id(leaf_ids);
+        let node_postord_iter = self.postord(new_tree_root_id);
+        let max_id = self.get_node_ids().max().unwrap();
+        let mut node_map_2 = vec![None;max_id+1];
+        node_map_2[new_tree_root_id] = self.get_node(new_tree_root_id).cloned();
+        let mut remove_list = vec![];
+        node_postord_iter.for_each(|mut node| {
+            match node.is_leaf() {
+                true => match leaf_ids.contains(&node.get_id()) {
+                    true => {
+                        node_map_2[node.get_id()] = Some(node.clone());
+                    }
+                    false => {}
+                },
+                false => {
+                    let node_children_ids = node.get_children().collect_vec();
+                    for child_id in &node_children_ids {
+                        match node_map_2[*child_id].is_some() {
+                            true => {}
+                            false => node.remove_child(child_id),
+                        }
+                    }
+                    let node_children_ids = node.get_children().collect_vec();
+                    match node_children_ids.len() {
+                        0 => {}
+                        1 => {
+                            // the node is a unifurcation
+                            // node should be added to both node_map and remove_list
+                            // if child of node is already in remove list, attach node children to node first
+                            let child_node_id = node_children_ids[0];
+
+                            match remove_list.contains(&child_node_id) {
+                                true => {
+                                    node.remove_child(&child_node_id);
+                                    let grandchildren_ids = node_map_2[child_node_id]
+                                        .as_ref()
+                                        .unwrap()
+                                        .get_children()
+                                        .collect_vec();
+                                    for grandchild_id in grandchildren_ids {
+                                        node_map_2[grandchild_id]
+                                            .as_mut()
+                                            .unwrap()
+                                            .set_parent(Some(node.get_id()));
+                                        node.add_child(grandchild_id);
+                                    }
+                                }
+                                false => {}
+                            }
+                            remove_list.push(node.get_id());
+                            node_map_2[node.get_id()] = Some(node.clone());
+                        }
+                        _ => {
+                            // node has multiple children
+                            // for each child, suppress child if child is in remove list
+                            node_children_ids.into_iter().for_each(|chid| {
+                                match remove_list.contains(&chid) {
+                                    true => {
+                                        // suppress chid
+                                        // remove chid from node children
+                                        // children of chid are node grandchildren
+                                        // add grandchildren to node children
+                                        // set grandchildren parent to node
+                                        node.remove_child(&chid);
+                                        let node_grandchildren = node_map_2[chid]
+                                            .as_ref()
+                                            .unwrap()
+                                            .get_children()
+                                            .collect_vec();
+                                        for grandchild in node_grandchildren {
+                                            node.add_child(grandchild);
+                                            node_map_2[grandchild]
+                                                .as_mut()
+                                                .unwrap()
+                                                .set_parent(Some(node.get_id()))
+                                        }
+                                    }
+                                    false => {}
+                                }
+                            });
+                            if node.get_id() == new_tree_root_id {
+                                node.set_parent(None);
+                            }
+                            node_map_2[node.get_id()] = Some(node.clone());
+                        }
+                    };
+                }
+            }
+        });
+        remove_list.into_iter().for_each(|x| {
+            node_map_2[x] = None;
+        });
+        node_map_2.into_iter().filter(|x| x.is_some()).map(|x| x.unwrap()).collect_vec().into_iter()
+    }
+
+}
 
 impl EulerWalk for SimpleRootedTree {
     fn precompute_fai(&mut self) {

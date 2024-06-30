@@ -2,36 +2,38 @@ pub mod edge_iter;
 pub mod node_iter;
 
 use crate::{
-    node::{simple_rnode::RootedTreeNode, Node},
-    tree::simple_rtree::RootedTree,
+    prelude::*,
+    node::Node,
 };
-use fxhash::FxHashMap as HashMap;
 use itertools::Itertools;
 use std::collections::VecDeque;
 
 #[derive(Clone)]
 pub struct BFSIterator {
-    stack: VecDeque<<Node as RootedTreeNode>::NodeID>,
-    nodes: HashMap<<Node as RootedTreeNode>::NodeID, Node>,
+    stack: VecDeque<usize>,
+    nodes: Vec<Option<Node>>,
 }
 
 #[derive(Clone)]
 pub struct DFSPostOrderIterator {
     stack: VecDeque<Node>,
-    nodes: HashMap<<Node as RootedTreeNode>::NodeID, Node>,
+    nodes: Vec<Option<Node>>,
 }
 
 impl BFSIterator {
     pub fn new(
         tree: &impl RootedTree<NodeID = usize, Node = Node>,
-        start_id: <Node as RootedTreeNode>::NodeID,
+        start_id: usize,
     ) -> BFSIterator {
+        let max_id = tree.get_node_ids().max().unwrap();
+        let mut nodes = vec![None;max_id+1];
+        tree.get_nodes()
+            .for_each(|node| {
+                nodes[node.get_id()] = Some(node.clone())
+            });
         BFSIterator {
             stack: vec![start_id].into(),
-            nodes: tree
-                .get_nodes()
-                .map(|x| (x.get_id(), x.clone()))
-                .collect::<HashMap<_, _>>(),
+            nodes,
         }
     }
 }
@@ -41,11 +43,13 @@ impl DFSPostOrderIterator {
         tree: &impl RootedTree<NodeID = usize, Node = Node>,
         start_id: <Node as RootedTreeNode>::NodeID,
     ) -> DFSPostOrderIterator {
-        let mut nodes = tree
-            .get_nodes()
-            .map(|x| (x.get_id(), x.clone()))
-            .collect::<HashMap<_, _>>();
-        let start_node = nodes.remove(&start_id).unwrap();
+        let max_id = tree.get_node_ids().max().unwrap();
+        let mut nodes = vec![None;max_id+1];
+        tree.get_nodes()
+        .for_each(|node| {
+            nodes[node.get_id()] = Some(node.clone())
+        });
+        let start_node = std::mem::replace(&mut nodes[start_id], None).unwrap();
         DFSPostOrderIterator {
             stack: vec![start_node].into(),
             nodes,
@@ -60,7 +64,7 @@ impl Iterator for BFSIterator {
         match self.stack.pop_front() {
             None => None,
             Some(curr_node_id) => {
-                let curr_node = self.nodes.remove(&curr_node_id).unwrap();
+                let curr_node = std::mem::replace(&mut self.nodes[curr_node_id], None).unwrap();
                 curr_node
                     .get_children()
                     .for_each(|x| self.stack.push_back(x));
@@ -77,7 +81,7 @@ impl Iterator for DFSPostOrderIterator {
         while let Some(node) = self.stack.pop_front() {
             let node_children = node
                 .get_children()
-                .filter_map(|chid| self.nodes.remove(&chid))
+                .filter_map(|chid| std::mem::replace(&mut self.nodes[chid], None))
                 .collect_vec();
             if !node_children.is_empty() {
                 self.stack.push_front(node);
