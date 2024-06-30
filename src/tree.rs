@@ -280,6 +280,7 @@ impl RootedMetaTree for SimpleRootedTree{
         self.taxa_node_id_map.len()
     }
 
+    #[allow(refining_impl_trait)]
     fn get_taxa_space(&self)->impl ExactSizeIterator<Item=Self::Meta> + Clone
     {
         self.taxa_node_id_map.keys().cloned()
@@ -385,6 +386,7 @@ impl EulerWalk for SimpleRootedTree{
         self.precomputed_euler.is_some()
     }
 
+    #[allow(refining_impl_trait)]
     fn first_appearance(&self)->HashMap<Self::NodeID, usize>
     {
         let mut fa: HashMap<Self::NodeID, usize> = [].into_iter().collect::<HashMap<_,_>>();
