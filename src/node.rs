@@ -2,10 +2,12 @@ pub mod simple_rnode;
 
 use std::fmt::{Debug, Display};
 
-use crate::node::simple_rnode::{RootedTreeNode, RootedMetaNode, RootedWeightedNode, RootedZetaNode};
+use crate::node::simple_rnode::{
+    RootedMetaNode, RootedTreeNode, RootedWeightedNode, RootedZetaNode,
+};
 
 #[derive(Clone)]
-pub struct Node{
+pub struct Node {
     id: usize,
     parent: Option<usize>,
     children: Vec<usize>,
@@ -14,13 +16,12 @@ pub struct Node{
     zeta: Option<f32>,
 }
 
-impl RootedTreeNode for Node
-{
+impl RootedTreeNode for Node {
     type NodeID = usize;
 
-    fn new(id: Self::NodeID)->Self{
-        Node{
-            id: id,
+    fn new(id: Self::NodeID) -> Self {
+        Node {
+            id,
             parent: None,
             children: vec![],
             taxa: None,
@@ -29,7 +30,7 @@ impl RootedTreeNode for Node
         }
     }
 
-    fn get_id(&self)->Self::NodeID {
+    fn get_id(&self) -> Self::NodeID {
         self.id
     }
 
@@ -37,109 +38,101 @@ impl RootedTreeNode for Node
         self.id = id
     }
 
-    fn set_parent(&mut self, parent: Option<Self::NodeID>){
+    fn set_parent(&mut self, parent: Option<Self::NodeID>) {
         self.parent = parent;
     }
-    fn get_parent(&self)->Option<Self::NodeID>{
-        self.parent.clone()
+    fn get_parent(&self) -> Option<Self::NodeID> {
+        self.parent
     }
-    fn get_children(&self)->impl ExactSizeIterator<Item = Self::NodeID> + DoubleEndedIterator
-    {
+    fn get_children(&self) -> impl ExactSizeIterator<Item = Self::NodeID> + DoubleEndedIterator {
         self.children.clone().into_iter()
     }
-    fn add_child(&mut self, child: Self::NodeID){
+    fn add_child(&mut self, child: Self::NodeID) {
         self.children.push(child);
     }
-    fn remove_child(&mut self, child:&Self::NodeID) {
+    fn remove_child(&mut self, child: &Self::NodeID) {
         self.children.retain(|x| x != child);
     }
 }
 
-impl RootedMetaNode for Node
-{
+impl RootedMetaNode for Node {
     type Meta = String;
-    
-    fn get_taxa(&self)->Option<Self::Meta>{
-        match &self.taxa{
-            None => None,
-            Some(t) => Some(t.to_string())
-        }
+
+    fn get_taxa(&self) -> Option<Self::Meta> {
+        self.taxa.as_ref().map(|t| t.to_string())
     }
 
-    fn set_taxa(&mut self, taxa: Option<Self::Meta>){
-        self.taxa = match taxa{
-            None => None,
-            Some(t) => Some(t),
-        };
+    fn set_taxa(&mut self, taxa: Option<Self::Meta>) {
+        self.taxa = taxa;
     }
-
 }
 
-impl RootedWeightedNode for Node
-{
+impl RootedWeightedNode for Node {
     type Weight = f32;
 
-    fn get_weight(&self)->Option<Self::Weight>{
-        self.weight.clone()
+    fn get_weight(&self) -> Option<Self::Weight> {
+        self.weight
     }
 
-    fn set_weight(&mut self, w: Option<Self::Weight>){
+    fn set_weight(&mut self, w: Option<Self::Weight>) {
         self.weight = w;
     }
-
 }
 
-impl RootedZetaNode for Node
-{
+impl RootedZetaNode for Node {
     type Zeta = f32;
 
-    fn get_zeta(&self)->Option<Self::Zeta>{
-        self.zeta.clone()
+    fn get_zeta(&self) -> Option<Self::Zeta> {
+        self.zeta
     }
 
-    fn set_zeta(&mut self, w: Option<Self::Zeta>){
+    fn set_zeta(&mut self, w: Option<Self::Zeta>) {
         self.zeta = w;
     }
-
 }
 
-impl Debug for Node
-{
+impl Debug for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}:{}:{}:{}", self.get_id(),self.node_type(), match self.get_taxa(){
-            None => "No Taxa".to_string(),
-            Some(t) => t.to_string(),
-        },
-        match self.get_weight() {
-            None => "Unweighted".to_string(),
-            Some(t) => t.to_string(),
-
-        },
-        match self.get_zeta(){
-            None => "No Zeta".to_string(),
-            Some(z) => z.to_string(),
-        }
-    )
+        write!(
+            f,
+            "{}:{}:{}:{}:{}",
+            self.get_id(),
+            self.node_type(),
+            match self.get_taxa() {
+                None => "No Taxa".to_string(),
+                Some(t) => t.to_string(),
+            },
+            match self.get_weight() {
+                None => "Unweighted".to_string(),
+                Some(t) => t.to_string(),
+            },
+            match self.get_zeta() {
+                None => "No Zeta".to_string(),
+                Some(z) => z.to_string(),
+            }
+        )
     }
 }
 
-impl Display for Node
-{
+impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}:{}:{}:{}", self.get_id(),self.node_type(), match self.get_taxa(){
-            None => "None".to_string(),
-            Some(t) => t.to_string(),
-        },
-        match self.get_weight() {
-            None => "".to_string(),
-            Some(t) => t.to_string(),
-
-        },
-        match self.get_zeta(){
-            None => "No Zeta".to_string(),
-            Some(z) => z.to_string(),
-        }
-    )
+        write!(
+            f,
+            "{}:{}:{}:{}:{}",
+            self.get_id(),
+            self.node_type(),
+            match self.get_taxa() {
+                None => "None".to_string(),
+                Some(t) => t.to_string(),
+            },
+            match self.get_weight() {
+                None => "".to_string(),
+                Some(t) => t.to_string(),
+            },
+            match self.get_zeta() {
+                None => "No Zeta".to_string(),
+                Some(z) => z.to_string(),
+            }
+        )
     }
 }
-

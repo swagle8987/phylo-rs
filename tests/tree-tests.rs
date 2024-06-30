@@ -4,12 +4,12 @@ use itertools::Itertools;
 use phylo::iter::node_iter::{Ancestors, Clusters, EulerWalk, BFS, DFS};
 use phylo::node::simple_rnode::RootedTreeNode;
 use phylo::node::Node;
-use phylo::tree::ops::{Balance, ContractTree, Subtree, SPR};
-use phylo::tree::SimpleRootedTree;
-use phylo::tree::simple_rtree::{RootedMetaTree, RootedTree};
 use phylo::tree::distances::PathFunction;
 use phylo::tree::io::*;
 use phylo::tree::ops::CopheneticDistance;
+use phylo::tree::ops::{Balance, ContractTree, Subtree, SPR};
+use phylo::tree::simple_rtree::{RootedMetaTree, RootedTree};
+use phylo::tree::SimpleRootedTree;
 
 #[test]
 fn build_small_tree() {
@@ -23,12 +23,18 @@ fn build_small_tree() {
     tree.add_child(2, new_node);
     let new_node: Node = Node::new(5);
     tree.add_child(2, new_node);
-    dbg!(&tree, tree.get_node(1).unwrap().get_children().into_iter().collect_vec());
+    dbg!(
+        &tree,
+        tree.get_node(1)
+            .unwrap()
+            .get_children()
+            .into_iter()
+            .collect_vec()
+    );
     dbg!(RootedTree::get_node_depth(&tree, 2));
     dbg!(&tree.to_newick().to_string());
     tree.clear();
     dbg!(&tree);
-
 }
 
 #[test]
@@ -46,11 +52,19 @@ fn tree_iter() {
     tree.add_child(5, new_node);
     let new_node: Node = Node::new(7);
     tree.add_child(5, new_node);
-    dbg!(&tree.get_node(1).unwrap().get_children().into_iter().collect_vec());
+    dbg!(&tree
+        .get_node(1)
+        .unwrap()
+        .get_children()
+        .into_iter()
+        .collect_vec());
     dbg!(&tree.dfs(tree.get_root_id()).into_iter().collect_vec());
     dbg!(&tree.bfs(tree.get_root_id()).collect_vec());
     dbg!(&tree.postord(tree.get_root_id()).collect_vec());
-    dbg!(&tree.euler_walk(tree.get_root_id()).into_iter().collect_vec());
+    dbg!(&tree
+        .euler_walk(tree.get_root_id())
+        .into_iter()
+        .collect_vec());
     dbg!(&tree.dfs(tree.get_root_id()).into_iter().collect_vec());
     dbg!(&tree.node_to_root(5).into_iter().collect_vec());
     dbg!(&tree.root_to_node(5).into_iter().collect_vec());
@@ -59,12 +73,24 @@ fn tree_iter() {
 fn read_small_tree() {
     let input_str = String::from("((A,B),C);");
     let tree = SimpleRootedTree::from_newick(input_str.as_bytes());
-    dbg!(&tree.euler_walk(tree.get_root_id()).into_iter().collect_vec());
+    dbg!(&tree
+        .euler_walk(tree.get_root_id())
+        .into_iter()
+        .collect_vec());
     let input_str = String::from("((A:0.1,B:0.2),C:0.6);");
     let tree = SimpleRootedTree::from_newick(input_str.as_bytes());
-    dbg!(&tree.euler_walk(tree.get_root_id()).into_iter().collect_vec());
+    dbg!(&tree
+        .euler_walk(tree.get_root_id())
+        .into_iter()
+        .collect_vec());
     dbg!(format!("{}", &tree.to_newick()));
-    assert_eq!(&tree.get_taxa_space().into_iter().collect::<HashSet<String>>(), &HashSet::from(["A".to_string(), "B".to_string(), "C".to_string()]));
+    assert_eq!(
+        &tree
+            .get_taxa_space()
+            .into_iter()
+            .collect::<HashSet<String>>(),
+        &HashSet::from(["A".to_string(), "B".to_string(), "C".to_string()])
+    );
 }
 #[test]
 fn tree_spr() {
@@ -75,11 +101,11 @@ fn tree_spr() {
     let p_tree = tree.prune(1);
     dbg!(format!("{}", &tree.to_newick()));
     dbg!(format!("{}", &p_tree.to_newick()));
-    tree.graft(p_tree, (0,4));
+    tree.graft(p_tree, (0, 4));
     tree.clean();
     dbg!(format!("{}", &tree.to_newick()));
     dbg!(&tree.get_node_parent(4));
-    tree.spr((1,2), (5,4));
+    tree.spr((1, 2), (5, 4));
     dbg!(format!("{}", &tree.to_newick()));
 }
 #[test]
@@ -125,7 +151,10 @@ fn median_node() {
     let input_str: String = String::from("(((A,B),C),D);");
     let tree = SimpleRootedTree::from_newick(input_str.as_bytes());
     dbg!(format!("{}", &tree.to_newick()));
-    dbg!(tree.get_cluster(tree.get_median_node_id()).into_iter().collect_vec());
+    dbg!(tree
+        .get_cluster(tree.get_median_node_id())
+        .into_iter()
+        .collect_vec());
 }
 
 #[test]
@@ -142,8 +171,7 @@ fn uniform() {
 
 #[test]
 fn contract_tree() {
-    fn depth(tree: &SimpleRootedTree, node_id: <SimpleRootedTree as RootedTree>::NodeID)->f32
-    {
+    fn depth(tree: &SimpleRootedTree, node_id: <SimpleRootedTree as RootedTree>::NodeID) -> f32 {
         EulerWalk::get_node_depth(tree, node_id) as f32
     }
     let mut tree = SimpleRootedTree::yule(10).unwrap();
@@ -154,26 +182,30 @@ fn contract_tree() {
     // tree.precompute_constant_time_lca();
     tree.set_zeta(depth);
     println!("{}", tree.to_newick());
-    let taxa_subset = vec!["1".to_string(), "4".to_string(), "3".to_string(), "7".to_string()].into_iter()
-        .map(|x| tree.get_taxa_node_id(&x).unwrap())
-        .collect_vec();
+    let taxa_subset = vec![
+        "1".to_string(),
+        "4".to_string(),
+        "3".to_string(),
+        "7".to_string(),
+    ]
+    .into_iter()
+    .map(|x| tree.get_taxa_node_id(&x).unwrap())
+    .collect_vec();
     let mut new_tree = tree.contract_tree(&taxa_subset);
     println!("{}", new_tree.to_newick());
     new_tree.precompute_constant_time_lca();
 }
 
-    
 #[test]
 fn cophenetic_dist() {
-    fn depth(tree: &SimpleRootedTree, node_id: <SimpleRootedTree as RootedTree>::NodeID)->f32
-    {
+    fn depth(tree: &SimpleRootedTree, node_id: <SimpleRootedTree as RootedTree>::NodeID) -> f32 {
         tree.depth(node_id) as f32
     }
     let t1_input_str: String = String::from("((A,B),C);");
     let t2_input_str: String = String::from("(A,(B,C));");
     let mut t1 = SimpleRootedTree::from_newick(t1_input_str.as_bytes());
     let mut t2 = SimpleRootedTree::from_newick(t2_input_str.as_bytes());
-    
+
     t1.precompute_constant_time_lca();
     t2.precompute_constant_time_lca();
 
@@ -182,4 +214,3 @@ fn cophenetic_dist() {
 
     assert_eq!(t1.cophen_dist_naive(&t2, 1), 4_f32);
 }
-

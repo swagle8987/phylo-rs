@@ -1,8 +1,7 @@
-use phylo::prelude::*;
 use itertools::Itertools;
+use phylo::prelude::*;
 use phylo::tree::SimpleRootedTree;
 use rand::{seq::IteratorRandom, thread_rng};
-
 
 const NUM_TAXA: usize = 10000;
 const NORM: u32 = 1;
@@ -15,13 +14,13 @@ fn main() {
 fn benchmark_constant_time_lca(bencher: divan::Bencher) {
     let mut tree = SimpleRootedTree::yule(NUM_TAXA).unwrap();
     tree.precompute_constant_time_lca();
-    bencher.bench(||   tree.get_lca_id(&vec![10, 20]));
+    bencher.bench(|| tree.get_lca_id(&vec![10, 20]));
 }
 
 #[divan::bench]
 fn benchmark_lca(bencher: divan::Bencher) {
     let tree = SimpleRootedTree::yule(NUM_TAXA).unwrap();
-    bencher.bench(||   tree.get_lca_id(&vec![10, 20]));
+    bencher.bench(|| tree.get_lca_id(&vec![10, 20]));
 }
 
 #[divan::bench]
@@ -31,46 +30,51 @@ fn benchmark_yule(bencher: divan::Bencher) {
 
 #[divan::bench]
 fn benchmark_precompute_rmq(bencher: divan::Bencher) {
-    bencher.with_inputs(|| {
-        SimpleRootedTree::yule(NUM_TAXA).unwrap()
-    })
-    .bench_refs(|tree| {
-        tree.precompute_constant_time_lca();
-    });
+    bencher
+        .with_inputs(|| SimpleRootedTree::yule(NUM_TAXA).unwrap())
+        .bench_refs(|tree| {
+            tree.precompute_constant_time_lca();
+        });
 }
 
 #[divan::bench]
 fn benchmark_cophen_dist_naive(bencher: divan::Bencher) {
-    bencher.with_inputs(|| {
-        fn depth(tree: &SimpleRootedTree, node_id: <SimpleRootedTree as RootedTree>::NodeID)->f32
-        {
-            EulerWalk::get_node_depth(tree, node_id) as f32
-        }
+    bencher
+        .with_inputs(|| {
+            fn depth(
+                tree: &SimpleRootedTree,
+                node_id: <SimpleRootedTree as RootedTree>::NodeID,
+            ) -> f32 {
+                EulerWalk::get_node_depth(tree, node_id) as f32
+            }
 
-        let mut t1 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
-        let mut t2 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
-        t1.precompute_constant_time_lca();
-        t2.precompute_constant_time_lca();
-        t1.set_zeta(depth);
-        t2.set_zeta(depth);
-        (t1, t2)
-    })
-    .bench_refs(|(t1, t2)| {
-        t1.cophen_dist_naive(t2, NORM);
-    });
+            let mut t1 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
+            let mut t2 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
+            t1.precompute_constant_time_lca();
+            t2.precompute_constant_time_lca();
+            t1.set_zeta(depth);
+            t2.set_zeta(depth);
+            (t1, t2)
+        })
+        .bench_refs(|(t1, t2)| {
+            t1.cophen_dist_naive(t2, NORM);
+        });
 }
 
 #[divan::bench]
 fn benchmark_contract(bencher: divan::Bencher) {
-    bencher.with_inputs(|| {
-        let mut rng = thread_rng();
-        let mut t1 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
-        let taxa_set = (0..NUM_TAXA).collect_vec();
-        let taxa_subset = taxa_set.into_iter().choose_multiple(&mut rng, (NUM_TAXA/3) as usize);
-        t1.precompute_constant_time_lca();
-        (t1, taxa_subset)
-    })
-    .bench_refs(|(t1, taxa_subset)| {
-        t1.contract_tree(&taxa_subset);
-    });
+    bencher
+        .with_inputs(|| {
+            let mut rng = thread_rng();
+            let mut t1 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
+            let taxa_set = (0..NUM_TAXA).collect_vec();
+            let taxa_subset = taxa_set
+                .into_iter()
+                .choose_multiple(&mut rng, (NUM_TAXA / 3) as usize);
+            t1.precompute_constant_time_lca();
+            (t1, taxa_subset)
+        })
+        .bench_refs(|(t1, taxa_subset)| {
+            t1.contract_tree(&taxa_subset);
+        });
 }

@@ -13,18 +13,22 @@ use crate::tree::RootedTree;
 
 pub trait PathFunction: RootedTree
 where
-    <Self as RootedTree>::Node: RootedZetaNode
+    <Self as RootedTree>::Node: RootedZetaNode,
 {
-    fn set_zeta(&mut self, zeta_func: fn(&Self, Self::NodeID) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta);
-    fn get_zeta(&self, node_id: Self::NodeID)->Option<<<Self as RootedTree>::Node as RootedZetaNode>::Zeta>;
+    fn set_zeta(
+        &mut self,
+        zeta_func: fn(&Self, Self::NodeID) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta,
+    );
+    fn get_zeta(
+        &self,
+        node_id: Self::NodeID,
+    ) -> Option<<<Self as RootedTree>::Node as RootedZetaNode>::Zeta>;
 
-    fn is_zeta_set(&self, node_id: Self::NodeID)->bool
-    {
+    fn is_zeta_set(&self, node_id: Self::NodeID) -> bool {
         self.get_node(node_id).unwrap().is_zeta_set()
     }
 
-    fn is_all_zeta_set(&self)->bool
-    {
+    fn is_all_zeta_set(&self) -> bool {
         !self.get_nodes().any(|x| !x.is_zeta_set())
     }
 }
