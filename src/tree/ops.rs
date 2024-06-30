@@ -103,7 +103,7 @@ pub trait ContractTree: EulerWalk + DFS {
     fn contracted_tree_nodes(
         &self,
         leaf_ids: &Vec<Self::NodeID>,
-    ) -> impl ExactSizeIterator<Item = Self::Node> {
+    ) -> impl Iterator<Item = Self::Node> {
         let new_tree_root_id = self.get_lca_id(leaf_ids);
         let node_postord_iter = self.postord(new_tree_root_id);
         let mut node_map: HashMap<Self::NodeID, Self::Node> =

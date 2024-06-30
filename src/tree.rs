@@ -327,7 +327,7 @@ impl ContractTree for SimpleRootedTree {
     fn contracted_tree_nodes(
         &self,
         leaf_ids: &Vec<Self::NodeID>,
-    ) -> impl ExactSizeIterator<Item = Self::Node> {
+    ) -> impl Iterator<Item = Self::Node> {
         let new_tree_root_id = self.get_lca_id(leaf_ids);
         let node_postord_iter = self.postord(new_tree_root_id);
         let max_id = self.get_node_ids().max().unwrap();
@@ -420,7 +420,23 @@ impl ContractTree for SimpleRootedTree {
         remove_list.into_iter().for_each(|x| {
             node_map_2[x] = None;
         });
-        node_map_2.into_iter().filter(|x| x.is_some()).map(|x| x.unwrap()).collect_vec().into_iter()
+        node_map_2.into_iter().filter(|x| x.is_some()).map(|x| x.unwrap())
+    }
+
+    fn contract_tree(&self, leaf_ids: &Vec<Self::NodeID>) -> Self {
+        let new_tree_root_id = self.get_lca_id(leaf_ids);
+        let new_nodes = self.contracted_tree_nodes(leaf_ids).collect_vec();
+        let max_id = new_nodes.iter().map(|x| x.get_id()).max().unwrap();
+        let nodes = vec![None;max_id+1];
+        SimpleRootedTree{
+            root: new_tree_root_id,
+            nodes,
+            taxa_node_id_map: self.taxa_node_id_map.clone(),
+            precomputed_euler: self.precomputed_euler.clone(),
+            precomputed_fai: self.precomputed_fai.clone(),
+            precomputed_da: self.precomputed_da.clone(),
+            precomputed_rmq: self.precomputed_rmq.clone(),
+        }
     }
 
 }
