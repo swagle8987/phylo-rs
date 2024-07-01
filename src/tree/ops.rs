@@ -100,6 +100,106 @@ pub trait WeightedRobinsonFoulds {
 }
 
 pub trait ContractTree: EulerWalk + DFS {
+    /// Contracts tree that from post_ord node_id iterator.
+    fn contracted_tree_nodes_from_iter(
+            &self,
+            new_tree_root_id: <Self as RootedTree>::NodeID,
+            leaf_ids: &Vec<Self::NodeID>,
+            node_iter: impl Iterator<Item = Self::NodeID>,
+        ) -> impl Iterator<Item = Self::Node> {
+            let mut node_map: HashMap<Self::NodeID, Self::Node> =
+                HashMap::from_iter(vec![(new_tree_root_id, self.get_lca(leaf_ids))]);
+            let mut remove_list = vec![];
+            node_iter.map(|x| self.get_node(x).cloned().unwrap())
+            .for_each(|mut node| {
+                match node.is_leaf() {
+                    true => match leaf_ids.contains(&node.get_id()) {
+                        true => {
+                            node_map.insert(node.get_id(), node);
+                        }
+                        false => {}
+                    },
+                    false => {
+                        let node_children_ids = node.get_children().collect_vec();
+                        for child_id in &node_children_ids {
+                            match node_map.get(child_id).is_some() {
+                                true => {}
+                                false => node.remove_child(child_id),
+                            }
+                        }
+                        let node_children_ids = node.get_children().collect_vec();
+                        match node_children_ids.len() {
+                            0 => {}
+                            1 => {
+                                // the node is a unifurcation
+                                // node should be added to both node_map and remove_list
+                                // if child of node is already in remove list, attach node children to node first
+                                let child_node_id = node_children_ids[0];
+
+                                match remove_list.contains(&child_node_id) {
+                                    true => {
+                                        node.remove_child(&child_node_id);
+                                        let grandchildren_ids = node_map
+                                            .get(&child_node_id)
+                                            .unwrap()
+                                            .get_children()
+                                            .collect_vec();
+                                        for grandchild_id in grandchildren_ids {
+                                            node_map
+                                                .get_mut(&grandchild_id)
+                                                .unwrap()
+                                                .set_parent(Some(node.get_id()));
+                                            node.add_child(grandchild_id);
+                                        }
+                                    }
+                                    false => {}
+                                }
+                                remove_list.push(node.get_id());
+                                node_map.insert(node.get_id(), node);
+                            }
+                            _ => {
+                                // node has multiple children
+                                // for each child, suppress child if child is in remove list
+                                node_children_ids.into_iter().for_each(|chid| {
+                                    match remove_list.contains(&chid) {
+                                        true => {
+                                            // suppress chid
+                                            // remove chid from node children
+                                            // children of chid are node grandchildren
+                                            // add grandchildren to node children
+                                            // set grandchildren parent to node
+                                            node.remove_child(&chid);
+                                            let node_grandchildren = node_map
+                                                .get(&chid)
+                                                .unwrap()
+                                                .get_children()
+                                                .collect_vec();
+                                            for grandchild in node_grandchildren {
+                                                node.add_child(grandchild);
+                                                node_map
+                                                    .get_mut(&grandchild)
+                                                    .unwrap()
+                                                    .set_parent(Some(node.get_id()))
+                                            }
+                                        }
+                                        false => {}
+                                    }
+                                });
+                                if node.get_id() == new_tree_root_id {
+                                    node.set_parent(None);
+                                }
+                                node_map.insert(node.get_id(), node);
+                            }
+                        };
+                    }
+                }
+            });
+            remove_list.into_iter().for_each(|x| {
+                node_map.remove(&x);
+            });
+            node_map.into_values()
+        }
+
     fn contracted_tree_nodes(
         &self,
         leaf_ids: &Vec<Self::NodeID>,
