@@ -307,6 +307,17 @@ pub trait ContractTree: EulerWalk + DFS {
         new_tree.set_nodes(new_nodes);
         new_tree
     }
+
+    fn contract_tree_from_iter(&self, leaf_ids: &Vec<Self::NodeID>, node_iter: impl Iterator<Item = Self::NodeID>) -> Self {
+        let new_tree_root_id = self.get_lca_id(leaf_ids);
+        let new_nodes = self.contracted_tree_nodes_from_iter(new_tree_root_id, leaf_ids, node_iter).collect_vec();
+        let mut new_tree = self.clone();
+        new_tree.set_root(new_tree_root_id);
+        new_tree.clear();
+        new_tree.set_nodes(new_nodes);
+        new_tree
+    }
+
 }
 
 pub trait CopheneticDistance:
