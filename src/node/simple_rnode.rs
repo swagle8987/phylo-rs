@@ -104,7 +104,7 @@ where
 
 /// A trait describing the behaviour of a Node in a n-ary tree that carries node annotations
 pub trait RootedMetaNode<'a>: RootedTreeNode {
-    type Meta: Display + Debug + Eq + PartialEq + Clone + Ord;
+    type Meta: Display + Debug + Eq + PartialEq + Clone + Ord + Hash;
 
     /// Returns node annotation
     fn get_taxa(&'a self) -> Option<&'a Self::Meta>;

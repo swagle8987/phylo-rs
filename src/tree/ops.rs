@@ -17,13 +17,13 @@ use crate::{
 
 pub trait SPR<'a>: RootedTree<'a> + DFS<'a> + Sized {
     /// Attaches input tree to self by spliting an edge
-    fn graft(&mut self, tree: Self, edge: (Self::NodeID, Self::NodeID));
+    fn graft(&mut self, tree: Self, edge: (<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID, <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID));
 
     /// Returns subtree starting at given node, while corresponding nodes from self.
-    fn prune(&mut self, node_id: Self::NodeID) -> Self;
+    fn prune(&mut self, node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID) -> Self;
 
     /// SPR function
-    fn spr(&mut self, edge1: (Self::NodeID, Self::NodeID), edge2: (Self::NodeID, Self::NodeID)) {
+    fn spr(&mut self, edge1: (<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID, <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID), edge2: (<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID, <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID)) {
         let pruned_tree = SPR::prune(self, edge1.1);
         SPR::graft(self, pruned_tree, edge2);
     }
@@ -33,57 +33,43 @@ pub trait NNI<'a>
 where
     Self: RootedTree<'a> + Sized,
 {
-    fn nni(&mut self, parent_id: Self::NodeID);
+    fn nni(&mut self, parent_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID);
 }
 
 pub trait Reroot<'a>
 where
     Self: RootedTree<'a> + Sized,
 {
-    fn reroot_at_node(&mut self, node_id: Self::NodeID);
-    fn reroot_at_edge(&mut self, edge: (Self::NodeID, Self::NodeID));
+    fn reroot_at_node(&mut self, node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID);
+    fn reroot_at_edge(&mut self, edge: (<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID, <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID));
 }
 
 pub trait Balance<'a>: Clusters<'a> + SPR<'a> + Sized
 where
-    Self::NodeID: Display + Debug + Hash + Clone + Ord,
+    <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID: Display + Debug + Hash + Clone + Ord,
 {
     fn balance_subtree(&mut self);
 }
 
 pub trait Subtree<'a>: Ancestors<'a> + DFS<'a> + Sized
 where
-    Self::NodeID: Display + Debug + Hash + Clone + Ord,
+    <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID: Display + Debug + Hash + Clone + Ord,
 {
     fn induce_tree(
         &'a self,
         node_id_list: impl IntoIterator<
-            Item = Self::NodeID,
-            IntoIter = impl ExactSizeIterator<Item = Self::NodeID>,
+            Item = <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+            IntoIter = impl ExactSizeIterator<Item = <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID>,
         >,
     ) -> Self;
-    // {
-    //     let mut subtree = self.clone();
-    //     subtree.clear();
-    //     for node_id in node_id_list.into_iter() {
-    //         let ancestors = self.root_to_node(node_id).into_iter().map(|x| x.clone()).collect_vec();
-    //         subtree.set_nodes(ancestors);
-    //     }
-    //     subtree.clean();
-    //     subtree.clone()
-    // }
-    fn subtree(&'a self, node_id: Self::NodeID) -> Self {
-        let mut subtree = self.clone();
-        let dfs = self.dfs(node_id).into_iter().map(|x| x.clone()).collect_vec();
-        subtree.set_nodes(dfs);
-        subtree
-    }
+
+    fn subtree(&'a self, node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID) -> Self;
 }
 
 pub trait RobinsonFoulds<'a>
 where
     Self: RootedTree<'a> + Sized,
-    Self::NodeID: Display + Debug + Hash + Clone + Ord,
+    <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID: Display + Debug + Hash + Clone + Ord,
 {
     fn rfs(&self, tree: Self) -> usize;
 }
@@ -91,7 +77,7 @@ where
 pub trait ClusterAffinity<'a>
 where
     Self: RootedTree<'a> + Sized,
-    Self::NodeID: Display + Debug + Hash + Clone + Ord,
+    <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID: Display + Debug + Hash + Clone + Ord,
 {
     fn ca(&self, tree: Self) -> usize;
 }
@@ -104,11 +90,11 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
     /// Contracts tree that from post_ord node_id iterator.
     fn contracted_tree_nodes_from_iter(
             &'a self,
-            new_tree_root_id: <Self as RootedTree<'a>>::NodeID,
-            leaf_ids: &'a [Self::NodeID],
-            node_iter: impl Iterator<Item = Self::NodeID>,
+            new_tree_root_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+            leaf_ids: &'a [<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID],
+            node_iter: impl Iterator<Item = <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID>,
         ) -> impl Iterator<Item = Self::Node> {
-            let mut node_map: HashMap<Self::NodeID, Self::Node> =
+            let mut node_map: HashMap<<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID, Self::Node> =
                 HashMap::from_iter(vec![(new_tree_root_id, self.get_lca(leaf_ids))]);
             let mut remove_list = vec![];
             node_iter.map(|x| self.get_node(x).cloned().unwrap())
@@ -203,11 +189,11 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
 
     fn contracted_tree_nodes(
         &'a self,
-        leaf_ids: &'a [Self::NodeID],
+        leaf_ids: &'a [<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID],
     ) -> impl Iterator<Item = Self::Node> {
         let new_tree_root_id = self.get_lca_id(leaf_ids);
         let node_postord_iter = self.postord(new_tree_root_id);
-        let mut node_map: HashMap<Self::NodeID, Self::Node> =
+        let mut node_map: HashMap<<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID, Self::Node> =
             HashMap::from_iter(vec![(new_tree_root_id, self.get_lca(leaf_ids))]);
         let mut remove_list = vec![];
         node_postord_iter.for_each(|orig_node| {
@@ -300,142 +286,117 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
         node_map.into_values()
     }
 
-    fn contract_tree(&'a self, leaf_ids: &'a [Self::NodeID]) -> Self;
-    // {
-    //     let new_tree_root_id = self.get_lca_id(leaf_ids);
-    //     let new_nodes = self.contracted_tree_nodes(leaf_ids).collect_vec();
-    //     let mut new_tree = self.clone();
-    //     new_tree.set_root(new_tree_root_id);
-    //     new_tree.clear();
-    //     new_tree.set_nodes(new_nodes);
-    //     new_tree
-    // }
+    fn contract_tree(&'a self, leaf_ids: &'a [<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID]) -> Self;
 
-    fn contract_tree_from_iter(&self, leaf_ids: &Vec<Self::NodeID>, node_iter: impl Iterator<Item = Self::NodeID>) -> Self;
-    // {
-    //     let new_tree_root_id = self.get_lca_id(leaf_ids);
-    //     let new_nodes = self.contracted_tree_nodes_from_iter(new_tree_root_id, leaf_ids, node_iter).collect_vec();
-    //     let mut new_tree = self.clone();
-    //     new_tree.set_root(new_tree_root_id);
-    //     new_tree.clear();
-    //     new_tree.set_nodes(new_nodes);
-    //     new_tree
-    // }
-
+    fn contract_tree_from_iter(&self, leaf_ids: &'a [<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID], node_iter: impl Iterator<Item = <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID>) -> Self;
 }
 
-// pub trait CopheneticDistance:
-//     RootedMetaTree<Meta = <Self as CopheneticDistance>::Meta>
-//     + EulerWalk
-//     + Clusters
-//     + Ancestors
-//     + ContractTree
-//     + PathFunction
-//     + Debug
-//     + Sized
-// where
-//     <Self as RootedTree>::Node:
-//         RootedMetaNode<Meta = <Self as CopheneticDistance>::Meta> + RootedZetaNode,
-//     <<Self as RootedTree>::Node as RootedZetaNode>::Zeta: Signed
-//         + Clone
-//         + NumCast
-//         + std::iter::Sum
-//         + Debug
-//         + Display
-//         + Float
-//         + PartialOrd
-//         + Copy
-//         + Send,
-// {
-//     type Meta: Display + Debug + Eq + PartialEq + Clone + Ord + Hash + Send + Sync;
+pub trait CopheneticDistance<'a>: PathFunction<'a>
+    + RootedMetaTree<'a>
+    + Clusters<'a>
+    + Ancestors<'a>
+    + ContractTree<'a>
+    + Debug
+    + Sized
+where
+    <Self as RootedTree<'a>>::Node: RootedMetaNode<'a> + RootedZetaNode,
+    <<Self as RootedTree<'a>>::Node as RootedZetaNode>::Zeta: Signed
+        + Clone
+        + NumCast
+        + std::iter::Sum
+        + Debug
+        + Display
+        + Float
+        + PartialOrd
+        + Copy
+        + Send,
+{
+    // Returns zeta of leaf by taxa
+    fn get_zeta_taxa(
+        &'a self,
+        taxa: &'a <<Self as RootedTree<'a>>::Node as RootedMetaNode<'a>>::Meta,
+    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
+        self.get_zeta(self.get_taxa_node_id(taxa).unwrap()).unwrap()
+    }
 
-//     // helper functions
 
-//     // Returns zeta of leaf by taxa
-//     fn get_zeta_taxa(
-//         &self,
-//         taxa: &<Self as CopheneticDistance>::Meta,
-//     ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
-//         self.get_zeta(self.get_taxa_node_id(taxa).unwrap()).unwrap()
-//     }
+    /// Reurns the nth norm of an iterator composed of floating point values
+    fn compute_norm(
+        vector: impl Iterator<Item = <<Self as RootedTree<'a>>::Node as RootedZetaNode>::Zeta>,
+        norm: u32,
+    ) -> <<Self as RootedTree<'a>>::Node as RootedZetaNode>::Zeta {
+        if norm == 1 {
+            return vector.sum();
+        }
+        vector
+            .map(|x| x.powi(norm as i32))
+            .sum::<<<Self as RootedTree>::Node as RootedZetaNode>::Zeta>()
+            .powf(
+                <<<Self as RootedTree>::Node as RootedZetaNode>::Zeta as NumCast>::from(norm)
+                    .unwrap()
+                    .powi(-1),
+            )
+    }
 
-//     /// Reurns the nth norm of an iterator composed of floating point values
-//     fn compute_norm(
-//         vector: impl Iterator<Item = <<Self as RootedTree>::Node as RootedZetaNode>::Zeta>,
-//         norm: u32,
-//     ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
-//         if norm == 1 {
-//             return vector.sum();
-//         }
-//         vector
-//             .map(|x| x.powi(norm as i32))
-//             .sum::<<<Self as RootedTree>::Node as RootedZetaNode>::Zeta>()
-//             .powf(
-//                 <<<Self as RootedTree>::Node as RootedZetaNode>::Zeta as NumCast>::from(norm)
-//                     .unwrap()
-//                     .powi(-1),
-//             )
-//     }
+    /// Reurns the cophenetic distance between two trees using the naive algorithm (\Theta(n^2))
+    fn cophen_dist_naive(
+        &'a self,
+        tree: &'a Self,
+        norm: u32,
+    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
+        if !self.is_all_zeta_set() || !tree.is_all_zeta_set() {
+            panic!("Zeta values not set");
+        }
+        let binding1 = self
+            .get_taxa_space()
+            .collect::<HashSet<&<<Self as RootedTree<'a>>::Node as RootedMetaNode>::Meta>>();
+        let binding2 = tree
+            .get_taxa_space()
+            .collect::<HashSet<&<<Self as RootedTree<'a>>::Node as RootedMetaNode>::Meta>>();
+        let taxa_set = binding1.intersection(&binding2).cloned();
 
-//     /// Reurns the cophenetic distance between two trees using the naive algorithm (\Theta(n^2))
-//     fn cophen_dist_naive(
-//         &self,
-//         tree: &Self,
-//         norm: u32,
-//     ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
-//         if !self.is_all_zeta_set() || !tree.is_all_zeta_set() {
-//             panic!("Zeta values not set");
-//         }
-//         let binding1 = self
-//             .get_taxa_space()
-//             .collect::<HashSet<<Self as CopheneticDistance>::Meta>>();
-//         let binding2 = tree
-//             .get_taxa_space()
-//             .collect::<HashSet<<Self as CopheneticDistance>::Meta>>();
-//         let taxa_set = binding1.intersection(&binding2).cloned();
+        self.cophen_dist_naive_by_taxa(tree, norm, taxa_set)
+    }
 
-//         self.cophen_dist_naive_by_taxa(tree, norm, taxa_set)
-//     }
+    /// Returns the Cophenetic distance between two trees restricted to a taxa set using the \theta(n^2) naive algorithm.
+    fn cophen_dist_naive_by_taxa(
+        &'a self,
+        tree: &'a Self,
+        norm: u32,
+        taxa_set: impl Iterator<Item = &'a <<Self as RootedTree<'a>>::Node as RootedMetaNode<'a>>::Meta> + Clone,
+    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta
+    {
+        let taxa_set = taxa_set.collect_vec();
+        let cophen_vec = taxa_set
+            .iter()
+            .combinations_with_replacement(2)
+            .map(|x| match x[0] == x[1] {
+                true => vec![x[0]],
+                false => x,
+            })
+            .map(|x| match x.len() {
+                1 => {
+                    let zeta_1 = self.get_zeta_taxa(x[0]);
+                    let zeta_2 = tree.get_zeta_taxa(x[0]);
+                    (zeta_1 - zeta_2).abs()
+                }
+                _ => {
+                    let self_ids = x.iter()
+                        .map(|a| self.get_taxa_node_id(a).unwrap())
+                        .collect_vec();
+                    let tree_ids = x.iter()
+                        .map(|a| tree.get_taxa_node_id(a).unwrap())
+                        .collect_vec();
+                    let t_lca_id = self.get_lca_id(self_ids.as_slice());
+                    let t_hat_lca_id = tree.get_lca_id(tree_ids.as_slice());
+                    let zeta_1 = self.get_zeta(t_lca_id).unwrap();
+                    let zeta_2 = tree.get_zeta(t_hat_lca_id).unwrap();
+                    (zeta_1 - zeta_2).abs()
+                }
+            })
+            .collect_vec();
 
-//     /// Returns the Cophenetic distance between two trees restricted to a taxa set using the \theta(n^2) naive algorithm.
-//     fn cophen_dist_naive_by_taxa(
-//         &self,
-//         tree: &Self,
-//         norm: u32,
-//         taxa_set: impl Iterator<Item = <Self as RootedMetaTree>::Meta> + Clone,
-//     ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
-//         let taxa_set = taxa_set.collect_vec();
-//         let cophen_vec = taxa_set
-//             .iter()
-//             .combinations_with_replacement(2)
-//             .map(|x| match x[0] == x[1] {
-//                 true => vec![x[0]],
-//                 false => x,
-//             })
-//             .map(|x| match x.len() {
-//                 1 => {
-//                     let zeta_1 = self.get_zeta_taxa(x[0]);
-//                     let zeta_2 = tree.get_zeta_taxa(x[0]);
-//                     (zeta_1 - zeta_2).abs()
-//                 }
-//                 _ => {
-//                     let t_lca_id = self.get_lca_id(
-//                         &x.iter()
-//                             .map(|a| self.get_taxa_node_id(a).unwrap())
-//                             .collect_vec(),
-//                     );
-//                     let t_hat_lca_id = tree.get_lca_id(
-//                         &x.iter()
-//                             .map(|a| tree.get_taxa_node_id(a).unwrap())
-//                             .collect_vec(),
-//                     );
-//                     let zeta_1 = self.get_zeta(t_lca_id).unwrap();
-//                     let zeta_2 = tree.get_zeta(t_hat_lca_id).unwrap();
-//                     (zeta_1 - zeta_2).abs()
-//                 }
-//             })
-//             .collect_vec();
+        Self::compute_norm(cophen_vec.into_iter(), norm)
+    }
 
-//         Self::compute_norm(cophen_vec.into_iter(), norm)
-//     }
-// }
+}

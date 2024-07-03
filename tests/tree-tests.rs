@@ -6,7 +6,7 @@ use phylo::node::simple_rnode::RootedTreeNode;
 use phylo::node::Node;
 use phylo::tree::distances::PathFunction;
 use phylo::tree::io::*;
-// use phylo::tree::ops::CopheneticDistance;
+use phylo::tree::ops::CopheneticDistance;
 use phylo::tree::ops::{Balance, ContractTree, Subtree, SPR};
 use phylo::tree::simple_rtree::{RootedMetaTree, RootedTree};
 use phylo::tree::SimpleRootedTree;
@@ -171,15 +171,13 @@ fn uniform() {
 
 #[test]
 fn contract_tree() {
-    fn depth(tree: &SimpleRootedTree, node_id: <SimpleRootedTree as RootedTree>::NodeID) -> f32 {
-        EulerWalk::get_node_depth(tree, &node_id) as f32
+    fn depth(tree: &SimpleRootedTree, node_id: usize) -> f32 {
+        EulerWalk::get_node_depth(tree, node_id) as f32
     }
     let mut tree = SimpleRootedTree::yule(10).unwrap();
     tree.precompute_constant_time_lca();
-    // let input_str: String = String::from("(((A,B),C),D);");
-    // let mut tree = SimpleRootedTree::from_newick(input_str.as_bytes());
-    // dbg!(&tree);
-    // tree.precompute_constant_time_lca();
+    dbg!(&tree);
+    tree.precompute_constant_time_lca();
     tree.set_zeta(depth);
     println!("{}", tree.to_newick());
     let taxa_subset = vec![
@@ -187,30 +185,30 @@ fn contract_tree() {
         "4".to_string(),
         "3".to_string(),
         "7".to_string(),
-    ]
-    .into_iter()
-    .map(|x| tree.get_taxa_node_id(&x).unwrap())
-    .collect_vec();
-    let mut new_tree = tree.contract_tree(&taxa_subset);
+        ]
+        .into_iter()
+        .map(|x| tree.get_taxa_node_id(&x).unwrap())
+        .collect_vec();
+    let mut new_tree = tree.contract_tree(taxa_subset.as_slice());
     println!("{}", new_tree.to_newick());
     new_tree.precompute_constant_time_lca();
 }
 
-// #[test]
-// fn cophenetic_dist() {
-//     fn depth(tree: &SimpleRootedTree, node_id: <SimpleRootedTree as RootedTree>::NodeID) -> f32 {
-//         tree.depth(node_id) as f32
-//     }
-//     let t1_input_str: String = String::from("((A,B),C);");
-//     let t2_input_str: String = String::from("(A,(B,C));");
-//     let mut t1 = SimpleRootedTree::from_newick(t1_input_str.as_bytes());
-//     let mut t2 = SimpleRootedTree::from_newick(t2_input_str.as_bytes());
+#[test]
+fn cophenetic_dist() {
+    fn depth(tree: &SimpleRootedTree, node_id: usize) -> f32 {
+        tree.depth(node_id) as f32
+    }
+    let t1_input_str: String = String::from("((A,B),C);");
+    let t2_input_str: String = String::from("(A,(B,C));");
+    let mut t1 = SimpleRootedTree::from_newick(t1_input_str.as_bytes());
+    let mut t2 = SimpleRootedTree::from_newick(t2_input_str.as_bytes());
 
-//     t1.precompute_constant_time_lca();
-//     t2.precompute_constant_time_lca();
+    t1.precompute_constant_time_lca();
+    t2.precompute_constant_time_lca();
 
-//     t1.set_zeta(depth);
-//     t2.set_zeta(depth);
+    t1.set_zeta(depth);
+    t2.set_zeta(depth);
 
-//     assert_eq!(t1.cophen_dist_naive(&t2, 1), 4_f32);
-// }
+    assert_eq!(t1.cophen_dist_naive(&t2, 1), 4_f32);
+}

@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, ops::Index};
 
-use fxhash::FxHashMap as HashMap;
+// use fxhash::FxHashMap as HashMap;
 use itertools::Itertools;
 
 use crate::{node::simple_rnode::RootedTreeNode, tree::simple_rtree::RootedTree};
@@ -10,11 +10,11 @@ pub trait DFS<'a>
 where
     Self: RootedTree<'a> + Sized,
 {
-    fn postord(&'a self, start_node: Self::NodeID) -> impl Iterator<Item = &'a Self::Node>;
+    fn postord(&'a self, start_node: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID) -> impl Iterator<Item = &'a Self::Node>;
 
     fn dfs(
         &'a self,
-        start_node_id: Self::NodeID,
+        start_node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
     ) -> impl IntoIterator<Item = &'a Self::Node, IntoIter = impl ExactSizeIterator<Item = &'a Self::Node>>
     {
         let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
@@ -40,7 +40,7 @@ pub trait BFS<'a>
 where
     Self: RootedTree<'a> + Sized,
 {
-    fn bfs(&'a self, start_node_id: Self::NodeID) -> impl Iterator<Item = &'a Self::Node>;
+    fn bfs(&'a self, start_node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID) -> impl Iterator<Item = &'a Self::Node>;
 }
 
 pub trait PreOrder<'a>
@@ -49,7 +49,7 @@ where
 {
     fn preord(
         &'a self,
-        start_node_id: Self::NodeID,
+        start_node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
     ) -> impl IntoIterator<Item = &'a Self::Node, IntoIter = impl ExactSizeIterator<Item = &'a Self::Node>>
     {
         let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
@@ -77,7 +77,7 @@ where
 {
     fn root_to_node(
         &'a self,
-        start_node_id: Self::NodeID,
+        start_node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
     ) -> impl IntoIterator<Item = &'a Self::Node, IntoIter = impl ExactSizeIterator<Item = &'a Self::Node>>
     {
         let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
@@ -97,7 +97,7 @@ where
 
     fn node_to_root(
         &'a self,
-        start_node_id: Self::NodeID,
+        start_node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
     ) -> impl IntoIterator<Item = &'a Self::Node, IntoIter = impl ExactSizeIterator<Item = &'a Self::Node>>
     {
         let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
@@ -115,7 +115,7 @@ where
         stack
     }
 
-    fn depth(&'a self, node_id: Self::NodeID) -> usize {
+    fn depth(&'a self, node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID) -> usize {
         self.node_to_root(node_id).into_iter().len() - 1
     }
 }
@@ -126,11 +126,11 @@ where
 {
     fn precompute_walk(&mut self);
 
-    fn get_precomputed_walk(&self) -> Option<&Vec<<Self as RootedTree<'a>>::NodeID>>;
+    fn get_precomputed_walk(&self) -> Option<&Vec<<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID>>;
 
     fn precompute_fai(&mut self);
 
-    fn get_precomputed_fai(&'a self) -> Option<impl Index<&'a Self::NodeID, Output = usize>>;
+    fn get_precomputed_fai(&'a self) -> Option<impl Index<<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID, Output = Option<usize>>>;
 
     fn precompute_da(&mut self);
 
@@ -142,7 +142,7 @@ where
         self.precompute_fai();
     }
 
-    fn euler_walk(&'a self, start_node_id: Self::NodeID) -> impl ExactSizeIterator<Item = &'a Self::Node> {
+    fn euler_walk(&'a self, start_node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID) -> impl ExactSizeIterator<Item = &'a Self::Node> {
         let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
         let mut visited = vec![];
         let mut out_vec = vec![];
@@ -171,9 +171,9 @@ where
     }
 
     /// returns the first appearance index of each node in the euler tour
-    fn first_appearance(&'a self) -> impl Index<&Self::NodeID, Output = usize>;
+    fn first_appearance(&self) -> impl Index<<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID, Output = Option<usize>>;
     // {
-    //     let mut fa: HashMap<Self::NodeID, usize> = [].into_iter().collect::<HashMap<_, _>>();
+    //     let mut fa: HashMap<<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID, usize> = [].into_iter().collect::<HashMap<_, _>>();
     //     match self.get_precomputed_walk() {
     //         Some(walk) => {
     //             for (idx, node_id) in walk.iter().enumerate() {
@@ -200,10 +200,10 @@ where
         self.get_precomputed_fai().is_some()
     }
 
-    fn get_fa_index(&'a self, node_id: &'a Self::NodeID) -> usize {
+    fn get_fa_index(&'a self, node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID) -> usize {
         match self.get_precomputed_fai() {
-            Some(fai) => fai[node_id],
-            None => self.first_appearance()[node_id],
+            Some(fai) => fai[node_id].unwrap(),
+            None => self.first_appearance()[node_id].unwrap(),
         }
     }
 
@@ -226,14 +226,14 @@ where
         self.get_precomputed_da().is_some()
     }
 
-    fn get_node_depth(&'a self, node_id: &'a Self::NodeID) -> usize {
+    fn get_node_depth(&'a self, node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID) -> usize {
         match self.get_precomputed_da() {
             Some(da) => da[self.get_fa_index(node_id)],
-            None => RootedTree::get_node_depth(self, *node_id),
+            None => RootedTree::get_node_depth(self, node_id),
         }
     }
 
-    fn get_euler_slice(&'a self, start: usize, end: usize) -> Vec<<Self as RootedTree<'a>>::NodeID> {
+    fn get_euler_slice(&'a self, start: usize, end: usize) -> Vec<<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID> {
         match self.get_precomputed_walk() {
             Some(walk) => walk[start..end].to_vec(),
             None => self
@@ -251,7 +251,7 @@ where
         }
     }
 
-    fn get_euler_pos(&'a self, pos: usize) -> Self::NodeID {
+    fn get_euler_pos(&'a self, pos: usize) -> <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID {
         match self.get_precomputed_walk() {
             Some(walk) => walk[pos],
             None => self
@@ -263,18 +263,18 @@ where
     }
 
     /// constant time lca query
-    fn get_lca_id(&'a self, node_id_vec: &'a [Self::NodeID]) -> Self::NodeID {
+    fn get_lca_id(&'a self, node_id_vec: &[<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID]) -> <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID {
         if node_id_vec.len() == 1 {
             return node_id_vec[0];
         }
         let min_pos = node_id_vec
             .iter()
-            .map(|x| self.get_fa_index(x))
+            .map(|x| self.get_fa_index(*x))
             .min()
             .unwrap();
         let max_pos = node_id_vec
             .iter()
-            .map(|x| self.get_fa_index(x))
+            .map(|x| self.get_fa_index(*x))
             .max()
             .unwrap();
 
@@ -291,7 +291,7 @@ where
         self.get_euler_pos(min_pos + depth_subarray_min_pos)
     }
 
-    fn get_lca(&'a self, node_id_vec: &'a [Self::NodeID]) -> Self::Node {
+    fn get_lca(&'a self, node_id_vec: &'a [<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID]) -> Self::Node {
         self.get_node(self.get_lca_id(node_id_vec))
             .cloned()
             .unwrap()
@@ -299,7 +299,7 @@ where
 }
 
 pub trait Clusters<'a>: DFS<'a> + BFS<'a> + Sized {
-    fn get_cluster(&'a self, node_id: Self::NodeID) -> impl ExactSizeIterator<Item = &'a Self::Node> {
+    fn get_cluster(&'a self, node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID) -> impl ExactSizeIterator<Item = &'a Self::Node> {
         self.dfs(node_id)
             .into_iter()
             .filter(|x| x.is_leaf())
@@ -308,17 +308,17 @@ pub trait Clusters<'a>: DFS<'a> + BFS<'a> + Sized {
     }
     fn get_cluster_ids(
         &'a self,
-        node_id: Self::NodeID,
-    ) -> impl ExactSizeIterator<Item = Self::NodeID> {
+        node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+    ) -> impl ExactSizeIterator<Item = <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID> {
         self.get_cluster(node_id).map(|x| x.get_id())
     }
-    fn get_cluster_size(&'a self, node_id: Self::NodeID) -> usize {
+    fn get_cluster_size(&'a self, node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID) -> usize {
         self.get_cluster(node_id).len()
     }
 
     fn get_bipartition(
         &'a self,
-        edge: (Self::NodeID, Self::NodeID),
+        edge: (<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID, <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID),
     ) -> (
         impl ExactSizeIterator<Item = &'a Self::Node>,
         impl ExactSizeIterator<Item = &'a Self::Node>,
@@ -334,9 +334,9 @@ pub trait Clusters<'a>: DFS<'a> + BFS<'a> + Sized {
 
     fn get_median_node_id_for_leaves(
         &'a self,
-        taxa_set: impl ExactSizeIterator<Item = Self::NodeID>,
-    ) -> Self::NodeID {
-        let mut median_node_id: Self::NodeID = self.get_root_id();
+        taxa_set: impl ExactSizeIterator<Item = <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID>,
+    ) -> <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID {
+        let mut median_node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID = self.get_root_id();
         let leaf_ids = taxa_set.collect_vec();
         loop {
             median_node_id = self
@@ -368,7 +368,7 @@ pub trait Clusters<'a>: DFS<'a> + BFS<'a> + Sized {
 
     fn get_median_node_for_leaves(
         &'a self,
-        taxa_set: impl ExactSizeIterator<Item = Self::NodeID>,
+        taxa_set: impl ExactSizeIterator<Item = <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID>,
     ) -> Self::Node {
         self.get_node(self.get_median_node_id_for_leaves(taxa_set))
             .cloned()
@@ -380,7 +380,7 @@ pub trait Clusters<'a>: DFS<'a> + BFS<'a> + Sized {
         self.get_median_node_for_leaves(leaves)
     }
 
-    fn get_median_node_id(&'a self) -> Self::NodeID {
+    fn get_median_node_id(&'a self) -> <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID {
         self.get_median_node().get_id()
     }
 }

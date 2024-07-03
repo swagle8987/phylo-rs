@@ -3,7 +3,7 @@ use phylo::prelude::*;
 use phylo::tree::SimpleRootedTree;
 use rand::{seq::IteratorRandom, thread_rng};
 
-const NUM_TAXA: usize = 10000;
+const NUM_TAXA: usize = 4000;
 const NORM: u32 = 1;
 
 fn main() {
@@ -14,13 +14,13 @@ fn main() {
 fn benchmark_constant_time_lca(bencher: divan::Bencher) {
     let mut tree = SimpleRootedTree::yule(NUM_TAXA).unwrap();
     tree.precompute_constant_time_lca();
-    bencher.bench(|| tree.get_lca_id(&vec![10, 20]));
+    bencher.bench(|| tree.get_lca_id(vec![10, 20].as_slice()));
 }
 
 #[divan::bench]
 fn benchmark_lca(bencher: divan::Bencher) {
     let tree = SimpleRootedTree::yule(NUM_TAXA).unwrap();
-    bencher.bench(|| tree.get_lca_id(&vec![10, 20]));
+    bencher.bench(|| tree.get_lca_id(vec![10, 20].as_slice()));
 }
 
 #[divan::bench]
@@ -37,29 +37,29 @@ fn benchmark_precompute_rmq(bencher: divan::Bencher) {
         });
 }
 
-// #[divan::bench]
-// fn benchmark_cophen_dist_naive(bencher: divan::Bencher) {
-//     bencher
-//         .with_inputs(|| {
-//             fn depth(
-//                 tree: &SimpleRootedTree,
-//                 node_id: <SimpleRootedTree as RootedTree>::NodeID,
-//             ) -> f32 {
-//                 EulerWalk::get_node_depth(tree, node_id) as f32
-//             }
+#[divan::bench]
+fn benchmark_cophen_dist_naive(bencher: divan::Bencher) {
+    bencher
+        .with_inputs(|| {
+            fn depth(
+                tree: &SimpleRootedTree,
+                node_id: usize,
+            ) -> f32 {
+                EulerWalk::get_node_depth(tree, node_id) as f32
+            }
 
-//             let mut t1 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
-//             let mut t2 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
-//             t1.precompute_constant_time_lca();
-//             t2.precompute_constant_time_lca();
-//             t1.set_zeta(depth);
-//             t2.set_zeta(depth);
-//             (t1, t2)
-//         })
-//         .bench_refs(|(t1, t2)| {
-//             t1.cophen_dist_naive(t2, NORM);
-//         });
-// }
+            let mut t1 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
+            let mut t2 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
+            t1.precompute_constant_time_lca();
+            t2.precompute_constant_time_lca();
+            t1.set_zeta(depth);
+            t2.set_zeta(depth);
+            (t1, t2)
+        })
+        .bench_refs(|(t1, t2)| {
+            t1.cophen_dist_naive(t2, NORM);
+        });
+}
 
 #[divan::bench]
 fn benchmark_contract(bencher: divan::Bencher) {
@@ -75,6 +75,6 @@ fn benchmark_contract(bencher: divan::Bencher) {
             (t1, taxa_subset)
         })
         .bench_refs(|(t1, taxa_subset)| {
-            t1.contract_tree(&taxa_subset);
+            t1.contract_tree(taxa_subset.as_slice());
         });
 }

@@ -22,7 +22,7 @@ pub struct DFSPostOrderIterator<'a> {
 
 impl<'a> BFSIterator<'a> {
     pub fn new(
-        tree: &'a impl RootedTree<'a, NodeID = usize, Node = Node>,
+        tree: &'a impl RootedTree<'a, Node = Node>,
         start_id: usize,
     ) -> BFSIterator {
         let max_id = tree.get_node_ids().max().unwrap();
@@ -40,7 +40,7 @@ impl<'a> BFSIterator<'a> {
 
 impl<'a> DFSPostOrderIterator<'a> {
     pub fn new(
-        tree: &'a impl RootedTree<'a, NodeID = usize, Node = Node>,
+        tree: &'a impl RootedTree<'a, Node = Node>,
         start_id: <Node as RootedTreeNode>::NodeID,
     ) -> DFSPostOrderIterator {
         let max_id = tree.get_node_ids().max().unwrap();

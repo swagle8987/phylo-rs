@@ -1,4 +1,4 @@
-use crate::node::simple_rnode::RootedZetaNode;
+use crate::node::simple_rnode::{RootedZetaNode, RootedTreeNode};
 use crate::tree::RootedTree;
 
 // pub trait InterNodeDistances
@@ -11,25 +11,27 @@ use crate::tree::RootedTree;
 //     fn distance_from_node(&self, node1: Self::NodeID, node2: Self::NodeID, weighted: bool)->Self::EdgeWeight;
 // }
 
-pub trait PathFunction: for<'a> RootedTree<'a>
+pub trait PathFunction<'a>: RootedTree<'a>
 where
-    for<'a> <Self as RootedTree<'a>>::Node: RootedZetaNode,
+    <Self as RootedTree<'a>>::Node: RootedZetaNode,
 {
     fn set_zeta(
-        & mut self,
-        zeta_func: for<'a> fn(&'a Self, <Self as RootedTree<'a>>::NodeID) -> <<Self as RootedTree<'a>>::Node as RootedZetaNode>::Zeta,
+        &'a mut self,
+        zeta_func: fn(&Self, <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID) -> <<Self as RootedTree<'a>>::Node as RootedZetaNode>::Zeta,
     );
     fn get_zeta(
-        &self,
-        node_id: <Self as RootedTree<'_>>::NodeID,
-    ) -> Option<<<Self as RootedTree>::Node as RootedZetaNode>::Zeta>;
+        &'a self,
+        node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+    ) -> Option<<<Self as RootedTree<'a>>::Node as RootedZetaNode>::Zeta>;
 
-    fn is_zeta_set(&self, node_id: <Self as RootedTree<'_>>::NodeID) -> bool;
+    fn is_zeta_set(&self, node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID) -> bool;
     // {
     //     self.get_node(node_id).unwrap().is_zeta_set()
     // }
 
-    fn is_all_zeta_set(&self) -> bool {
+    fn is_all_zeta_set(&'a self) -> bool {
         !self.get_nodes().any(|x| !x.is_zeta_set())
     }
+
+    fn set_node_zeta(&'a mut self, node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID, zeta: Option<<<Self as RootedTree<'a>>::Node as RootedZetaNode>::Zeta>);
 }
