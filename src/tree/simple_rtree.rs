@@ -7,8 +7,6 @@ pub trait RootedTree<'a>: Clone + Sync
 where
     Self::Node: 'a + RootedTreeNode + Debug, // + AsRef<Self::Node>,
 {
-    // identifier for nodes
-    // type NodeID: Copy + PartialEq + Eq + Hash + Debug + Send;
     type Node: 'a;
 
     /// Returns reference to node by ID
