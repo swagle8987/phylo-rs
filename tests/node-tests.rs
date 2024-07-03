@@ -16,7 +16,7 @@ fn test_set_taxa() {
     let mut n = Node::new(0);
     assert_eq!(n.get_taxa(), None);
     n.set_taxa(Some(String::from("A")));
-    assert_eq!(n.get_taxa(), Some(String::from("A")));
+    assert_eq!(n.get_taxa(), Some(String::from("A")).as_ref());
 }
 
 #[test]

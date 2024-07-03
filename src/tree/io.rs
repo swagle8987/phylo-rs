@@ -4,10 +4,10 @@ use std::fmt::{Debug, Display};
 use crate::node::simple_rnode::{RootedMetaNode, RootedWeightedNode};
 use crate::tree::RootedTree;
 
-pub trait Newick: RootedTree
+pub trait Newick<'a>: RootedTree<'a>
 where
-    <Self as RootedTree>::Node:
-        RootedWeightedNode<Weight = Self::Weight> + RootedMetaNode<Meta = Self::Meta>,
+    <Self as RootedTree<'a>>::Node:
+        RootedWeightedNode<Weight = Self::Weight> + RootedMetaNode<'a, Meta = Self::Meta>,
 {
     type Weight: Num + Clone + PartialOrd + NumCast + std::iter::Sum;
     type Meta: Display + Debug + Eq + PartialEq + Clone + Ord;

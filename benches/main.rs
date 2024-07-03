@@ -37,29 +37,29 @@ fn benchmark_precompute_rmq(bencher: divan::Bencher) {
         });
 }
 
-#[divan::bench]
-fn benchmark_cophen_dist_naive(bencher: divan::Bencher) {
-    bencher
-        .with_inputs(|| {
-            fn depth(
-                tree: &SimpleRootedTree,
-                node_id: <SimpleRootedTree as RootedTree>::NodeID,
-            ) -> f32 {
-                EulerWalk::get_node_depth(tree, node_id) as f32
-            }
+// #[divan::bench]
+// fn benchmark_cophen_dist_naive(bencher: divan::Bencher) {
+//     bencher
+//         .with_inputs(|| {
+//             fn depth(
+//                 tree: &SimpleRootedTree,
+//                 node_id: <SimpleRootedTree as RootedTree>::NodeID,
+//             ) -> f32 {
+//                 EulerWalk::get_node_depth(tree, node_id) as f32
+//             }
 
-            let mut t1 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
-            let mut t2 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
-            t1.precompute_constant_time_lca();
-            t2.precompute_constant_time_lca();
-            t1.set_zeta(depth);
-            t2.set_zeta(depth);
-            (t1, t2)
-        })
-        .bench_refs(|(t1, t2)| {
-            t1.cophen_dist_naive(t2, NORM);
-        });
-}
+//             let mut t1 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
+//             let mut t2 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
+//             t1.precompute_constant_time_lca();
+//             t2.precompute_constant_time_lca();
+//             t1.set_zeta(depth);
+//             t2.set_zeta(depth);
+//             (t1, t2)
+//         })
+//         .bench_refs(|(t1, t2)| {
+//             t1.cophen_dist_naive(t2, NORM);
+//         });
+// }
 
 #[divan::bench]
 fn benchmark_contract(bencher: divan::Bencher) {

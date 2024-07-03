@@ -9,27 +9,27 @@ use itertools::Itertools;
 use std::collections::VecDeque;
 
 #[derive(Clone)]
-pub struct BFSIterator {
+pub struct BFSIterator<'a> {
     stack: VecDeque<usize>,
-    nodes: Vec<Option<Node>>,
+    nodes: Vec<Option<&'a Node>>,
 }
 
 #[derive(Clone)]
-pub struct DFSPostOrderIterator {
-    stack: VecDeque<Node>,
-    nodes: Vec<Option<Node>>,
+pub struct DFSPostOrderIterator<'a> {
+    stack: VecDeque<&'a Node>,
+    nodes: Vec<Option<&'a Node>>,
 }
 
-impl BFSIterator {
+impl<'a> BFSIterator<'a> {
     pub fn new(
-        tree: &impl RootedTree<NodeID = usize, Node = Node>,
+        tree: &'a impl RootedTree<'a, NodeID = usize, Node = Node>,
         start_id: usize,
     ) -> BFSIterator {
         let max_id = tree.get_node_ids().max().unwrap();
         let mut nodes = vec![None;max_id+1];
         tree.get_nodes()
             .for_each(|node| {
-                nodes[node.get_id()] = Some(node.clone())
+                nodes[node.get_id()] = Some(node)
             });
         BFSIterator {
             stack: vec![start_id].into(),
@@ -38,16 +38,16 @@ impl BFSIterator {
     }
 }
 
-impl DFSPostOrderIterator {
+impl<'a> DFSPostOrderIterator<'a> {
     pub fn new(
-        tree: &impl RootedTree<NodeID = usize, Node = Node>,
+        tree: &'a impl RootedTree<'a, NodeID = usize, Node = Node>,
         start_id: <Node as RootedTreeNode>::NodeID,
     ) -> DFSPostOrderIterator {
         let max_id = tree.get_node_ids().max().unwrap();
         let mut nodes = vec![None;max_id+1];
         tree.get_nodes()
         .for_each(|node| {
-            nodes[node.get_id()] = Some(node.clone())
+            nodes[node.get_id()] = Some(node)
         });
         let start_node = std::mem::replace(&mut nodes[start_id], None).unwrap();
         DFSPostOrderIterator {
@@ -57,8 +57,8 @@ impl DFSPostOrderIterator {
     }
 }
 
-impl Iterator for BFSIterator {
-    type Item = Node;
+impl<'a> Iterator for BFSIterator<'a> {
+    type Item = &'a Node;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.stack.pop_front() {
@@ -74,8 +74,8 @@ impl Iterator for BFSIterator {
     }
 }
 
-impl Iterator for DFSPostOrderIterator {
-    type Item = Node;
+impl<'a> Iterator for DFSPostOrderIterator<'a> {
+    type Item = &'a Node;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(node) = self.stack.pop_front() {
