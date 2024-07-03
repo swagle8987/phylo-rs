@@ -41,10 +41,7 @@ fn benchmark_precompute_rmq(bencher: divan::Bencher) {
 fn benchmark_cophen_dist_naive(bencher: divan::Bencher) {
     bencher
         .with_inputs(|| {
-            fn depth(
-                tree: &SimpleRootedTree,
-                node_id: usize,
-            ) -> f32 {
+            fn depth(tree: &SimpleRootedTree, node_id: usize) -> f32 {
                 EulerWalk::get_node_depth(tree, node_id) as f32
             }
 

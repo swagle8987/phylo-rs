@@ -185,10 +185,10 @@ fn contract_tree() {
         "4".to_string(),
         "3".to_string(),
         "7".to_string(),
-        ]
-        .into_iter()
-        .map(|x| tree.get_taxa_node_id(&x).unwrap())
-        .collect_vec();
+    ]
+    .into_iter()
+    .map(|x| tree.get_taxa_node_id(&x).unwrap())
+    .collect_vec();
     let mut new_tree = tree.contract_tree(taxa_subset.as_slice());
     println!("{}", new_tree.to_newick());
     new_tree.precompute_constant_time_lca();

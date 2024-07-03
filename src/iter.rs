@@ -1,10 +1,7 @@
 pub mod edge_iter;
 pub mod node_iter;
 
-use crate::{
-    prelude::*,
-    node::Node,
-};
+use crate::{node::Node, prelude::*};
 use itertools::Itertools;
 use std::collections::VecDeque;
 
@@ -21,16 +18,11 @@ pub struct DFSPostOrderIterator<'a> {
 }
 
 impl<'a> BFSIterator<'a> {
-    pub fn new(
-        tree: &'a impl RootedTree<'a, Node = Node>,
-        start_id: usize,
-    ) -> BFSIterator {
+    pub fn new(tree: &'a impl RootedTree<'a, Node = Node>, start_id: usize) -> BFSIterator {
         let max_id = tree.get_node_ids().max().unwrap();
-        let mut nodes = vec![None;max_id+1];
+        let mut nodes = vec![None; max_id + 1];
         tree.get_nodes()
-            .for_each(|node| {
-                nodes[node.get_id()] = Some(node)
-            });
+            .for_each(|node| nodes[node.get_id()] = Some(node));
         BFSIterator {
             stack: vec![start_id].into(),
             nodes,
@@ -44,11 +36,9 @@ impl<'a> DFSPostOrderIterator<'a> {
         start_id: <Node as RootedTreeNode>::NodeID,
     ) -> DFSPostOrderIterator {
         let max_id = tree.get_node_ids().max().unwrap();
-        let mut nodes = vec![None;max_id+1];
+        let mut nodes = vec![None; max_id + 1];
         tree.get_nodes()
-        .for_each(|node| {
-            nodes[node.get_id()] = Some(node)
-        });
+            .for_each(|node| nodes[node.get_id()] = Some(node));
         let start_node = std::mem::replace(&mut nodes[start_id], None).unwrap();
         DFSPostOrderIterator {
             stack: vec![start_node].into(),

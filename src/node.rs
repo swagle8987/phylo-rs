@@ -6,18 +6,20 @@ use crate::node::simple_rnode::{
     RootedMetaNode, RootedTreeNode, RootedWeightedNode, RootedZetaNode,
 };
 
+pub type NodeID = usize;
+
 #[derive(Clone)]
 pub struct Node {
-    id: usize,
-    parent: Option<usize>,
-    children: Vec<usize>,
+    id: NodeID,
+    parent: Option<NodeID>,
+    children: Vec<NodeID>,
     taxa: Option<String>,
     weight: Option<f32>,
     zeta: Option<f32>,
 }
 
 impl RootedTreeNode for Node {
-    type NodeID = usize;
+    type NodeID = NodeID;
 
     fn new(id: Self::NodeID) -> Self {
         Node {

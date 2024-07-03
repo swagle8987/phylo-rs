@@ -1,7 +1,7 @@
 use num::{Num, NumCast};
 use std::fmt::{Debug, Display};
 
-use crate::node::simple_rnode::{RootedMetaNode, RootedWeightedNode, RootedTreeNode};
+use crate::node::simple_rnode::{RootedMetaNode, RootedTreeNode, RootedWeightedNode};
 use crate::tree::RootedTree;
 
 pub trait Newick<'a>: RootedTree<'a>
@@ -13,7 +13,10 @@ where
     type Meta: Display + Debug + Eq + PartialEq + Clone + Ord;
 
     fn from_newick(newick_str: &[u8]) -> Self;
-    fn subtree_to_newick(&'a self, node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID) -> impl Display;
+    fn subtree_to_newick(
+        &'a self,
+        node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+    ) -> impl Display;
     fn to_newick(&'a self) -> impl Display {
         format!("{};", self.subtree_to_newick(self.get_root_id()))
     }
