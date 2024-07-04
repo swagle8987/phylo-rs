@@ -12,7 +12,7 @@ use super::{distances::PathFunction, Clusters, EulerWalk, RootedTree, RootedZeta
 use crate::{
     iter::node_iter::Ancestors,
     node::simple_rnode::{RootedMetaNode, RootedTreeNode},
-    tree::simple_rtree::RootedMetaTree,
+    tree::simple_rtree::{RootedMetaTree, TreeNodeID, TreeNodeMeta},
 };
 
 pub trait SPR<'a>: RootedTree<'a> + DFS<'a> + Sized {
@@ -21,27 +21,27 @@ pub trait SPR<'a>: RootedTree<'a> + DFS<'a> + Sized {
         &mut self,
         tree: Self,
         edge: (
-            <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
-            <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+            TreeNodeID<'a, Self>,
+            TreeNodeID<'a, Self>,
         ),
     );
 
     /// Returns subtree starting at given node, while corresponding nodes from self.
     fn prune(
         &mut self,
-        node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+        node_id: TreeNodeID<'a, Self>,
     ) -> Self;
 
     /// SPR function
     fn spr(
         &mut self,
         edge1: (
-            <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
-            <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+            TreeNodeID<'a, Self>,
+            TreeNodeID<'a, Self>,
         ),
         edge2: (
-            <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
-            <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+            TreeNodeID<'a, Self>,
+            TreeNodeID<'a, Self>,
         ),
     ) {
         let pruned_tree = SPR::prune(self, edge1.1);
@@ -53,7 +53,7 @@ pub trait NNI<'a>
 where
     Self: RootedTree<'a> + Sized,
 {
-    fn nni(&mut self, parent_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID);
+    fn nni(&mut self, parent_id: TreeNodeID<'a, Self>);
 }
 
 pub trait Reroot<'a>
@@ -62,20 +62,20 @@ where
 {
     fn reroot_at_node(
         &mut self,
-        node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+        node_id: TreeNodeID<'a, Self>,
     );
     fn reroot_at_edge(
         &mut self,
         edge: (
-            <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
-            <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+            TreeNodeID<'a, Self>,
+            TreeNodeID<'a, Self>,
         ),
     );
 }
 
 pub trait Balance<'a>: Clusters<'a> + SPR<'a> + Sized
 where
-    <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID:
+    TreeNodeID<'a, Self>:
         Display + Debug + Hash + Clone + Ord,
 {
     fn balance_subtree(&mut self);
@@ -83,29 +83,29 @@ where
 
 pub trait Subtree<'a>: Ancestors<'a> + DFS<'a> + Sized
 where
-    <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID:
+    TreeNodeID<'a, Self>:
         Display + Debug + Hash + Clone + Ord,
 {
     fn induce_tree(
         &'a self,
         node_id_list: impl IntoIterator<
-            Item = <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+            Item = TreeNodeID<'a, Self>,
             IntoIter = impl ExactSizeIterator<
-                Item = <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+                Item = TreeNodeID<'a, Self>,
             >,
         >,
     ) -> Self;
 
     fn subtree(
         &'a self,
-        node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+        node_id: TreeNodeID<'a, Self>,
     ) -> Self;
 }
 
 pub trait RobinsonFoulds<'a>
 where
     Self: RootedTree<'a> + Sized,
-    <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID:
+    TreeNodeID<'a, Self>:
         Display + Debug + Hash + Clone + Ord,
 {
     fn rfs(&self, tree: Self) -> usize;
@@ -114,7 +114,7 @@ where
 pub trait ClusterAffinity<'a>
 where
     Self: RootedTree<'a> + Sized,
-    <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID:
+    TreeNodeID<'a, Self>:
         Display + Debug + Hash + Clone + Ord,
 {
     fn ca(&self, tree: Self) -> usize;
@@ -128,12 +128,12 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
     /// Contracts tree that from post_ord node_id iterator.
     fn contracted_tree_nodes_from_iter(
         &'a self,
-        new_tree_root_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
-        leaf_ids: &'a [<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID],
-        node_iter: impl Iterator<Item = <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID>,
+        new_tree_root_id: TreeNodeID<'a, Self>,
+        leaf_ids: &'a [TreeNodeID<'a, Self>],
+        node_iter: impl Iterator<Item = TreeNodeID<'a, Self>>,
     ) -> impl Iterator<Item = Self::Node> {
         let mut node_map: HashMap<
-            <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+            TreeNodeID<'a, Self>,
             Self::Node,
         > = HashMap::from_iter(vec![(new_tree_root_id, self.get_lca(leaf_ids))]);
         let mut remove_list = vec![];
@@ -150,7 +150,7 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
                     false => {
                         let node_children_ids = node.get_children().collect_vec();
                         for child_id in &node_children_ids {
-                            match node_map.get(child_id).is_some() {
+                            match node_map.contains_key(child_id) {
                                 true => {}
                                 false => node.remove_child(child_id),
                             }
@@ -230,12 +230,12 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
 
     fn contracted_tree_nodes(
         &'a self,
-        leaf_ids: &'a [<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID],
+        leaf_ids: &'a [TreeNodeID<'a, Self>],
     ) -> impl Iterator<Item = Self::Node> {
         let new_tree_root_id = self.get_lca_id(leaf_ids);
         let node_postord_iter = self.postord(new_tree_root_id);
         let mut node_map: HashMap<
-            <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
+            TreeNodeID<'a, Self>,
             Self::Node,
         > = HashMap::from_iter(vec![(new_tree_root_id, self.get_lca(leaf_ids))]);
         let mut remove_list = vec![];
@@ -251,7 +251,7 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
                 false => {
                     let node_children_ids = node.get_children().collect_vec();
                     for child_id in &node_children_ids {
-                        match node_map.get(child_id).is_some() {
+                        match node_map.contains_key(child_id) {
                             true => {}
                             false => node.remove_child(child_id),
                         }
@@ -331,13 +331,13 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
 
     fn contract_tree(
         &'a self,
-        leaf_ids: &'a [<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID],
+        leaf_ids: &'a [TreeNodeID<'a, Self>],
     ) -> Self;
 
     fn contract_tree_from_iter(
         &self,
-        leaf_ids: &'a [<<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID],
-        node_iter: impl Iterator<Item = <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID>,
+        leaf_ids: &'a [TreeNodeID<'a, Self>],
+        node_iter: impl Iterator<Item = TreeNodeID<'a, Self>>,
     ) -> Self;
 }
 
@@ -365,7 +365,7 @@ where
     // Returns zeta of leaf by taxa
     fn get_zeta_taxa(
         &'a self,
-        taxa: &'a <<Self as RootedTree<'a>>::Node as RootedMetaNode<'a>>::Meta,
+        taxa: &'a TreeNodeMeta<'a, Self>,
     ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
         self.get_zeta(self.get_taxa_node_id(taxa).unwrap()).unwrap()
     }
@@ -413,7 +413,7 @@ where
         &'a self,
         tree: &'a Self,
         norm: u32,
-        taxa_set: impl Iterator<Item = &'a <<Self as RootedTree<'a>>::Node as RootedMetaNode<'a>>::Meta>
+        taxa_set: impl Iterator<Item = &'a TreeNodeMeta<'a, Self>>
             + Clone,
     ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
         let taxa_set = taxa_set.collect_vec();

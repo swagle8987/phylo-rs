@@ -92,11 +92,8 @@ where
     /// Returns ids of all nodes connected to self, including parent if exists.
     fn neighbours(&self) -> impl ExactSizeIterator<Item = Self::NodeID> {
         let mut children = self.get_children().collect_vec();
-        match self.get_parent() {
-            Some(p) => {
-                children.push(p);
-            }
-            None => {}
+        if let Some(p) = self.get_parent() {
+            children.push(p);
         }
         children.into_iter()
     }

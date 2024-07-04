@@ -39,7 +39,7 @@ impl<'a> DFSPostOrderIterator<'a> {
         let mut nodes = vec![None; max_id + 1];
         tree.get_nodes()
             .for_each(|node| nodes[node.get_id()] = Some(node));
-        let start_node = std::mem::replace(&mut nodes[start_id], None).unwrap();
+        let start_node = nodes[start_id].take().unwrap();
         DFSPostOrderIterator {
             stack: vec![start_node].into(),
             nodes,
@@ -54,7 +54,7 @@ impl<'a> Iterator for BFSIterator<'a> {
         match self.stack.pop_front() {
             None => None,
             Some(curr_node_id) => {
-                let curr_node = std::mem::replace(&mut self.nodes[curr_node_id], None).unwrap();
+                let curr_node = self.nodes[curr_node_id].take().unwrap();
                 curr_node
                     .get_children()
                     .for_each(|x| self.stack.push_back(x));
@@ -71,7 +71,7 @@ impl<'a> Iterator for DFSPostOrderIterator<'a> {
         while let Some(node) = self.stack.pop_front() {
             let node_children = node
                 .get_children()
-                .filter_map(|chid| std::mem::replace(&mut self.nodes[chid], None))
+                .filter_map(|chid| self.nodes[chid].take())
                 .collect_vec();
             if !node_children.is_empty() {
                 self.stack.push_front(node);
