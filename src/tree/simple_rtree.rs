@@ -14,19 +14,11 @@ where
     type Node: 'a;
 
     /// Returns reference to node by ID
-    fn get_node(
-        &'a self,
-        node_id: TreeNodeID<'a, Self>,
-    ) -> Option<&'a Self::Node>;
+    fn get_node(&'a self, node_id: TreeNodeID<'a, Self>) -> Option<&'a Self::Node>;
 
-    fn get_node_mut(
-        &'a mut self,
-        node_id: TreeNodeID<'a, Self>,
-    ) -> Option<&'a mut Self::Node>;
+    fn get_node_mut(&'a mut self, node_id: TreeNodeID<'a, Self>) -> Option<&'a mut Self::Node>;
 
-    fn get_node_ids(
-        &self,
-    ) -> impl Iterator<Item = TreeNodeID<'a, Self>>;
+    fn get_node_ids(&self) -> impl Iterator<Item = TreeNodeID<'a, Self>>;
 
     fn get_nodes(&'a self) -> impl ExactSizeIterator<Item = &'a Self::Node>;
 
@@ -39,36 +31,19 @@ where
     /// Returns reference to node by ID
     fn set_node(&'a mut self, node: Self::Node);
 
-    fn add_child(
-        &'a mut self,
-        parent_id: TreeNodeID<'a, Self>,
-        child: Self::Node,
-    );
+    fn add_child(&'a mut self, parent_id: TreeNodeID<'a, Self>, child: Self::Node);
 
-    fn remove_node(
-        &'a mut self,
-        node_id: TreeNodeID<'a, Self>,
-    ) -> Option<Self::Node>;
+    fn remove_node(&'a mut self, node_id: TreeNodeID<'a, Self>) -> Option<Self::Node>;
 
-    fn delete_node(
-        &'a mut self,
-        node_id: TreeNodeID<'a, Self>,
-    );
+    fn delete_node(&'a mut self, node_id: TreeNodeID<'a, Self>);
 
-    fn contains_node(
-        &self,
-        node_id: TreeNodeID<'a, Self>,
-    ) -> bool;
+    fn contains_node(&self, node_id: TreeNodeID<'a, Self>) -> bool;
 
     fn clean(&'a mut self);
 
     fn clear(&'a mut self);
 
-    fn delete_edge(
-        &'a mut self,
-        parent_id: TreeNodeID<'a, Self>,
-        child_id: TreeNodeID<'a, Self>,
-    );
+    fn delete_edge(&'a mut self, parent_id: TreeNodeID<'a, Self>, child_id: TreeNodeID<'a, Self>);
 
     fn set_nodes(
         &'a mut self,
@@ -80,10 +55,7 @@ where
 
     fn split_edge(
         &'a mut self,
-        edge: (
-            TreeNodeID<'a, Self>,
-            TreeNodeID<'a, Self>,
-        ),
+        edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>),
         node: Self::Node,
     );
 
@@ -108,17 +80,9 @@ where
 
     fn get_root_mut(&'a mut self) -> &'a mut Self::Node;
 
-    fn set_child(
-        &'a mut self,
-        parent_id: TreeNodeID<'a, Self>,
-        child_id: TreeNodeID<'a, Self>,
-    );
+    fn set_child(&'a mut self, parent_id: TreeNodeID<'a, Self>, child_id: TreeNodeID<'a, Self>);
 
-    fn remove_child(
-        &'a mut self,
-        parent_id: TreeNodeID<'a, Self>,
-        child_id: TreeNodeID<'a, Self>,
-    ) {
+    fn remove_child(&'a mut self, parent_id: TreeNodeID<'a, Self>, child_id: TreeNodeID<'a, Self>) {
         self.get_node_mut(parent_id)
             .unwrap()
             .remove_child(&child_id);
@@ -130,22 +94,13 @@ where
         child_ids: Vec<TreeNodeID<'a, Self>>,
     );
 
-    fn remove_all_children(
-        &'a mut self,
-        node_id: TreeNodeID<'a, Self>,
-    );
+    fn remove_all_children(&'a mut self, node_id: TreeNodeID<'a, Self>);
 
-    fn get_node_parent_id(
-        &'a self,
-        node_id: TreeNodeID<'a, Self>,
-    ) -> Option<TreeNodeID<'a, Self>> {
+    fn get_node_parent_id(&'a self, node_id: TreeNodeID<'a, Self>) -> Option<TreeNodeID<'a, Self>> {
         self.get_node(node_id).unwrap().get_parent()
     }
 
-    fn get_node_parent(
-        &'a self,
-        node_id: TreeNodeID<'a, Self>,
-    ) -> Option<&'a Self::Node> {
+    fn get_node_parent(&'a self, node_id: TreeNodeID<'a, Self>) -> Option<&'a Self::Node> {
         match self.get_node_parent_id(node_id) {
             Some(id) => self.get_node(id),
             None => None,
@@ -163,8 +118,7 @@ where
     fn get_node_children_ids(
         &'a self,
         node_id: TreeNodeID<'a, Self>,
-    ) -> impl ExactSizeIterator<Item = TreeNodeID<'a, Self>>
-    {
+    ) -> impl ExactSizeIterator<Item = TreeNodeID<'a, Self>> {
         self.get_node(node_id)
             .unwrap()
             .get_children()
@@ -172,16 +126,10 @@ where
             .into_iter()
     }
 
-    fn node_degree(
-        &'a self,
-        node_id: TreeNodeID<'a, Self>,
-    ) -> usize {
+    fn node_degree(&'a self, node_id: TreeNodeID<'a, Self>) -> usize {
         self.get_node(node_id).unwrap().degree()
     }
-    fn get_node_depth(
-        &'a self,
-        node_id: TreeNodeID<'a, Self>,
-    ) -> usize {
+    fn get_node_depth(&'a self, node_id: TreeNodeID<'a, Self>) -> usize {
         let mut start_id = node_id;
         let mut depth = 0;
         while let Some(parent_id) = self.get_node_parent_id(start_id) {
@@ -199,10 +147,7 @@ where
         true
     }
 
-    fn is_leaf(
-        &'a self,
-        node_id: &TreeNodeID<'a, Self>,
-    ) -> bool {
+    fn is_leaf(&'a self, node_id: &TreeNodeID<'a, Self>) -> bool {
         self.get_node(*node_id).unwrap().is_leaf()
     }
 
@@ -229,10 +174,7 @@ where
         return self.get_siblings(node_id).map(|x| x.get_id());
     }
 
-    fn supress_node(
-        &'a mut self,
-        _node_id: TreeNodeID<'a, Self>,
-    ) {
+    fn supress_node(&'a mut self, _node_id: TreeNodeID<'a, Self>) {
         todo!()
     }
 
@@ -245,15 +187,9 @@ pub trait RootedMetaTree<'a>: RootedTree<'a>
 where
     Self::Node: RootedMetaNode<'a>,
 {
-    fn get_taxa_node(
-        &self,
-        taxa: &TreeNodeMeta<'a, Self>,
-    ) -> Option<&Self::Node>;
+    fn get_taxa_node(&self, taxa: &TreeNodeMeta<'a, Self>) -> Option<&Self::Node>;
 
-    fn get_taxa_node_id(
-        &self,
-        taxa: &TreeNodeMeta<'a, Self>,
-    ) -> Option<TreeNodeID<'a, Self>> {
+    fn get_taxa_node_id(&self, taxa: &TreeNodeMeta<'a, Self>) -> Option<TreeNodeID<'a, Self>> {
         self.get_taxa_node(taxa).map(|node| node.get_id())
     }
     fn num_taxa(&'a self) -> usize {
@@ -272,9 +208,7 @@ where
     ) -> Option<&'a TreeNodeMeta<'a, Self>> {
         self.get_node(node_id).unwrap().get_taxa()
     }
-    fn get_taxa_space(
-        &'a self,
-    ) -> impl ExactSizeIterator<Item = &'a TreeNodeMeta<'a, Self>>;
+    fn get_taxa_space(&'a self) -> impl ExactSizeIterator<Item = &'a TreeNodeMeta<'a, Self>>;
 }
 
 pub trait RootedWeightedTree<'a>: RootedTree<'a>
@@ -285,10 +219,7 @@ where
 
     fn set_edge_weight(
         &'a mut self,
-        edge: (
-            TreeNodeID<'a, Self>,
-            TreeNodeID<'a, Self>,
-        ),
+        edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>),
         edge_weight: Option<TreeNodeWeight<'a, Self>>,
     ) {
         self.get_node_mut(edge.1).unwrap().set_weight(edge_weight);

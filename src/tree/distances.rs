@@ -3,7 +3,6 @@ use crate::tree::{RootedTree, TreeNodeID};
 
 pub type TreeNodeZeta<'a, T> = <<T as RootedTree<'a>>::Node as RootedZetaNode>::Zeta;
 
-
 // pub trait InterNodeDistances
 // where
 //     Self: WeightedTree + Sized
@@ -18,22 +17,10 @@ pub trait PathFunction<'a>: RootedTree<'a>
 where
     <Self as RootedTree<'a>>::Node: RootedZetaNode,
 {
-    fn set_zeta(
-        &'a mut self,
-        zeta_func: fn(
-            &Self,
-            TreeNodeID<'a, Self>,
-        ) -> TreeNodeZeta<'a, Self>,
-    );
-    fn get_zeta(
-        &'a self,
-        node_id: TreeNodeID<'a, Self>,
-    ) -> Option<TreeNodeZeta<'a, Self>>;
+    fn set_zeta(&'a mut self, zeta_func: fn(&Self, TreeNodeID<'a, Self>) -> TreeNodeZeta<'a, Self>);
+    fn get_zeta(&'a self, node_id: TreeNodeID<'a, Self>) -> Option<TreeNodeZeta<'a, Self>>;
 
-    fn is_zeta_set(
-        &self,
-        node_id: TreeNodeID<'a, Self>,
-    ) -> bool;
+    fn is_zeta_set(&self, node_id: TreeNodeID<'a, Self>) -> bool;
     // {
     //     self.get_node(node_id).unwrap().is_zeta_set()
     // }

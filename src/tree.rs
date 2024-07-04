@@ -160,9 +160,7 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
     }
 
     fn get_nodes_mut(&'a mut self) -> impl Iterator<Item = &'a mut Self::Node> {
-        self.nodes
-            .iter_mut()
-            .filter_map(|x| x.as_mut())
+        self.nodes.iter_mut().filter_map(|x| x.as_mut())
     }
 
     /// Returns reference to node by ID
@@ -456,7 +454,8 @@ impl<'a> Subtree<'a> for SimpleRootedTree {
         for node_id in node_id_list.into_iter() {
             let ancestors = self
                 .root_to_node(node_id)
-                .into_iter().cloned()
+                .into_iter()
+                .cloned()
                 .collect_vec();
             subtree.set_nodes(ancestors);
         }
@@ -469,10 +468,7 @@ impl<'a> Subtree<'a> for SimpleRootedTree {
         node_id: <<Self as RootedTree<'a>>::Node as RootedTreeNode>::NodeID,
     ) -> Self {
         let mut subtree = self.clone();
-        let dfs = self
-            .dfs(node_id)
-            .into_iter().cloned()
-            .collect_vec();
+        let dfs = self.dfs(node_id).into_iter().cloned().collect_vec();
         subtree.set_nodes(dfs);
         subtree
     }
