@@ -1,14 +1,8 @@
 use std::collections::HashSet;
 
 use itertools::Itertools;
-use phylo::iter::node_iter::{Ancestors, Clusters, EulerWalk, BFS, DFS};
-use phylo::node::simple_rnode::RootedTreeNode;
+use phylo::prelude::*;
 use phylo::node::Node;
-use phylo::tree::distances::PathFunction;
-use phylo::tree::io::*;
-use phylo::tree::ops::CopheneticDistance;
-use phylo::tree::ops::{Balance, ContractTree, Subtree, SPR};
-use phylo::tree::simple_rtree::{RootedMetaTree, RootedTree};
 use phylo::tree::SimpleRootedTree;
 
 #[test]

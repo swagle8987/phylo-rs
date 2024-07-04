@@ -2,8 +2,10 @@ pub mod distances;
 pub mod io;
 pub mod ops;
 pub mod simple_rtree;
+pub mod simulation;
 
 use fxhash::FxHashMap as HashMap;
+use simulation::{Uniform, Yule};
 use std::ops::Index;
 
 use anyhow::Result;
@@ -52,73 +54,6 @@ impl SimpleRootedTree {
 
     pub fn next_node(&self) -> Node {
         Node::new(self.next_id())
-    }
-
-    // todo: move to a separate trait
-
-    pub fn yule(num_taxa: usize) -> Result<SimpleRootedTree> {
-        let mut tree = SimpleRootedTree::new(0);
-        if num_taxa < 3 {
-            return Ok(tree);
-        }
-        let new_node = Node::new(1);
-        tree.add_child(0, new_node);
-        tree.set_node_taxa(1, Some("0".to_string()));
-        let new_node = Node::new(2);
-        tree.add_child(0, new_node);
-        tree.set_node_taxa(2, Some("1".to_string()));
-        if num_taxa < 4 {
-            return Ok(tree);
-        }
-        let mut current_leaf_ids = vec![1, 2];
-        for i in 2..num_taxa {
-            let rand_leaf_id = current_leaf_ids
-                .iter()
-                .choose(&mut rand::thread_rng())
-                .unwrap();
-            let rand_leaf_parent_id = tree.get_node_parent_id(*rand_leaf_id).unwrap();
-            let split_node = Node::new(tree.next_id());
-            let split_node_id = split_node.get_id();
-            tree.split_edge((rand_leaf_parent_id, *rand_leaf_id), split_node);
-            let new_leaf = Node::new(tree.next_id());
-            let new_leaf_id = new_leaf.get_id();
-            tree.add_child(split_node_id, new_leaf);
-            tree.set_node_taxa(new_leaf_id, Some(i.to_string()));
-            current_leaf_ids.push(new_leaf_id);
-        }
-        Ok(tree)
-    }
-    pub fn unif(num_taxa: usize) -> Result<SimpleRootedTree> {
-        let mut tree = SimpleRootedTree::new(0);
-        if num_taxa < 3 {
-            return Ok(tree);
-        }
-        let new_node = Node::new(1);
-        tree.add_child(0, new_node);
-        tree.set_node_taxa(1, Some("0".to_string()));
-        let new_node = Node::new(2);
-        tree.add_child(0, new_node);
-        tree.set_node_taxa(2, Some("1".to_string()));
-        if num_taxa < 3 {
-            return Ok(tree);
-        }
-        let mut current_node_ids = vec![1, 2];
-        for i in 1..num_taxa {
-            let rand_leaf_id = *current_node_ids
-                .iter()
-                .choose(&mut rand::thread_rng())
-                .unwrap();
-            let rand_leaf_parent_id = tree.get_node_parent_id(rand_leaf_id).unwrap();
-            let split_node = Node::new(tree.next_id());
-            let split_node_id = split_node.get_id();
-            current_node_ids.push(split_node_id);
-            tree.split_edge((rand_leaf_parent_id, rand_leaf_id), split_node);
-            let mut new_leaf = Node::new(tree.next_id());
-            new_leaf.set_taxa(Some(i.to_string()));
-            current_node_ids.push(new_leaf.get_id());
-            tree.add_child(split_node_id, new_leaf)
-        }
-        Ok(tree)
     }
 }
 
@@ -352,6 +287,77 @@ impl<'a> RootedMetaTree<'a> for SimpleRootedTree {
     fn get_taxa_space(&'a self) -> impl ExactSizeIterator<Item = &'a TreeNodeMeta<'a, Self>> {
         self.taxa_node_id_map.keys()
     }
+}
+
+impl<'a> Yule<'a> for SimpleRootedTree{
+    fn yule(num_taxa: usize) -> Result<SimpleRootedTree> {
+        let mut tree = SimpleRootedTree::new(0);
+        if num_taxa < 3 {
+            return Ok(tree);
+        }
+        let new_node = Node::new(1);
+        tree.add_child(0, new_node);
+        tree.set_node_taxa(1, Some("0".to_string()));
+        let new_node = Node::new(2);
+        tree.add_child(0, new_node);
+        tree.set_node_taxa(2, Some("1".to_string()));
+        if num_taxa < 4 {
+            return Ok(tree);
+        }
+        let mut current_leaf_ids = vec![1, 2];
+        for i in 2..num_taxa {
+            let rand_leaf_id = current_leaf_ids
+                .iter()
+                .choose(&mut rand::thread_rng())
+                .unwrap();
+            let rand_leaf_parent_id = tree.get_node_parent_id(*rand_leaf_id).unwrap();
+            let split_node = Node::new(tree.next_id());
+            let split_node_id = split_node.get_id();
+            tree.split_edge((rand_leaf_parent_id, *rand_leaf_id), split_node);
+            let new_leaf = Node::new(tree.next_id());
+            let new_leaf_id = new_leaf.get_id();
+            tree.add_child(split_node_id, new_leaf);
+            tree.set_node_taxa(new_leaf_id, Some(i.to_string()));
+            current_leaf_ids.push(new_leaf_id);
+        }
+        Ok(tree)
+    }
+}
+
+impl<'a> Uniform<'a> for SimpleRootedTree{
+    fn unif(num_taxa: usize) -> Result<SimpleRootedTree> {
+        let mut tree = SimpleRootedTree::new(0);
+        if num_taxa < 3 {
+            return Ok(tree);
+        }
+        let new_node = Node::new(1);
+        tree.add_child(0, new_node);
+        tree.set_node_taxa(1, Some("0".to_string()));
+        let new_node = Node::new(2);
+        tree.add_child(0, new_node);
+        tree.set_node_taxa(2, Some("1".to_string()));
+        if num_taxa < 3 {
+            return Ok(tree);
+        }
+        let mut current_node_ids = vec![1, 2];
+        for i in 1..num_taxa {
+            let rand_leaf_id = *current_node_ids
+                .iter()
+                .choose(&mut rand::thread_rng())
+                .unwrap();
+            let rand_leaf_parent_id = tree.get_node_parent_id(rand_leaf_id).unwrap();
+            let split_node = Node::new(tree.next_id());
+            let split_node_id = split_node.get_id();
+            current_node_ids.push(split_node_id);
+            tree.split_edge((rand_leaf_parent_id, rand_leaf_id), split_node);
+            let mut new_leaf = Node::new(tree.next_id());
+            new_leaf.set_taxa(Some(i.to_string()));
+            current_node_ids.push(new_leaf.get_id());
+            tree.add_child(split_node_id, new_leaf)
+        }
+        Ok(tree)
+    }
+
 }
 
 impl<'a> RootedWeightedTree<'a> for SimpleRootedTree {

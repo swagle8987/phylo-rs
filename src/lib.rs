@@ -16,4 +16,6 @@ pub mod prelude {
     pub use crate::tree::ops::*;
     #[doc(no_inline)]
     pub use crate::tree::simple_rtree::*;
+    #[doc(no_inline)]
+    pub use crate::tree::simulation::*;
 }
