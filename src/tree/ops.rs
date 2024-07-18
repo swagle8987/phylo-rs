@@ -95,11 +95,11 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
     fn contracted_tree_nodes_from_iter(
         &'a self,
         new_tree_root_id: TreeNodeID<'a, Self>,
-        leaf_ids: &'a [TreeNodeID<'a, Self>],
+        leaf_ids: &[TreeNodeID<'a, Self>],
         node_iter: impl Iterator<Item = TreeNodeID<'a, Self>>,
     ) -> impl Iterator<Item = Self::Node> {
         let mut node_map: HashMap<TreeNodeID<'a, Self>, Self::Node> =
-            HashMap::from_iter(vec![(new_tree_root_id, self.get_lca(leaf_ids))]);
+            HashMap::from_iter(vec![(new_tree_root_id, self.get_lca(leaf_ids).clone())]);
         let mut remove_list = vec![];
         node_iter
             .map(|x| self.get_node(x).cloned().unwrap())
@@ -194,12 +194,12 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
 
     fn contracted_tree_nodes(
         &'a self,
-        leaf_ids: &'a [TreeNodeID<'a, Self>],
+        leaf_ids: &[TreeNodeID<'a, Self>],
     ) -> impl Iterator<Item = Self::Node> {
         let new_tree_root_id = self.get_lca_id(leaf_ids);
-        let node_postord_iter = self.postord(new_tree_root_id);
+        let node_postord_iter = self.postord_nodes(new_tree_root_id);
         let mut node_map: HashMap<TreeNodeID<'a, Self>, Self::Node> =
-            HashMap::from_iter(vec![(new_tree_root_id, self.get_lca(leaf_ids))]);
+            HashMap::from_iter(vec![(new_tree_root_id, self.get_lca(leaf_ids).clone())]);
         let mut remove_list = vec![];
         node_postord_iter.for_each(|orig_node| {
             let mut node = orig_node.clone();
@@ -291,11 +291,11 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
         node_map.into_values()
     }
 
-    fn contract_tree(&'a self, leaf_ids: &'a [TreeNodeID<'a, Self>]) -> Self;
+    fn contract_tree(&self, leaf_ids: &[TreeNodeID<'a, Self>]) -> Self;
 
     fn contract_tree_from_iter(
         &self,
-        leaf_ids: &'a [TreeNodeID<'a, Self>],
+        leaf_ids: &[TreeNodeID<'a, Self>],
         node_iter: impl Iterator<Item = TreeNodeID<'a, Self>>,
     ) -> Self;
 }
@@ -324,7 +324,7 @@ where
     // Returns zeta of leaf by taxa
     fn get_zeta_taxa(
         &'a self,
-        taxa: &'a TreeNodeMeta<'a, Self>,
+        taxa: &TreeNodeMeta<'a, Self>,
     ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
         self.get_zeta(self.get_taxa_node_id(taxa).unwrap()).unwrap()
     }

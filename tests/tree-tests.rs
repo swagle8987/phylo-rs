@@ -53,10 +53,10 @@ fn tree_iter() {
         .into_iter()
         .collect_vec());
     dbg!(&tree.dfs(tree.get_root_id()).into_iter().collect_vec());
-    dbg!(&tree.bfs(tree.get_root_id()).collect_vec());
-    dbg!(&tree.postord(tree.get_root_id()).collect_vec());
+    dbg!(&tree.bfs_ids(tree.get_root_id()).collect_vec());
+    dbg!(&tree.postord_ids(tree.get_root_id()).collect_vec());
     dbg!(&tree
-        .euler_walk(tree.get_root_id())
+        .euler_walk_ids(tree.get_root_id())
         .into_iter()
         .collect_vec());
     dbg!(&tree.dfs(tree.get_root_id()).into_iter().collect_vec());
@@ -68,13 +68,13 @@ fn read_small_tree() {
     let input_str = String::from("((A,B),C);");
     let tree = SimpleRootedTree::from_newick(input_str.as_bytes());
     dbg!(&tree
-        .euler_walk(tree.get_root_id())
+        .euler_walk_ids(tree.get_root_id())
         .into_iter()
         .collect_vec());
     let input_str = String::from("((A:0.1,B:0.2),C:0.6);");
     let tree = SimpleRootedTree::from_newick(input_str.as_bytes());
     dbg!(&tree
-        .euler_walk(tree.get_root_id())
+        .euler_walk_ids(tree.get_root_id())
         .into_iter()
         .collect_vec());
     dbg!(format!("{}", &tree.to_newick()));

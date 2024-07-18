@@ -24,7 +24,7 @@ where
 
     fn get_nodes_mut(&'a mut self) -> impl Iterator<Item = &'a mut Self::Node>;
 
-    fn get_root_id(&'a self) -> TreeNodeID<'a, Self>;
+    fn get_root_id(&self) -> TreeNodeID<'a, Self>;
 
     fn set_root(&'a mut self, node_id: TreeNodeID<'a, Self>);
 
@@ -73,6 +73,13 @@ where
             .into_iter()
     }
 
+    fn get_leaf_ids(&self) -> impl ExactSizeIterator<Item = TreeNodeID<'a, Self>> {
+        self.get_node_ids()
+            .filter(|x| self.is_leaf(*x))
+            .collect_vec()
+            .into_iter()
+    }
+
     /// Get root node
     fn get_root(&'a self) -> &'a Self::Node {
         self.get_node(self.get_root_id()).unwrap()
@@ -96,9 +103,7 @@ where
 
     fn remove_all_children(&'a mut self, node_id: TreeNodeID<'a, Self>);
 
-    fn get_node_parent_id(&'a self, node_id: TreeNodeID<'a, Self>) -> Option<TreeNodeID<'a, Self>> {
-        self.get_node(node_id).unwrap().get_parent()
-    }
+    fn get_node_parent_id(&self, node_id: TreeNodeID<'a, Self>) -> Option<TreeNodeID<'a, Self>>;
 
     fn get_node_parent(&'a self, node_id: TreeNodeID<'a, Self>) -> Option<&'a Self::Node> {
         match self.get_node_parent_id(node_id) {
@@ -116,20 +121,14 @@ where
     }
 
     fn get_node_children_ids(
-        &'a self,
+        &self,
         node_id: TreeNodeID<'a, Self>,
-    ) -> impl ExactSizeIterator<Item = TreeNodeID<'a, Self>> {
-        self.get_node(node_id)
-            .unwrap()
-            .get_children()
-            .collect_vec()
-            .into_iter()
-    }
+    ) -> impl ExactSizeIterator<Item = TreeNodeID<'a, Self>>;
 
     fn node_degree(&'a self, node_id: TreeNodeID<'a, Self>) -> usize {
         self.get_node(node_id).unwrap().degree()
     }
-    fn get_node_depth(&'a self, node_id: TreeNodeID<'a, Self>) -> usize {
+    fn get_node_depth(&self, node_id: TreeNodeID<'a, Self>) -> usize {
         let mut start_id = node_id;
         let mut depth = 0;
         while let Some(parent_id) = self.get_node_parent_id(start_id) {
@@ -147,9 +146,7 @@ where
         true
     }
 
-    fn is_leaf(&'a self, node_id: &TreeNodeID<'a, Self>) -> bool {
-        self.get_node(*node_id).unwrap().is_leaf()
-    }
+    fn is_leaf(&self, node_id: TreeNodeID<'a, Self>) -> bool;
 
     fn num_nodes(&'a self) -> usize {
         self.get_nodes().len()
@@ -168,10 +165,12 @@ where
     }
 
     fn get_sibling_ids(
-        &'a self,
+        &self,
         node_id: TreeNodeID<'a, Self>,
     ) -> impl Iterator<Item = TreeNodeID<'a, Self>> {
-        return self.get_siblings(node_id).map(|x| x.get_id());
+        let parent_id = self.get_node_parent_id(node_id).expect("Root does not have siblings!");
+        let sibling_ids = self.get_node_children_ids(parent_id).filter(move |x| x != &node_id);
+        return sibling_ids;
     }
 
     fn supress_node(&'a mut self, _node_id: TreeNodeID<'a, Self>) {
@@ -187,14 +186,12 @@ pub trait RootedMetaTree<'a>: RootedTree<'a>
 where
     Self::Node: RootedMetaNode<'a>,
 {
-    fn get_taxa_node(&self, taxa: &TreeNodeMeta<'a, Self>) -> Option<&Self::Node>;
+    fn get_taxa_node(&'a self, taxa: &TreeNodeMeta<'a, Self>) -> Option<&'a Self::Node>;
 
-    fn get_taxa_node_id(&self, taxa: &TreeNodeMeta<'a, Self>) -> Option<TreeNodeID<'a, Self>> {
-        self.get_taxa_node(taxa).map(|node| node.get_id())
-    }
-    fn num_taxa(&'a self) -> usize {
-        self.get_nodes().filter(|f| f.is_leaf()).collect_vec().len()
-    }
+    fn get_taxa_node_id(&self, taxa: &TreeNodeMeta<'a, Self>) -> Option<TreeNodeID<'a, Self>>;
+
+    fn num_taxa(&self) -> usize;
+
     fn set_node_taxa(
         &'a mut self,
         node_id: TreeNodeID<'a, Self>,
@@ -202,12 +199,19 @@ where
     ) {
         self.get_node_mut(node_id).unwrap().set_taxa(taxa)
     }
+    
     fn get_node_taxa(
         &'a self,
         node_id: TreeNodeID<'a, Self>,
     ) -> Option<&'a TreeNodeMeta<'a, Self>> {
         self.get_node(node_id).unwrap().get_taxa()
     }
+
+    fn get_node_taxa_cloned(
+        &self,
+        node_id: TreeNodeID<'a, Self>,
+    ) -> Option<TreeNodeMeta<'a, Self>>;
+
     fn get_taxa_space(&'a self) -> impl ExactSizeIterator<Item = &'a TreeNodeMeta<'a, Self>>;
 }
 

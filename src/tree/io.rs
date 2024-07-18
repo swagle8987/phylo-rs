@@ -14,16 +14,10 @@ where
 
     fn from_newick(newick_str: &[u8]) -> Self;
     fn subtree_to_newick(
-        &'a self,
+        &self,
         node_id: TreeNodeID<'a, Self>,
     ) -> impl Display;
-    fn to_newick(&'a self) -> impl Display {
+    fn to_newick(&self) -> impl Display {
         format!("{};", self.subtree_to_newick(self.get_root_id()))
     }
 }
-
-// pub trait Nexus
-// {
-//     fn from_nexus(newick_str: &[u8])->impl RootedTree;
-//     fn to_nexus(&self)->impl Display;
-// }
