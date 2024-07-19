@@ -1,7 +1,12 @@
+/// Module with traits and structs for distance computation
 pub mod distances;
+/// Module with traits and structs for tree encoding
 pub mod io;
+/// Module with traits and structs for tree operations
 pub mod ops;
+/// Module with traits and structs for general tree traits
 pub mod simple_rtree;
+/// Module with traits and structs for tree simulation
 pub mod simulation;
 
 use fxhash::FxHashMap as HashMap;
@@ -665,8 +670,6 @@ impl<'a> Clusters<'a> for SimpleRootedTree {
 }
 
 impl<'a> Newick<'a> for SimpleRootedTree {
-    type Weight = f32;
-    type Meta = String;
     fn from_newick(newick_str: &[u8]) -> Self {
         let mut tree = SimpleRootedTree::new(0);
         let mut stack: Vec<TreeNodeID<'a, Self>> = Vec::new();
@@ -695,7 +698,7 @@ impl<'a> Newick<'a> for SimpleRootedTree {
                     tree.set_child(*last_context, context);
                     tree.set_edge_weight(
                         (*last_context, context),
-                        decimal_str.parse::<Self::Weight>().ok(),
+                        decimal_str.parse::<TreeNodeWeight<'a, Self>>().ok(),
                     );
                     if !taxa_str.is_empty() {
                         tree.set_node_taxa(context, Some(taxa_str.to_string()));

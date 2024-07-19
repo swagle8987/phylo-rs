@@ -19,10 +19,11 @@ where
     /// Returns an iterator of NodeID's in a tree in postfix order
     fn postord_ids(&self, start_node: TreeNodeID<'a, Self>) -> impl Iterator<Item = TreeNodeID<'a, Self>>;
 
+    /// Returns a DFS iterator of immutable node references a tree 
     fn dfs(
         &'a self,
         start_node_id: TreeNodeID<'a, Self>,
-    ) -> impl IntoIterator<Item = &'a Self::Node, IntoIter = impl ExactSizeIterator<Item = &'a Self::Node>>
+    ) -> impl ExactSizeIterator<Item = &'a Self::Node>
     {
         let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
         let mut out_vec = vec![];
@@ -39,7 +40,7 @@ where
                 true => {}
             };
         }
-        out_vec
+        out_vec.into_iter()
     }
 }
 

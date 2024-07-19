@@ -1,4 +1,4 @@
-// #![warn(missing_docs)]
+#![warn(missing_docs)]
 
 //! The phylo crate aims to be useful when dealing with phylogenetic trees and analysis.
 //! It can be used to build such trees or read then from newick files, and perform phylogenetic anaysis.

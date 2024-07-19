@@ -3,8 +3,8 @@ use num::{Float, NumCast, Signed};
 use fxhash::FxHashSet as HashSet;
 use itertools::Itertools;
 
-use crate::node::simple_rnode::RootedZetaNode;
-use crate::tree::{RootedTree, TreeNodeID, TreeNodeMeta};
+use crate::node::simple_rnode::{RootedZetaNode, RootedWeightedNode};
+use crate::tree::{RootedTree, TreeNodeID, TreeNodeMeta, RootedWeightedTree, TreeNodeWeight};
 use crate::tree::{Clusters, Ancestors, RootedMetaTree, ContractTree, RootedMetaNode};
 
 
@@ -42,21 +42,27 @@ where
     Self: RootedTree<'a> + Sized,
     TreeNodeID<'a, Self>: Display + Debug + Hash + Clone + Ord,
 {
-    fn rfs(&self, tree: Self) -> usize;
+    /// Returns Robinson Foulds distance between tree and self.
+    fn rfs(&self, tree: &Self) -> usize;
 }
 
 /// A trait describing naive computation of Cluster Affinity distance
 pub trait ClusterAffinity<'a>
 where
     Self: RootedTree<'a> + Sized,
-    TreeNodeID<'a, Self>: Display + Debug + Hash + Clone + Ord,
 {
-    fn ca(&self, tree: Self) -> usize;
+    /// Returns Cluster Affinity distance between tree and self.
+    fn ca(&self, tree: &Self) -> usize;
 }
 
 /// A trait describing naive computation of Weighted Robinson Foulds distance
-pub trait WeightedRobinsonFoulds {
-    fn wrfs(&self, tree: Self) -> usize;
+pub trait WeightedRobinsonFoulds<'a> 
+where 
+    Self: RootedWeightedTree<'a> + Sized,
+    <Self as RootedTree<'a>>::Node: RootedWeightedNode,
+{
+    /// Returns weighted Robinson Foulds distance between tree and self.
+    fn wrfs(&self, tree: &Self) -> TreeNodeWeight<'a, Self>;
 }
 
 /// A trait describing naive computation of cophenetic distance
@@ -81,7 +87,7 @@ where
         + Copy
         + Send,
 {
-    // Returns zeta of leaf by taxa
+    /// Returns zeta of leaf by taxa
     fn get_zeta_taxa(
         &'a self,
         taxa: &TreeNodeMeta<'a, Self>,

@@ -9,7 +9,7 @@ pub trait RootedTreeNode
 where
     Self: Clone,
 {
-    // Associate type for node identifier. Should be unique within a tree
+    /// Associate type for node identifier. Should be unique within a tree
     type NodeID: Display + Debug + Hash + Ord + PartialEq + Eq + Copy;
 
     /// Creates a new node with provided id
@@ -101,6 +101,7 @@ where
 
 /// A trait describing the behaviour of a Node in a n-ary tree that carries node annotations
 pub trait RootedMetaNode<'a>: RootedTreeNode {
+    /// Meta annotation of node
     type Meta: Display + Debug + Eq + PartialEq + Clone + Ord + Hash;
 
     /// Returns node annotation
@@ -112,6 +113,7 @@ pub trait RootedMetaNode<'a>: RootedTreeNode {
 
 /// A trait describing the behaviour of a Node in a n-ary tree that has numeric edge annotations
 pub trait RootedWeightedNode: RootedTreeNode {
+    /// Weight of edge leading into node
     type Weight: Num + Clone + PartialOrd + NumCast + std::iter::Sum;
 
     /// Returns weight of edge leading into node
@@ -128,6 +130,7 @@ pub trait RootedWeightedNode: RootedTreeNode {
 
 /// A trait describing the behaviour of a Node in a n-ary tree with numeric node annotations
 pub trait RootedZetaNode: RootedTreeNode {
+    /// Zeta annotation of a node
     type Zeta: Num + Clone + PartialOrd + NumCast + std::iter::Sum;
 
     /// Returns node annotation

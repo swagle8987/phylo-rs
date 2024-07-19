@@ -1,3 +1,4 @@
+/// Module with traits of rooted tree nodes
 pub mod simple_rnode;
 
 use std::fmt::{Debug, Display};

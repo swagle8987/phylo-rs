@@ -2,8 +2,11 @@ use crate::node::simple_rnode::*;
 use itertools::Itertools;
 use std::fmt::Debug;
 
+/// A type alias for Tree Node ID
 pub type TreeNodeID<'a, T> = <<T as RootedTree<'a>>::Node as RootedTreeNode>::NodeID;
+/// A type alias for Tree Node meta annotation
 pub type TreeNodeMeta<'a, T> = <<T as RootedTree<'a>>::Node as RootedMetaNode<'a>>::Meta;
+/// A type alias for Tree edge weight
 pub type TreeNodeWeight<'a, T> = <<T as RootedTree<'a>>::Node as RootedWeightedNode>::Weight;
 
 /// A trait describing the behaviour of a rooted tree
@@ -11,6 +14,7 @@ pub trait RootedTree<'a>: Clone + Sync
 where
     Self::Node: 'a + RootedTreeNode + Debug,
 {
+    /// An associated node type for a rooted tree
     type Node: 'a;
 
     /// Returns reference to node by ID

@@ -37,6 +37,7 @@ pub trait NNI<'a>
 where
     Self: RootedTree<'a> + Sized,
 {
+    /// Performs an NNI operation
     fn nni(&mut self, parent_id: TreeNodeID<'a, Self>);
 }
 
@@ -45,7 +46,9 @@ pub trait Reroot<'a>
 where
     Self: RootedTree<'a> + Sized,
 {
+    /// Reroots tree at node. **Note: this changes the degree of a node**
     fn reroot_at_node(&mut self, node_id: TreeNodeID<'a, Self>);
+    /// Reroots tree at a split node.
     fn reroot_at_edge(&mut self, edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>));
 }
 
@@ -54,6 +57,7 @@ pub trait Balance<'a>: Clusters<'a> + SPR<'a> + Sized
 where
     TreeNodeID<'a, Self>: Display + Debug + Hash + Clone + Ord,
 {
+    /// Balances a binary tree
     fn balance_subtree(&mut self);
 }
 
@@ -62,6 +66,7 @@ pub trait Subtree<'a>: Ancestors<'a> + DFS<'a> + Sized
 where
     TreeNodeID<'a, Self>: Display + Debug + Hash + Clone + Ord,
 {
+    /// Returns a subtree consisting of only provided nodes
     fn induce_tree(
         &'a self,
         node_id_list: impl IntoIterator<
@@ -70,6 +75,7 @@ where
         >,
     ) -> Self;
 
+    /// Returns subtree starting at provided node.
     fn subtree(&'a self, node_id: TreeNodeID<'a, Self>) -> Self;
 }
 
@@ -176,6 +182,7 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
         node_map.into_values()
     }
 
+    /// Returns a deep copy of the nodes in the contracted tree
     fn contracted_tree_nodes(
         &'a self,
         leaf_ids: &[TreeNodeID<'a, Self>],
@@ -275,8 +282,10 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
         node_map.into_values()
     }
 
+    /// Returns a contracted tree from slice containing NodeID's
     fn contract_tree(&self, leaf_ids: &[TreeNodeID<'a, Self>]) -> Self;
 
+    /// Returns a contracted tree from an iterator containing NodeID's
     fn contract_tree_from_iter(
         &self,
         leaf_ids: &[TreeNodeID<'a, Self>],
