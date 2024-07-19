@@ -1,4 +1,4 @@
-pub mod edge_iter;
+/// Module with traits for tree traversals
 pub mod node_iter;
 
 use crate::{node::Node, prelude::*};
