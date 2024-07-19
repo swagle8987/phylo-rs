@@ -1,20 +1,27 @@
 pub mod simple_rnode;
 
 use std::fmt::{Debug, Display};
-
 use crate::node::simple_rnode::{
     RootedMetaNode, RootedTreeNode, RootedWeightedNode, RootedZetaNode,
 };
 
+/// A type alias for NodeID
 pub type NodeID = usize;
 
+/// A node structure in an arena-memory managed tree, linking to connected neighbours via NodeID
 #[derive(Clone)]
 pub struct Node {
+    /// A unique identifier for a node
     id: NodeID,
+    /// A link to the node parent (set to None for root)
     parent: Option<NodeID>,
+    /// Children of node
     children: Vec<NodeID>,
+    /// Taxa annotation of node
     taxa: Option<String>,
+    /// Weight of edge ending in node
     weight: Option<f32>,
+    /// Real number annotation of node (used by some algorithms)
     zeta: Option<f32>,
 }
 
@@ -43,15 +50,19 @@ impl RootedTreeNode for Node {
     fn set_parent(&mut self, parent: Option<Self::NodeID>) {
         self.parent = parent;
     }
+
     fn get_parent(&self) -> Option<Self::NodeID> {
         self.parent
     }
+
     fn get_children(&self) -> impl ExactSizeIterator<Item = Self::NodeID> + DoubleEndedIterator {
         self.children.clone().into_iter()
     }
+
     fn add_child(&mut self, child: Self::NodeID) {
         self.children.push(child);
     }
+
     fn remove_child(&mut self, child: &Self::NodeID) {
         self.children.retain(|x| x != child);
     }

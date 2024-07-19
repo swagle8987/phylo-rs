@@ -126,7 +126,7 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
     }
 
     fn set_nodes(
-        &'a mut self,
+        &mut self,
         node_list: impl IntoIterator<
             Item = Self::Node,
             IntoIter = impl ExactSizeIterator<Item = Self::Node>,
@@ -257,7 +257,7 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
     fn remove_children(
         &'a mut self,
         parent_id: TreeNodeID<'a, Self>,
-        child_ids: Vec<TreeNodeID<'a, Self>>,
+        child_ids: impl Iterator<Item=TreeNodeID<'a, Self>>,
     ) {
         for child_id in child_ids {
             self.get_node_mut(parent_id)
@@ -267,7 +267,7 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
     }
 
     fn remove_all_children(&'a mut self, node_id: TreeNodeID<'a, Self>) {
-        let node_children_ids = self.get_node_children_ids(node_id).collect_vec();
+        let node_children_ids = self.get_node_children_ids(node_id).collect_vec().into_iter();
         self.remove_children(node_id, node_children_ids);
     }
 
