@@ -10,9 +10,10 @@ license = "MIT"
 readme = ""
 
 repository = "https://github.com/sriram98v/phylo-rs"
-documentation = ""
+repository = "https://github.com/simonpenel/light_phylogeny"
+readme = "README.md"
 
-description = "A Phylogenetics library written in rust"
+description = "An extensible Phylogenetics library written in rust"
 
 keywords = ["bioinformatics", "phylogenetics"]
 categories = ["data-structures", "science"]
