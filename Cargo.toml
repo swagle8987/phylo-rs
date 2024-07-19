@@ -10,7 +10,6 @@ license = "MIT"
 readme = ""
 
 repository = "https://github.com/sriram98v/phylo-rs"
-repository = "https://github.com/simonpenel/light_phylogeny"
 readme = "README.md"
 
 description = "An extensible Phylogenetics library written in rust"
