@@ -7,7 +7,6 @@ authors = [
   "Sriram Vijendran"
 ]
 license = "MIT"
-readme = ""
 
 repository = "https://github.com/sriram98v/phylo-rs"
 readme = "README.md"
