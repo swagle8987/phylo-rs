@@ -168,7 +168,7 @@ where
         depth
     }
 
-    /// Returns true if 
+    /// Returns true if tree is binary
     fn is_binary(&'a self) -> bool {
         for node in self.get_nodes() {
             if node.get_children().collect_vec().len() > 2 {
@@ -178,12 +178,15 @@ where
         true
     }
 
+    /// Returns true if node with node_id is a leaf node
     fn is_leaf(&self, node_id: TreeNodeID<'a, Self>) -> bool;
 
+    /// Returns total number of nodes in tree
     fn num_nodes(&'a self) -> usize {
         self.get_nodes().len()
     }
 
+    /// Returns iterator of immutable references to siblings of a node.
     fn get_siblings(
         &'a self,
         node_id: TreeNodeID<'a, Self>,
@@ -196,6 +199,7 @@ where
             .filter(move |x| x.get_id() != node_id);
     }
 
+    /// Returns iterator of NodeID's of node siblings
     fn get_sibling_ids(
         &self,
         node_id: TreeNodeID<'a, Self>,
@@ -205,25 +209,32 @@ where
         return sibling_ids;
     }
 
+    /// Connects a nodes children to it's parent, then deletes all edges to the node, without deleting the node from the tree
     fn supress_node(&'a mut self, _node_id: TreeNodeID<'a, Self>) {
         todo!()
     }
 
+    /// Supresses all nodes of degree 2
     fn supress_unifurcations(&'a mut self) {
         todo!()
     }
 }
 
+/// A trait describing the behaviour of a rooted tree where some of the nodes have a meta annotation. The terms meta and taxa are used interchangably here.
 pub trait RootedMetaTree<'a>: RootedTree<'a>
 where
     Self::Node: RootedMetaNode<'a>,
 {
+    ///  Returns an immutable reference to a node with a give meta annotation
     fn get_taxa_node(&'a self, taxa: &TreeNodeMeta<'a, Self>) -> Option<&'a Self::Node>;
 
+    /// Returns the node id of a node with a meta annotation
     fn get_taxa_node_id(&self, taxa: &TreeNodeMeta<'a, Self>) -> Option<TreeNodeID<'a, Self>>;
 
+    /// Returns totla number of nodes with a meta annotation
     fn num_taxa(&self) -> usize;
 
+    /// Sets the emta annotation of a node
     fn set_node_taxa(
         &'a mut self,
         node_id: TreeNodeID<'a, Self>,
@@ -232,6 +243,7 @@ where
         self.get_node_mut(node_id).unwrap().set_taxa(taxa)
     }
     
+    /// Returns an immutable reference to the meta annotation of a node, and None is there is no meta annotation 
     fn get_node_taxa(
         &'a self,
         node_id: TreeNodeID<'a, Self>,
@@ -239,20 +251,25 @@ where
         self.get_node(node_id).unwrap().get_taxa()
     }
 
+    /// Returns a deep copy of the meta annotation of a node
     fn get_node_taxa_cloned(
         &self,
         node_id: TreeNodeID<'a, Self>,
     ) -> Option<TreeNodeMeta<'a, Self>>;
 
+    /// Returns an iterator with immutable references to all meta annotations in a tree.
     fn get_taxa_space(&'a self) -> impl ExactSizeIterator<Item = &'a TreeNodeMeta<'a, Self>>;
 }
 
+/// A trait describing the behaviour of a rooted tree where some of the edges are weighted
 pub trait RootedWeightedTree<'a>: RootedTree<'a>
 where
     Self::Node: RootedWeightedNode,
 {
+    /// Sets all edge weights to None
     fn unweight(&'a mut self);
 
+    /// Sets edge weight to None
     fn set_edge_weight(
         &'a mut self,
         edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>),
@@ -261,6 +278,7 @@ where
         self.get_node_mut(edge.1).unwrap().set_weight(edge_weight);
     }
 
+    /// Returns true if edge weight not None
     fn is_weighted(&'a self) -> bool {
         for node_id in self.get_node_ids() {
             if self.get_node(node_id).unwrap().get_weight().is_none() {
@@ -270,6 +288,7 @@ where
         true
     }
 
+    /// Returns weight of edge
     fn get_edge_weight(
         &'a self,
         _parent_id: TreeNodeID<'a, Self>,

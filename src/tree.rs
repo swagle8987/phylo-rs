@@ -18,18 +18,27 @@ use crate::iter::{BFSIterator, DFSPostOrderIterator};
 use crate::node::{Node, NodeID};
 use vers_vecs::BinaryRmq;
 
+/// Arena memory-managed tree struct
 #[derive(Debug, Clone)]
 pub struct SimpleRootedTree {
+    /// Root NodeID
     root: NodeID,
+    /// Nodes of the tree
     nodes: Vec<Option<Node>>,
+    /// Index of nodes by taxa
     taxa_node_id_map: HashMap<String, NodeID>,
+    /// Field to hold precomputed euler tour for constant-time LCA queries
     precomputed_euler: Option<Vec<NodeID>>,
+    /// Field to hold precomputed first-appearance for constant-time LCA queries
     precomputed_fai: Option<Vec<Option<usize>>>,
+    /// Field to hold precomputed depth-array for constant-time LCA queries
     precomputed_da: Option<Vec<usize>>,
+    /// Field to hold precomputed range-minimum-query for constant-time LCA queries
     precomputed_rmq: Option<BinaryRmq>,
 }
 
 impl SimpleRootedTree {
+    /// Creates new empty tree
     pub fn new(root_id: NodeID) -> Self {
         let root_node = Node::new(root_id);
         let mut nodes = vec![None; root_id + 1];
@@ -45,6 +54,7 @@ impl SimpleRootedTree {
         }
     }
 
+    /// Returns new empty tree
     pub fn next_id(&self) -> usize {
         match &self.nodes.iter().position(|r| r.is_none()) {
             Some(x) => *x,
@@ -52,6 +62,7 @@ impl SimpleRootedTree {
         }
     }
 
+    /// Creates new node with next NodeID
     pub fn next_node(&self) -> Node {
         Node::new(self.next_id())
     }

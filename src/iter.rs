@@ -5,12 +5,14 @@ use crate::{node::Node, prelude::*};
 use itertools::Itertools;
 use std::collections::VecDeque;
 
+/// Struct for BFS iteration of nodes in a tree
 #[derive(Clone)]
 pub struct BFSIterator<'a> {
     stack: VecDeque<usize>,
     nodes: Vec<Option<&'a Node>>,
 }
 
+/// Struct for DFS postfix iteration of nodes in a tree
 #[derive(Clone)]
 pub struct DFSPostOrderIterator<'a> {
     stack: VecDeque<&'a Node>,
@@ -18,6 +20,7 @@ pub struct DFSPostOrderIterator<'a> {
 }
 
 impl<'a> BFSIterator<'a> {
+    /// Creates a new BFS iterator of a tree
     pub fn new(tree: &'a impl RootedTree<'a, Node = Node>, start_id: usize) -> BFSIterator {
         let max_id = tree.get_node_ids().max().unwrap();
         let mut nodes = vec![None; max_id + 1];
@@ -31,6 +34,7 @@ impl<'a> BFSIterator<'a> {
 }
 
 impl<'a> DFSPostOrderIterator<'a> {
+    /// Creates a new DFS postfix iterator of a tree
     pub fn new(
         tree: &'a impl RootedTree<'a, Node = Node>,
         start_id: <Node as RootedTreeNode>::NodeID,

@@ -8,13 +8,15 @@ use crate::{
     tree::simple_rtree::{RootedTree, TreeNodeID},
 };
 
-/// Trait describing post-order iteration of nodes in a tree
+/// Trait describing depth-first iteration of nodes in a tree
 pub trait DFS<'a>
 where
     Self: RootedTree<'a> + Sized,
 {
+    /// Returns an iterator of immutable reference of nodes in a tree in postfix order
     fn postord_nodes(&'a self, start_node: TreeNodeID<'a, Self>) -> impl Iterator<Item = &'a Self::Node>;
 
+    /// Returns an iterator of NodeID's in a tree in postfix order
     fn postord_ids(&self, start_node: TreeNodeID<'a, Self>) -> impl Iterator<Item = TreeNodeID<'a, Self>>;
 
     fn dfs(
@@ -41,23 +43,28 @@ where
     }
 }
 
+/// Trait describing breadth-first iteration of nodes in a tree
 pub trait BFS<'a>
 where
     Self: RootedTree<'a> + Sized,
 {
+    /// Returns an iterator of immutable reference of nodes in a tree in postfix order
     fn bfs_nodes(&'a self, start_node_id: TreeNodeID<'a, Self>) -> impl Iterator<Item = &'a Self::Node>;
 
+    /// Returns an iterator of NodeID's in a tree in postfix order
     fn bfs_ids(&self, start_node_id: TreeNodeID<'a, Self>) -> impl Iterator<Item = TreeNodeID<'a, Self>>;
 }
 
+/// Trait describing breadth-first iteration of nodes in a tree
 pub trait PreOrder<'a>
 where
     Self: RootedTree<'a> + Sized,
 {
-    fn preord(
+    /// Returns an iterator of immutable reference of nodes in a tree in prefix order
+    fn preord_nodes(
         &'a self,
         start_node_id: TreeNodeID<'a, Self>,
-    ) -> impl IntoIterator<Item = &'a Self::Node, IntoIter = impl ExactSizeIterator<Item = &'a Self::Node>>
+    ) -> impl ExactSizeIterator<Item = &'a Self::Node>
     {
         let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
         let mut out_vec = vec![];
@@ -74,14 +81,40 @@ where
                 true => {}
             };
         }
-        out_vec
+        out_vec.into_iter()
+    }
+
+    /// Returns an iterator of NodeID's in a tree in prefix order
+    fn preord_ids(
+        &self,
+        start_node_id: TreeNodeID<'a, Self>,
+    ) -> impl ExactSizeIterator<Item = TreeNodeID<'a, Self>>
+    {
+        let mut stack = VecDeque::from([start_node_id]);
+        let mut out_vec = vec![];
+        let mut visited = vec![];
+        while let Some(x) = stack.pop_front() {
+            match visited.contains(&x) {
+                false => {
+                    visited.push(x);
+                    out_vec.push(x);
+                    for child_id in self.get_node_children_ids(x).collect_vec().into_iter().rev() {
+                        stack.push_front(child_id);
+                    }
+                }
+                true => {}
+            };
+        }
+        out_vec.into_iter()
     }
 }
 
+/// Trait describing iteration of nodes along a path
 pub trait Ancestors<'a>
 where
     Self: RootedTree<'a> + Sized,
 {
+    /// Returns an iterator of immutable references to nodes in a tree from root to node
     fn root_to_node(
         &'a self,
         start_node_id: TreeNodeID<'a, Self>,
@@ -102,6 +135,7 @@ where
         stack.into_iter()
     }
 
+    /// Returns an iterator of NodeID's in a tree from root to node
     fn root_to_node_ids(
         &self,
         start_node_id: TreeNodeID<'a, Self>,
@@ -122,6 +156,7 @@ where
         stack.into_iter()
     }
 
+    /// Returns an iterator of immutable references to nodes in a tree from node to root
     fn node_to_root(
         &'a self,
         start_node_id: TreeNodeID<'a, Self>,
@@ -142,6 +177,7 @@ where
         stack.into_iter()
     }
 
+    /// Returns an iterator of NodeID's in a tree from node to root
     fn node_to_root_ids(
         &self,
         start_node_id: TreeNodeID<'a, Self>,
@@ -162,35 +198,45 @@ where
         stack.into_iter()
     }
 
+    /// Returns depth of a node as number of edges in the path from node to root
     fn depth(&self, node_id: TreeNodeID<'a, Self>) -> usize {
         self.node_to_root_ids(node_id).into_iter().len() - 1
     }
 }
 
+/// Trait describing an Euler Tour of a tree
 pub trait EulerWalk<'a>
 where
     Self: RootedTree<'a> + Sized,
 {
+    /// Precomputes an Euler Tour of a tree
     fn precompute_walk(&mut self);
 
+    /// Returns the euler tour of the tree
     fn get_precomputed_walk(&self) -> Option<&Vec<TreeNodeID<'a, Self>>>;
 
+    /// Precomputes the first-appearance index of nodes in an euler walk
     fn precompute_fai(&mut self);
 
+    /// Returns the first-appearance index of nodes in an euler walk
     fn get_precomputed_fai(
         &self,
     ) -> Option<impl Index<TreeNodeID<'a, Self>, Output = Option<usize>>>;
 
+    /// Precomutes the depth-array of nodes in an euler walk
     fn precompute_da(&mut self);
 
+    /// Returns the depth-array of nodes in an euler walk
     fn get_precomputed_da(&self) -> Option<&Vec<usize>>;
 
+    /// Precomutes the structures required for constant-time lca queries
     fn precompute_constant_time_lca(&mut self) {
         self.precompute_walk();
         self.precompute_da();
         self.precompute_fai();
     }
 
+    /// Returns euler tour of tree as iterator of immutable references to nodes
     fn euler_walk_nodes(
         &'a self,
         start_node_id: TreeNodeID<'a, Self>,
@@ -218,6 +264,7 @@ where
         out_vec.into_iter()
     }
 
+    /// Returns euler tour of tree as iterator of NodeID's
     fn euler_walk_ids(
         &self,
         start_node_id: TreeNodeID<'a, Self>,
@@ -245,17 +292,20 @@ where
         out_vec.into_iter()
     }
 
+    /// Returns true if euler tour is precomputed
     fn is_euler_precomputed(&self) -> bool {
         self.get_precomputed_walk().is_some()
     }
 
-    /// returns the first appearance index of each node in the euler tour
+    /// Computes and returns the first appearance index of each node in the euler tour
     fn first_appearance(&self) -> impl Index<TreeNodeID<'a, Self>, Output = Option<usize>>;
 
+    /// Returns true if first-appearance index is precomputed
     fn is_fai_precomputed(&self) -> bool {
         self.get_precomputed_fai().is_some()
     }
 
+    /// Returns first-appearance index of tree
     fn get_fa_index(&self, node_id: TreeNodeID<'a, Self>) -> usize {
         match self.get_precomputed_fai() {
             Some(fai) => fai[node_id].unwrap(),
@@ -278,10 +328,12 @@ where
         da
     }
 
+    /// Returns true if depth-array is precomputed
     fn is_da_precomputed(&self) -> bool {
         self.get_precomputed_da().is_some()
     }
 
+    /// Returns depth of node using depth-array
     fn get_node_depth(&self, node_id: TreeNodeID<'a, Self>) -> usize {
         match self.get_precomputed_da() {
             Some(da) => da[self.get_fa_index(node_id)],
@@ -289,6 +341,7 @@ where
         }
     }
 
+    /// Returns slice of euler tour
     fn get_euler_slice(&self, start: usize, end: usize) -> Vec<TreeNodeID<'a, Self>> {
         match self.get_precomputed_walk() {
             Some(walk) => walk[start..end].to_vec(),
@@ -299,6 +352,7 @@ where
         }
     }
 
+    /// Returns slice of depth-array
     fn get_da_slice(&self, start: usize, end: usize) -> Vec<usize> {
         match self.get_precomputed_da() {
             Some(da) => da[start..end].to_vec(),
@@ -306,6 +360,7 @@ where
         }
     }
 
+    /// Returns NodeID at index pos of euler tour
     fn get_euler_pos(&self, pos: usize) -> TreeNodeID<'a, Self> {
         match self.get_precomputed_walk() {
             Some(walk) => walk[pos],
@@ -316,7 +371,7 @@ where
         }
     }
 
-    /// constant time lca query
+    /// Constant time lca query of slice of nodes by NodeID
     fn get_lca_id(&self, node_id_vec: &[TreeNodeID<'a, Self>]) -> TreeNodeID<'a, Self>
     {
         if node_id_vec.len() == 1 {
@@ -346,13 +401,16 @@ where
         self.get_euler_pos(min_pos + depth_subarray_min_pos)
     }
 
+    /// Constant time lca query of slice of nodes by immutable reference to node.
     fn get_lca(&'a self, node_id_vec: &[TreeNodeID<'a, Self>]) -> &'a Self::Node {
         self.get_node(self.get_lca_id(node_id_vec))
             .unwrap()
     }
 }
 
+/// Trait describing iteration of clusters and bipartitions in a tree.
 pub trait Clusters<'a>: DFS<'a> + BFS<'a> + Sized {
+    /// Returns cluster of a node in a rooted tree (smallest cluster in an unrooted tree) as iterator of immutable reference to a node
     fn get_cluster(
         &'a self,
         node_id: TreeNodeID<'a, Self>,
@@ -363,15 +421,19 @@ pub trait Clusters<'a>: DFS<'a> + BFS<'a> + Sized {
             .collect_vec()
             .into_iter()
     }
+
+    /// Returns cluster of a node in a rooted tree (smallest cluster in an unrooted tree) as iterator of NodeID's
     fn get_cluster_ids(
         &self,
         node_id: TreeNodeID<'a, Self>,
     ) -> impl ExactSizeIterator<Item = TreeNodeID<'a, Self>>;
 
+    /// Returns size of a cluster of nodes
     fn get_cluster_size(&self, node_id: TreeNodeID<'a, Self>) -> usize {
         self.get_cluster_ids(node_id).len()
     }
 
+    /// Returns bipartition of an edge in a tree as iterator of immutable reference to a node
     fn get_bipartition(
         &'a self,
         edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>),
@@ -388,6 +450,7 @@ pub trait Clusters<'a>: DFS<'a> + BFS<'a> + Sized {
         (c1.into_iter(), c2.into_iter())
     }
 
+    /// Returns bipartition of an edge in a tree as iterator of NodeID's
     fn get_bipartition_ids(
         &self,
         edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>),
@@ -404,6 +467,7 @@ pub trait Clusters<'a>: DFS<'a> + BFS<'a> + Sized {
         (c1.into_iter(), c2.into_iter())
     }
 
+    /// Returns median NodeID of a set of leaves in a tree.
     fn get_median_node_id_for_leaves(
         &self,
         taxa_set: impl ExactSizeIterator<Item = TreeNodeID<'a, Self>>,
@@ -438,6 +502,7 @@ pub trait Clusters<'a>: DFS<'a> + BFS<'a> + Sized {
         median_node_id
     }
 
+    /// Returns immutable reference to median node of a set of leaves in a tree.
     fn get_median_node_for_leaves(
         &'a self,
         taxa_set: impl ExactSizeIterator<Item = TreeNodeID<'a, Self>>,
@@ -446,11 +511,13 @@ pub trait Clusters<'a>: DFS<'a> + BFS<'a> + Sized {
             .unwrap()
     }
 
+    /// Returns an immutable reference to median node of all leaves in a tree.
     fn get_median_node(&'a self) -> &'a Self::Node {
         let leaves = self.get_leaves().map(|x| x.get_id());
         self.get_median_node_for_leaves(leaves)
     }
 
+    /// Returns median NodeID of all leaves in a tree.
     fn get_median_node_id(&self) -> TreeNodeID<'a, Self>
     {
         let leaves = self.get_leaf_ids();
