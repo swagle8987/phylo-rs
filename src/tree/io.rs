@@ -7,8 +7,11 @@ use itertools::Itertools;
 
 use crate::tree::{NexusErr, RootedTree, TreeNodeID};
 
+/// Enum to track block of Nexus file. This enum can be extended in the future to include new blocks for different use cases.
 pub enum NexusBlock{
+    /// Tree block
     TREE,
+    /// Miscellaneous block to be ignored
     NONE,
 }
 
