@@ -96,7 +96,7 @@ pub trait Nexus<'a>: Newick<'a> {
 
     /// Writes Newick String to file
     fn to_nexus(&self)->Result<String>{
-        Ok(format!("#NEXUS\n\nBEGIN TREES;\n\t Tree tree={}\nEND;", self.to_newick()))
+        Ok(format!("#NEXUS\n\nBEGIN TREES;\n\tTree tree={}\nEND;", self.to_newick()))
     }
 
     /// Writes Newick String to file

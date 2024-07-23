@@ -126,6 +126,11 @@ pub trait RootedWeightedNode: RootedTreeNode {
     fn unweight(&mut self) {
         self.set_weight(None);
     }
+
+    /// Checks if edge leading into node is weighted
+    fn is_weighted(&self)->bool{
+        self.get_weight().is_some()
+    }
 }
 
 /// A trait describing the behaviour of a Node in a n-ary tree with numeric node annotations
