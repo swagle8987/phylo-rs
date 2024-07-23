@@ -670,7 +670,7 @@ impl<'a> Clusters<'a> for SimpleRootedTree {
 }
 
 impl<'a> Newick<'a> for SimpleRootedTree {
-    fn from_newick(newick_str: &[u8]) -> Self {
+    fn from_newick(newick_str: &[u8]) -> Result<Self> {
         let mut tree = SimpleRootedTree::new(0);
         let mut stack: Vec<TreeNodeID<'a, Self>> = Vec::new();
         let mut context: TreeNodeID<'a, Self> = tree.get_root_id();
@@ -693,7 +693,7 @@ impl<'a> Newick<'a> for SimpleRootedTree {
                 }
                 ')' | ',' => {
                     // last context id
-                    let last_context = stack.last().expect("Newick string ended abruptly!");
+                    let last_context = stack.last().ok_or(NewickErr("Newick string ended abruptly!".to_string()))?;
                     // add current context as a child to last context
                     tree.set_child(*last_context, context);
                     tree.set_edge_weight(
@@ -715,7 +715,7 @@ impl<'a> Newick<'a> for SimpleRootedTree {
                             str_ptr += 1;
                         }
                         _ => {
-                            context = stack.pop().expect("Newick string ended abruptly!");
+                            context = stack.pop().ok_or(NewickErr("Newick string ended abruptly!".to_string()))?;
                             str_ptr += 1;
                         }
                     }
@@ -752,7 +752,7 @@ impl<'a> Newick<'a> for SimpleRootedTree {
                 }
             }
         }
-        tree
+        Ok(tree)
     }
 
     fn subtree_to_newick(&self, node_id: TreeNodeID<'a, Self>) -> impl std::fmt::Display {
@@ -772,9 +772,15 @@ impl<'a> Newick<'a> for SimpleRootedTree {
             }
         }
         tmp.push_str(node.get_taxa().unwrap_or(&"".to_string()));
+        if let Some(w)=node.get_weight(){
+            tmp.push_str(":");
+            tmp.push_str(&w.to_string());
+        }
         tmp
     }
 }
+
+impl<'a> Nexus<'a> for SimpleRootedTree {}
 
 impl<'a> SPR<'a> for SimpleRootedTree {
     fn graft(&mut self, tree: Self, edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>)) {

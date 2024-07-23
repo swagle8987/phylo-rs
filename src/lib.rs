@@ -37,7 +37,6 @@
 //! tree.add_child(2, new_node);
 //! let new_node: Node = Node::new(5);
 //! tree.add_child(2, new_node);
-//! let mut tree = Tree::new();
 //! ```
 //!
 //! ## Reading and writing trees
@@ -47,7 +46,7 @@
 //! use phylo::prelude::*;
 //!
 //! let input_str = String::from("((A:0.1,B:0.2),C:0.6);");
-//! let tree = SimpleRootedTree::from_newick(input_str.as_bytes());
+//! let tree = SimpleRootedTree::from_newick(input_str.as_bytes())?;
 //! ```
 //!
 //! ## Traversing trees
@@ -58,11 +57,11 @@
 //! use phylo::prelude::*;
 //!
 //! let input_str = String::from("((A:0.1,B:0.2),C:0.6);");
-//! let tree = SimpleRootedTree::from_newick(input_str.as_bytes());
+//! let tree = SimpleRootedTree::from_newick(input_str.as_bytes())?;
 //! 
-//! let dfs_traversal = tree.dfs(tree.get_root_id()).into_iter().collect_vec()
-//! let bfs_traversal = tree.bfs_ids(tree.get_root_id()).collect_vec()
-//! let postfix_traversal = tree.postord_ids(tree.get_root_id()).collect_vec()
+//! let dfs_traversal = tree.dfs(tree.get_root_id()).into_iter();
+//! let bfs_traversal = tree.bfs_ids(tree.get_root_id());
+//! let postfix_traversal = tree.postord_ids(tree.get_root_id());
 //! ```
 //!
 //!
@@ -79,8 +78,8 @@
 //! let newick_1 = "((A:0.1,B:0.2):0.6,(C:0.3,D:0.4):0.5);";
 //! let newick_2 = "((D:0.3,C:0.4):0.5,(B:0.2,A:0.1):0.6);";
 //!
-//! let tree_1 = Tree::from_newick(newick_1).unwrap();
-//! let tree_2 = Tree::from_newick(newick_2).unwrap();
+//! let tree_1 = SimpleRootedTree::from_newick(newick_1.as_bytes())?;
+//! let tree_2 = SimpleRootedTree::from_newick(newick_2.as_bytes())?;
 //! 
 //! tree_1.precompute_constant_time_lca();
 //! tree_2.precompute_constant_time_lca();
@@ -102,13 +101,15 @@ pub mod iter;
 pub mod node;
 /// Module with tree traits and structs
 pub mod tree;
+/// Module with errors.
+pub mod error;
 
 /// Prelude module that imports all active and tested traits along with any required struct and type alias.
 pub mod prelude {
     #[doc(no_inline)]
     pub use crate::iter::node_iter::*;
     #[doc(no_inline)]
-    pub use crate::node::simple_rnode::*;
+    pub use crate::node::{simple_rnode::*, Node};
     #[doc(no_inline)]
     pub use crate::tree::distances::*;
     #[doc(no_inline)]
@@ -116,7 +117,9 @@ pub mod prelude {
     #[doc(no_inline)]
     pub use crate::tree::ops::*;
     #[doc(no_inline)]
-    pub use crate::tree::simple_rtree::*;
+    pub use crate::tree::{simple_rtree::*, SimpleRootedTree};
     #[doc(no_inline)]
     pub use crate::tree::simulation::*;
+    #[doc(no_inline)]
+    pub use crate::error::*;
 }
