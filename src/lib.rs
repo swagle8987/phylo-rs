@@ -10,7 +10,7 @@
 //! 
 //! This crate aims to implement a majority of such methods as easily-derivable traits, so you don't have to implement them from scratch where they are not needed.
 //!   
-//! ** We also provide a struct so you don't have to implement one...**  
+//! **We also provide a struct so you don't have to implement one...**  
 //!
 //! # Using `phylo`
 //! Most of the functionality is implemented in [`crate::tree::simple_rtree`]. The
