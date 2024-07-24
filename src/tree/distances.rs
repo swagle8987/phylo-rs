@@ -2,6 +2,7 @@ use std::{fmt::{Display, Debug}, hash::Hash};
 use num::{Float, NumCast, Signed};
 use fxhash::FxHashSet as HashSet;
 use itertools::Itertools;
+use anyhow::Result;
 
 use crate::node::simple_rnode::{RootedZetaNode, RootedWeightedNode};
 use crate::tree::{RootedTree, TreeNodeID, TreeNodeMeta, RootedWeightedTree, TreeNodeWeight};
@@ -20,7 +21,7 @@ where
     fn set_zeta(&'a mut self, zeta_func: fn(&Self, TreeNodeID<'a, Self>) -> TreeNodeZeta<'a, Self>);
     
     /// Returns zeta value of a node in a tree. None is no zeta value is set
-    fn get_zeta(&self, node_id: TreeNodeID<'a, Self>) -> Option<TreeNodeZeta<'a, Self>>;
+    fn get_zeta(&self, node_id: TreeNodeID<'a, Self>) -> Result<TreeNodeZeta<'a, Self>>;
 
     /// Returns true if node zeta value is not None
     fn is_zeta_set(&self, node_id: TreeNodeID<'a, Self>) -> bool;

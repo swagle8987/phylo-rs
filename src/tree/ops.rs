@@ -1,5 +1,5 @@
 use fxhash::FxHashMap as HashMap;
-
+use anyhow::Result;
 use itertools::Itertools;
 use std::{
     fmt::{Debug, Display},
@@ -16,19 +16,19 @@ use crate::{
 /// A trait describing subtree-prune-regraft operations
 pub trait SPR<'a>: RootedTree<'a> + DFS<'a> + Sized {
     /// Attaches input tree to self by spliting an edge
-    fn graft(&mut self, tree: Self, edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>));
+    fn graft(&mut self, tree: Self, edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>))->Result<()>;
 
     /// Returns subtree starting at given node, while corresponding nodes from self.
-    fn prune(&mut self, node_id: TreeNodeID<'a, Self>) -> Self;
+    fn prune(&mut self, node_id: TreeNodeID<'a, Self>) -> Result<Self>;
 
     /// SPR function
     fn spr(
         &mut self,
         edge1: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>),
         edge2: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>),
-    ) {
-        let pruned_tree = SPR::prune(self, edge1.1);
-        SPR::graft(self, pruned_tree, edge2);
+    )->Result<()> {
+        let pruned_tree = SPR::prune(self, edge1.1)?;
+        SPR::graft(self, pruned_tree, edge2)
     }
 }
 
@@ -38,7 +38,7 @@ where
     Self: RootedTree<'a> + Sized,
 {
     /// Performs an NNI operation
-    fn nni(&mut self, parent_id: TreeNodeID<'a, Self>);
+    fn nni(&mut self, parent_id: TreeNodeID<'a, Self>)->Result<()>;
 }
 
 /// A trait describing rerooting a tree
@@ -47,9 +47,9 @@ where
     Self: RootedTree<'a> + Sized,
 {
     /// Reroots tree at node. **Note: this changes the degree of a node**
-    fn reroot_at_node(&mut self, node_id: TreeNodeID<'a, Self>);
+    fn reroot_at_node(&mut self, node_id: TreeNodeID<'a, Self>)->Result<()>;
     /// Reroots tree at a split node.
-    fn reroot_at_edge(&mut self, edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>));
+    fn reroot_at_edge(&mut self, edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>))->Result<()>;
 }
 
 /// A trait describing blancing a binary tree
@@ -58,7 +58,7 @@ where
     TreeNodeID<'a, Self>: Display + Debug + Hash + Clone + Ord,
 {
     /// Balances a binary tree
-    fn balance_subtree(&mut self);
+    fn balance_subtree(&mut self)->Result<()>;
 }
 
 /// A trait describing subtree queries of a tree
@@ -73,10 +73,10 @@ where
             Item = TreeNodeID<'a, Self>,
             IntoIter = impl ExactSizeIterator<Item = TreeNodeID<'a, Self>>,
         >,
-    ) -> Self;
+    ) -> Result<Self>;
 
     /// Returns subtree starting at provided node.
-    fn subtree(&'a self, node_id: TreeNodeID<'a, Self>) -> Self;
+    fn subtree(&'a self, node_id: TreeNodeID<'a, Self>) -> Result<Self>;
 }
 
 /// A trait describing tree contraction operations
@@ -283,12 +283,12 @@ pub trait ContractTree<'a>: EulerWalk<'a> + DFS<'a> {
     }
 
     /// Returns a contracted tree from slice containing NodeID's
-    fn contract_tree(&self, leaf_ids: &[TreeNodeID<'a, Self>]) -> Self;
+    fn contract_tree(&self, leaf_ids: &[TreeNodeID<'a, Self>]) -> Result<Self>;
 
     /// Returns a contracted tree from an iterator containing NodeID's
     fn contract_tree_from_iter(
         &self,
         leaf_ids: &[TreeNodeID<'a, Self>],
         node_iter: impl Iterator<Item = TreeNodeID<'a, Self>>,
-    ) -> Self;
+    ) -> Result<Self>;
 }

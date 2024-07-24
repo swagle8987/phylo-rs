@@ -1,6 +1,9 @@
 use crate::node::simple_rnode::*;
 use itertools::Itertools;
+use anyhow::Result;
 use std::fmt::Debug;
+
+use super::TreeQueryErr;
 
 /// A type alias for Tree Node ID
 pub type TreeNodeID<'a, T> = <<T as RootedTree<'a>>::Node as RootedTreeNode>::NodeID;
@@ -18,7 +21,7 @@ where
     type Node: 'a;
 
     /// Returns reference to node by ID
-    fn get_node(&'a self, node_id: TreeNodeID<'a, Self>) -> Option<&'a Self::Node>;
+    fn get_node(&'a self, node_id: TreeNodeID<'a, Self>) -> Result<&'a Self::Node>;
 
     /// Returns a mutable reference to a node
     fn get_node_mut(&'a mut self, node_id: TreeNodeID<'a, Self>) -> Option<&'a mut Self::Node>;
@@ -134,11 +137,8 @@ where
     fn get_node_parent_id(&self, node_id: TreeNodeID<'a, Self>) -> Option<TreeNodeID<'a, Self>>;
 
     /// Returns immutable reference to parent for a node
-    fn get_node_parent(&'a self, node_id: TreeNodeID<'a, Self>) -> Option<&'a Self::Node> {
-        match self.get_node_parent_id(node_id) {
-            Some(id) => self.get_node(id),
-            None => None,
-        }
+    fn get_node_parent(&'a self, node_id: TreeNodeID<'a, Self>) -> Result<&'a Self::Node> {
+        self.get_node(self.get_node_parent_id(node_id).ok_or(TreeQueryErr("Node does not have a parent".to_string()))?)
     }
 
     /// Returns an iterator of immutable references to children of a node
@@ -173,22 +173,32 @@ where
     }
 
     /// Returns true if tree is binary
-    fn is_binary(&'a self) -> bool {
-        for node in self.get_nodes() {
-            if node.get_children().collect_vec().len() > 2 {
-                return false;
+    fn is_binary(&self) -> bool {
+        for node_id in self.get_node_ids(){
+            if node_id==self.get_root_id(){
+                if self.get_node_degree(node_id)!=2{
+                    return false;
+                }
+            }
+            else{
+                if self.get_node_degree(node_id)%2!=1{
+                    return false;
+                }
             }
         }
         true
-    }
+}
 
     /// Returns true if node with node_id is a leaf node
     fn is_leaf(&self, node_id: TreeNodeID<'a, Self>) -> bool;
 
     /// Returns total number of nodes in tree
-    fn num_nodes(&'a self) -> usize {
-        self.get_nodes().len()
+    fn num_nodes(&self) -> usize {
+        self.get_node_ids().collect_vec().len()
     }
+
+    /// Returns node degree
+    fn get_node_degree(&self, node_id: TreeNodeID<'a, Self>)->usize;
 
     /// Returns iterator of immutable references to siblings of a node.
     fn get_siblings(
@@ -230,7 +240,7 @@ where
     Self::Node: RootedMetaNode<'a>,
 {
     ///  Returns an immutable reference to a node with a give meta annotation
-    fn get_taxa_node(&'a self, taxa: &TreeNodeMeta<'a, Self>) -> Option<&'a Self::Node>;
+    fn get_taxa_node(&'a self, taxa: &TreeNodeMeta<'a, Self>) -> Result<&'a Self::Node>;
 
     /// Returns the node id of a node with a meta annotation
     fn get_taxa_node_id(&self, taxa: &TreeNodeMeta<'a, Self>) -> Option<TreeNodeID<'a, Self>>;
