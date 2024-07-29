@@ -24,7 +24,7 @@ where
     fn get_node(&'a self, node_id: TreeNodeID<'a, Self>) -> Result<&'a Self::Node>;
 
     /// Returns a mutable reference to a node
-    fn get_node_mut(&'a mut self, node_id: TreeNodeID<'a, Self>) -> Option<&'a mut Self::Node>;
+    fn get_node_mut(&'a mut self, node_id: TreeNodeID<'a, Self>) -> Result<&'a mut Self::Node>;
 
     /// Reurns an iterator over all NodeID's
     fn get_node_ids(&self) -> impl Iterator<Item = TreeNodeID<'a, Self>>;
@@ -141,6 +141,12 @@ where
         self.get_node(self.get_node_parent_id(node_id).ok_or(TreeQueryErr("Node does not have a parent".to_string()))?)
     }
 
+    /// Returns immutable reference to parent for a node
+    fn get_node_parent_mut(&'a mut self, node_id: TreeNodeID<'a, Self>) -> Result<&'a mut Self::Node> {
+        self.get_node_mut(self.get_node_parent_id(node_id).ok_or(TreeQueryErr("Node does not have a parent".to_string()))?)
+    }
+    
+
     /// Returns an iterator of immutable references to children of a node
     fn get_node_children(
         &'a self,
@@ -224,14 +230,10 @@ where
     }
 
     /// Connects a nodes children to it's parent, then deletes all edges to the node, without deleting the node from the tree
-    fn supress_node(&'a mut self, _node_id: TreeNodeID<'a, Self>) {
-        todo!()
-    }
+    fn supress_node(&'a mut self, node_id: TreeNodeID<'a, Self>) -> Result<()>;
 
     /// Supresses all nodes of degree 2
-    fn supress_unifurcations(&'a mut self) {
-        todo!()
-    }
+    fn supress_unifurcations(&'a mut self) -> Result<()>;
 }
 
 /// A trait describing the behaviour of a rooted tree where some of the nodes have a meta annotation. The terms meta and taxa are used interchangably here.

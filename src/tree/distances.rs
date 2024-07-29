@@ -37,6 +37,18 @@ where
     );
 }
 
+/// A trait describing efficient computation of vertex to vertex distances
+pub trait DistanceMatrix<'a>: RootedWeightedTree<'a>
+where
+    <Self as RootedTree<'a>>::Node: RootedWeightedNode
+{
+    /// Return the symmetrical pairwise distance matrix.
+    fn matrix(&self)->Vec<Vec<TreeNodeWeight<'a, Self>>>;
+
+    /// Populates a pairwise distance matrix for a subtree
+    fn pairwise_distance(&self, node_id_1: TreeNodeID<'a, Self>, node_id_2: TreeNodeID<'a, Self>)-> TreeNodeWeight<'a, Self>;
+}
+
 /// A trait describing naive computation of Robinson Foulds distance
 pub trait RobinsonFoulds<'a>
 where

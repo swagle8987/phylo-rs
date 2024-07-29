@@ -11,6 +11,7 @@ pub mod simulation;
 
 use fxhash::FxHashMap as HashMap;
 use simulation::{Uniform, Yule};
+use core::f32;
 use std::ops::Index;
 
 use anyhow::Result;
@@ -81,8 +82,8 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
         self.nodes[node_id].as_ref().ok_or(TreeQueryErr("No such node exists!".to_string()).into())
     }
 
-    fn get_node_mut(&mut self, node_id: TreeNodeID<'a, Self>) -> Option<&mut Node> {
-        self.nodes[node_id].as_mut()
+    fn get_node_mut(&mut self, node_id: TreeNodeID<'a, Self>) -> Result<&mut Node> {
+        self.nodes[node_id].as_mut().ok_or(TreeQueryErr(format!("No such node exists!")).into())
     }
 
     fn get_node_ids(&self) -> impl Iterator<Item = TreeNodeID<'a, Self>> {
@@ -297,6 +298,26 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
         self.get_node(node_id).unwrap().is_leaf()
     }
 
+    fn supress_node(&'a mut self, node_id: TreeNodeID<'a, Self>) -> Result<()> {
+        let node_parent_id = self.get_node_parent_id(node_id).ok_or(TreeQueryErr(format!("Node {} does not have a parent!", node_id)))?;
+        let node_children_ids = self.get_node_children_ids(node_id).collect_vec();
+        for child_id in node_children_ids.as_slice(){
+            let child = self.get_node_mut(*child_id)?;
+            child.set_parent(Some(node_parent_id));
+        }
+        let node_parent = self.get_node_parent_mut(node_id)?;
+        for child_id in node_children_ids{
+            node_parent.add_child(child_id);
+        }
+        self.remove_node(node_id);
+        Ok(())
+    }
+
+    /// Supresses all nodes of degree 2
+    fn supress_unifurcations(&'a mut self) -> Result<()> {
+        Ok(())
+    }
+
 }
 
 impl<'a> RootedMetaTree<'a> for SimpleRootedTree {
@@ -484,6 +505,47 @@ impl<'a> Subtree<'a> for SimpleRootedTree {
 }
 
 impl<'a> PreOrder<'a> for SimpleRootedTree {}
+
+impl<'a> DistanceMatrix<'a> for SimpleRootedTree {
+    fn matrix(&self)->Vec<Vec<TreeNodeWeight<'a, Self>>> {
+        let mut out_mat = vec![vec![f32::INFINITY; self.nodes.len()]; self.nodes.len()];
+        for node_ids in self.postord_ids(self.get_root_id()).combinations(2){
+            let n1 = node_ids[0];
+            let n2 = node_ids[1];
+            out_mat[n1][n1] = 0_f32;
+            out_mat[n2][n2] = 0_f32;
+            out_mat[n1][n2] = self.pairwise_distance(n1, n2);
+            out_mat[n2][n1] = out_mat[n1][n2];
+        }
+        out_mat
+    }
+
+    fn pairwise_distance(&self, node_id_1: TreeNodeID<'a, Self>, node_id_2: TreeNodeID<'a, Self>)->TreeNodeWeight<'a, Self> {
+        let lca = self.get_lca_id(vec![node_id_1, node_id_2].as_slice());
+        let d1: TreeNodeWeight<'a, Self> = self.node_to_root_ids(node_id_1).map(|x| {
+            match x==self.get_root_id(){
+                true => { return 0_f32;},
+                false => { self.get_edge_weight(0, x).unwrap_or(1_f32)}
+            }
+        }).sum();
+
+        let d2: TreeNodeWeight<'a, Self> = self.node_to_root_ids(node_id_2).map(|x| {
+            match x==self.get_root_id(){
+                true => { return 0_f32;},
+                false => { self.get_edge_weight(0, x).unwrap_or(1_f32)}
+            }
+        }).sum();
+
+        let dlca: TreeNodeWeight<'a, Self> = self.node_to_root_ids(lca).map(|x| {
+            match x==self.get_root_id(){
+                true => { return 0_f32;},
+                false => { self.get_edge_weight(0, x).unwrap_or(1_f32)}
+            }
+        }).sum();
+
+        d1+d2-2_f32*dlca
+    }
+}
 
 impl<'a> DFS<'a> for SimpleRootedTree {
     fn postord_ids(&self, start_node: TreeNodeID<'a, Self>) -> impl Iterator<Item = TreeNodeID<'a, Self>> {

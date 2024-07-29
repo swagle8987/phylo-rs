@@ -2,8 +2,17 @@ use std::collections::HashSet;
 
 use itertools::Itertools;
 use phylo::prelude::*;
+use anyhow::Result;
 use phylo::node::Node;
 use phylo::tree::SimpleRootedTree;
+
+#[test]
+fn distance_matrix() {
+    let input_str = String::from("((A:0.1,B:0.2):0.3,C:0.6);");
+    let tree = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    let matrix = tree.matrix();
+    dbg!(&matrix);
+}
 
 #[test]
 fn build_small_tree() {
@@ -212,4 +221,12 @@ fn cophenetic_dist() {
     t2.set_zeta(depth);
 
     assert_eq!(t1.cophen_dist_naive(&t2, 1), 4_f32);
+}
+
+#[test]
+fn suppress_tree_node() -> Result<()> {
+    let input_str: String = String::from("(((A,B),C),D);");
+    let mut tree = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    tree.supress_node(2)?;
+    Ok(())
 }
