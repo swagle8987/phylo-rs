@@ -795,8 +795,7 @@ impl<'a> Newick<'a> for SimpleRootedTree {
                     // if the current context had a weight
                     if newick_string[str_ptr] == ':' {
                         str_ptr += 1;
-                        while newick_string[str_ptr].is_ascii_digit()
-                            || newick_string[str_ptr] == '.'
+                        while newick_string[str_ptr] != ';' && newick_string[str_ptr] != ',' && newick_string[str_ptr] != ')' && newick_string[str_ptr] != '('
                         {
                             decimal_str.push(newick_string[str_ptr]);
                             str_ptr += 1;

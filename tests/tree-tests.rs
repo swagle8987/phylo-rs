@@ -94,6 +94,13 @@ fn read_small_tree() {
             .collect::<HashSet<&String>>(),
         &HashSet::from([&"A".to_string(), &"B".to_string(), &"C".to_string()])
     );
+    let input_str = String::from("((A:1e-3,B:2e-3),C:6e-3);");
+    let tree = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    dbg!(format!("{}", &tree.to_newick()));
+    for node in tree.postord_nodes(tree.get_root_id()){
+        dbg!(node.get_weight());
+    }
+
 }
 #[test]
 fn read_nexus() {
