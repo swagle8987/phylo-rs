@@ -74,23 +74,23 @@ impl SimpleRootedTree {
     }
 }
 
-impl<'a> RootedTree<'a> for SimpleRootedTree {
+impl RootedTree for SimpleRootedTree {
     type Node = Node;
 
     /// Returns reference to node by ID
-    fn get_node(&'a self, node_id: TreeNodeID<'a, Self>) -> Result<&'a Node> {
+    fn get_node<'a>(&'a self, node_id: TreeNodeID<Self>) -> Result<&'a Node> {
         self.nodes[node_id].as_ref().ok_or(TreeQueryErr("No such node exists!".to_string()).into())
     }
 
-    fn get_node_mut(&mut self, node_id: TreeNodeID<'a, Self>) -> Result<&mut Node> {
+    fn get_node_mut(&mut self, node_id: TreeNodeID<Self>) -> Result<&mut Node> {
         self.nodes[node_id].as_mut().ok_or(TreeQueryErr(format!("No such node exists!")).into())
     }
 
-    fn get_node_ids(&self) -> impl Iterator<Item = TreeNodeID<'a, Self>> {
+    fn get_node_ids(&self) -> impl Iterator<Item = TreeNodeID<Self>> {
         (0..self.nodes.len()).filter(|x| self.nodes[*x].is_some())
     }
 
-    fn get_nodes(&'a self) -> impl ExactSizeIterator<Item = &'a Node> {
+    fn get_nodes<'a>(&'a self) -> impl ExactSizeIterator<Item = &'a Node> {
         let node_ids = self
             .nodes
             .iter()
@@ -103,18 +103,18 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
             .map(move |id| self.nodes[id].as_ref().unwrap())
     }
 
-    fn get_nodes_mut(&'a mut self) -> impl Iterator<Item = &'a mut Self::Node> {
+    fn get_nodes_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut Self::Node> {
         self.nodes.iter_mut().filter_map(|x| x.as_mut())
     }
 
-    fn get_node_parent_id(&self, node_id: TreeNodeID<'a, Self>) -> Option<TreeNodeID<'a, Self>> {
+    fn get_node_parent_id(&self, node_id: TreeNodeID<Self>) -> Option<TreeNodeID<Self>> {
         self.get_node(node_id).unwrap().get_parent()
     }
 
     fn get_node_children_ids(
         &self,
-        node_id: TreeNodeID<'a, Self>,
-    ) -> impl ExactSizeIterator<Item = TreeNodeID<'a, Self>> {
+        node_id: TreeNodeID<Self>,
+    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>> {
         self.get_node(node_id)
             .unwrap()
             .get_children()
@@ -154,7 +154,7 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
         }
     }
 
-    fn add_child(&mut self, parent_id: TreeNodeID<'a, Self>, child: Node) {
+    fn add_child(&mut self, parent_id: TreeNodeID<Self>, child: Node) {
         let new_child_id = child.get_id();
         self.set_node(child);
         self.get_node_mut(parent_id)
@@ -166,40 +166,40 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
     }
 
     /// Returns node degree
-    fn get_node_degree(&self, node_id: TreeNodeID<'a, Self>)->usize {
+    fn get_node_degree(&self, node_id: TreeNodeID<Self>)->usize {
         self.get_node(node_id).expect("No such node exists!").degree()
     }
     
 
     /// Get root node ID
-    fn get_root_id(&self) -> TreeNodeID<'a, Self> {
+    fn get_root_id(&self) -> TreeNodeID<Self> {
         self.root
     }
 
-    fn get_root_mut(&'a mut self) -> &'a mut Self::Node {
+    fn get_root_mut<'a>(&'a mut self) -> &'a mut Self::Node {
         self.get_node_mut(self.get_root_id()).unwrap()
     }
 
-    fn set_root(&mut self, node_id: TreeNodeID<'a, Self>) {
+    fn set_root(&mut self, node_id: TreeNodeID<Self>) {
         self.root = node_id;
     }
 
-    fn remove_node(&mut self, node_id: TreeNodeID<'a, Self>) -> Option<Node> {
+    fn remove_node(&mut self, node_id: TreeNodeID<Self>) -> Option<Node> {
         if let Some(pid) = self.get_node_parent_id(node_id) {
             self.get_node_mut(pid).unwrap().remove_child(&node_id)
         }
         self.nodes[node_id].take()
     }
 
-    fn delete_node(&mut self, node_id: TreeNodeID<'a, Self>) {
+    fn delete_node(&mut self, node_id: TreeNodeID<Self>) {
         let _ = self.nodes[node_id].take();
     }
 
-    fn contains_node(&self, node_id: TreeNodeID<'a, Self>) -> bool {
+    fn contains_node(&self, node_id: TreeNodeID<Self>) -> bool {
         self.nodes[node_id].is_some()
     }
 
-    fn delete_edge(&mut self, parent_id: TreeNodeID<'a, Self>, child_id: TreeNodeID<'a, Self>) {
+    fn delete_edge(&mut self, parent_id: TreeNodeID<Self>, child_id: TreeNodeID<Self>) {
         self.get_node_mut(parent_id)
             .unwrap()
             .remove_child(&child_id);
@@ -246,7 +246,7 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
 
     fn split_edge(
         &mut self,
-        edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>),
+        edge: (TreeNodeID<Self>, TreeNodeID<Self>),
         node: Self::Node,
     ) {
         let p_id = edge.0;
@@ -260,7 +260,7 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
 
     fn add_sibling(
         &mut self,
-        node_id: TreeNodeID<'a, Self>,
+        node_id: TreeNodeID<Self>,
         split_node: Self::Node,
         sibling_node: Self::Node,
     ) {
@@ -270,7 +270,7 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
         self.add_child(split_node_id, sibling_node);
     }
 
-    fn set_child(&mut self, parent_id: TreeNodeID<'a, Self>, child_id: TreeNodeID<'a, Self>) {
+    fn set_child(&mut self, parent_id: TreeNodeID<Self>, child_id: TreeNodeID<Self>) {
         self.get_node_mut(parent_id).unwrap().add_child(child_id);
         self.get_node_mut(child_id)
             .unwrap()
@@ -279,8 +279,8 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
 
     fn remove_children(
         &mut self,
-        parent_id: TreeNodeID<'a, Self>,
-        child_ids: impl Iterator<Item=TreeNodeID<'a, Self>>,
+        parent_id: TreeNodeID<Self>,
+        child_ids: impl Iterator<Item=TreeNodeID<Self>>,
     ) {
         for child_id in child_ids {
             self.get_node_mut(parent_id)
@@ -289,16 +289,16 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
         }
     }
 
-    fn remove_all_children(&mut self, node_id: TreeNodeID<'a, Self>) {
+    fn remove_all_children(&mut self, node_id: TreeNodeID<Self>) {
         let node_children_ids = self.get_node_children_ids(node_id).collect_vec().into_iter();
         self.remove_children(node_id, node_children_ids);
     }
 
-    fn is_leaf(&self, node_id: TreeNodeID<'a, Self>) -> bool {
+    fn is_leaf(&self, node_id: TreeNodeID<Self>) -> bool {
         self.get_node(node_id).unwrap().is_leaf()
     }
 
-    fn supress_node(&'a mut self, node_id: TreeNodeID<'a, Self>) -> Result<()> {
+    fn supress_node<'a>(&'a mut self, node_id: TreeNodeID<Self>) -> Result<()> {
         let node_parent_id = self.get_node_parent_id(node_id).ok_or(TreeQueryErr(format!("Node {} does not have a parent!", node_id)))?;
         let node_children_ids = self.get_node_children_ids(node_id).collect_vec();
         for child_id in node_children_ids.as_slice(){
@@ -314,25 +314,25 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
     }
 
     /// Supresses all nodes of degree 2
-    fn supress_unifurcations(&'a mut self) -> Result<()> {
+    fn supress_unifurcations<'a>(&'a mut self) -> Result<()> {
         Ok(())
     }
 
 }
 
-impl<'a> RootedMetaTree<'a> for SimpleRootedTree {
-    fn get_taxa_node_id(&self, taxa: &TreeNodeMeta<'a, Self>) -> Option<TreeNodeID<'a, Self>> {
+impl RootedMetaTree for SimpleRootedTree {
+    fn get_taxa_node_id(&self, taxa: &TreeNodeMeta<Self>) -> Option<TreeNodeID<Self>> {
         self.taxa_node_id_map.get(taxa).cloned()
     }
 
-    fn get_taxa_node(&self, taxa: &TreeNodeMeta<'a, Self>) -> Result<&Self::Node> {
+    fn get_taxa_node(&self, taxa: &TreeNodeMeta<Self>) -> Result<&Self::Node> {
         self.get_node(*self.taxa_node_id_map.get(taxa).ok_or(TreeQueryErr(format!("No node with taxa {} exists", &taxa)))?)
     }
 
     fn set_node_taxa(
         &mut self,
-        node_id: TreeNodeID<'a, Self>,
-        taxa: Option<TreeNodeMeta<'a, Self>>,
+        node_id: TreeNodeID<Self>,
+        taxa: Option<TreeNodeMeta<Self>>,
     ) {
         self.get_node_mut(node_id).unwrap().set_taxa(taxa.clone());
         if let Some(t) = taxa {
@@ -344,20 +344,20 @@ impl<'a> RootedMetaTree<'a> for SimpleRootedTree {
         self.taxa_node_id_map.len()
     }
 
-    fn get_taxa_space(&'a self) -> impl ExactSizeIterator<Item = &'a TreeNodeMeta<'a, Self>> {
+    fn get_taxa_space<'a>(&'a self) -> impl ExactSizeIterator<Item = &'a TreeNodeMeta<Self>> {
         self.taxa_node_id_map.keys()
     }
 
     fn get_node_taxa_cloned(
         &self,
-        node_id: TreeNodeID<'a, Self>,
-    ) -> Option<TreeNodeMeta<'a, Self>> {
+        node_id: TreeNodeID<Self>,
+    ) -> Option<TreeNodeMeta<Self>> {
         self.get_node(node_id).unwrap().get_taxa().cloned()
     }
 
 }
 
-impl<'a> Yule<'a> for SimpleRootedTree{
+impl Yule for SimpleRootedTree{
     fn yule(num_taxa: usize) -> Result<SimpleRootedTree> {
         let mut tree = SimpleRootedTree::new(0);
         if num_taxa < 3 {
@@ -392,7 +392,7 @@ impl<'a> Yule<'a> for SimpleRootedTree{
     }
 }
 
-impl<'a> Uniform<'a> for SimpleRootedTree{
+impl Uniform for SimpleRootedTree{
     fn unif(num_taxa: usize) -> Result<SimpleRootedTree> {
         let mut tree = SimpleRootedTree::new(0);
         if num_taxa < 3 {
@@ -428,8 +428,8 @@ impl<'a> Uniform<'a> for SimpleRootedTree{
 
 }
 
-impl<'a> RootedWeightedTree<'a> for SimpleRootedTree {
-    fn unweight(&'a mut self) {
+impl RootedWeightedTree for SimpleRootedTree {
+    fn unweight(&mut self) {
         self.nodes
             .iter_mut()
             .filter(|x| x.is_none())
@@ -437,13 +437,13 @@ impl<'a> RootedWeightedTree<'a> for SimpleRootedTree {
     }
 }
 
-impl<'a> PathFunction<'a> for SimpleRootedTree {
+impl PathFunction for SimpleRootedTree {
     fn get_zeta(&self, node_id: NodeID) -> Result<f32> {
         self.get_node(node_id)?
             // .ok_or(TreeQueryErr("No such node exists".to_string()))?
             .get_zeta().ok_or(NodeQueryErr("Node zeta node set".to_string()).into())
     }
-    fn set_zeta(&'a mut self, zeta_func: fn(&Self, NodeID) -> TreeNodeZeta<'a, Self>) {
+    fn set_zeta(&mut self, zeta_func: fn(&Self, NodeID) -> TreeNodeZeta<Self>) {
         let zetas = (0..self.nodes.len())
             .filter(|x| self.nodes[*x].is_some())
             .map(|node_id| (node_id, Some(zeta_func(self, node_id))))
@@ -454,14 +454,14 @@ impl<'a> PathFunction<'a> for SimpleRootedTree {
     }
     fn is_zeta_set(
         &self,
-        node_id: <<Self as RootedTree<'_>>::Node as RootedTreeNode>::NodeID,
+        node_id: <<Self as RootedTree>::Node as RootedTreeNode>::NodeID,
     ) -> bool {
         self.get_node(node_id).unwrap().is_zeta_set()
     }
     fn set_node_zeta(
         &mut self,
-        node_id: TreeNodeID<'a, Self>,
-        zeta: Option<TreeNodeZeta<'a, Self>>,
+        node_id: TreeNodeID<Self>,
+        zeta: Option<TreeNodeZeta<Self>>,
     ) {
         self.nodes[node_id].as_mut().unwrap().set_zeta(zeta);
     }
@@ -472,14 +472,14 @@ impl<'a> PathFunction<'a> for SimpleRootedTree {
 
 }
 
-impl<'a> Ancestors<'a> for SimpleRootedTree {}
+impl Ancestors for SimpleRootedTree {}
 
-impl<'a> Subtree<'a> for SimpleRootedTree {
+impl Subtree for SimpleRootedTree {
     fn induce_tree(
-        &'a self,
+        &self,
         node_id_list: impl IntoIterator<
-            Item = TreeNodeID<'a, Self>,
-            IntoIter = impl ExactSizeIterator<Item = TreeNodeID<'a, Self>>,
+            Item = TreeNodeID<Self>,
+            IntoIter = impl ExactSizeIterator<Item = TreeNodeID<Self>>,
         >,
     ) -> Result<Self> {
         let mut subtree = self.clone();
@@ -496,7 +496,7 @@ impl<'a> Subtree<'a> for SimpleRootedTree {
         Ok(subtree.clone())
     }
 
-    fn subtree(&'a self, node_id: TreeNodeID<'a, Self>) -> Result<Self> {
+    fn subtree(&self, node_id: TreeNodeID<Self>) -> Result<Self> {
         let mut subtree = self.clone();
         let dfs = self.dfs(node_id).into_iter().cloned().collect_vec();
         subtree.set_nodes(dfs);
@@ -504,10 +504,10 @@ impl<'a> Subtree<'a> for SimpleRootedTree {
     }
 }
 
-impl<'a> PreOrder<'a> for SimpleRootedTree {}
+impl PreOrder for SimpleRootedTree {}
 
-impl<'a> DistanceMatrix<'a> for SimpleRootedTree {
-    fn matrix(&self)->Vec<Vec<TreeNodeWeight<'a, Self>>> {
+impl DistanceMatrix for SimpleRootedTree {
+    fn matrix(&self)->Vec<Vec<TreeNodeWeight<Self>>> {
         let mut out_mat = vec![vec![f32::INFINITY; self.nodes.len()]; self.nodes.len()];
         for node_ids in self.postord_ids(self.get_root_id()).combinations(2){
             let n1 = node_ids[0];
@@ -520,23 +520,23 @@ impl<'a> DistanceMatrix<'a> for SimpleRootedTree {
         out_mat
     }
 
-    fn pairwise_distance(&self, node_id_1: TreeNodeID<'a, Self>, node_id_2: TreeNodeID<'a, Self>)->TreeNodeWeight<'a, Self> {
+    fn pairwise_distance(&self, node_id_1: TreeNodeID<Self>, node_id_2: TreeNodeID<Self>)->TreeNodeWeight<Self> {
         let lca = self.get_lca_id(vec![node_id_1, node_id_2].as_slice());
-        let d1: TreeNodeWeight<'a, Self> = self.node_to_root_ids(node_id_1).map(|x| {
+        let d1: TreeNodeWeight<Self> = self.node_to_root_ids(node_id_1).map(|x| {
             match x==self.get_root_id(){
                 true => { return 0_f32;},
                 false => { self.get_edge_weight(0, x).unwrap_or(1_f32)}
             }
         }).sum();
 
-        let d2: TreeNodeWeight<'a, Self> = self.node_to_root_ids(node_id_2).map(|x| {
+        let d2: TreeNodeWeight<Self> = self.node_to_root_ids(node_id_2).map(|x| {
             match x==self.get_root_id(){
                 true => { return 0_f32;},
                 false => { self.get_edge_weight(0, x).unwrap_or(1_f32)}
             }
         }).sum();
 
-        let dlca: TreeNodeWeight<'a, Self> = self.node_to_root_ids(lca).map(|x| {
+        let dlca: TreeNodeWeight<Self> = self.node_to_root_ids(lca).map(|x| {
             match x==self.get_root_id(){
                 true => { return 0_f32;},
                 false => { self.get_edge_weight(0, x).unwrap_or(1_f32)}
@@ -547,28 +547,28 @@ impl<'a> DistanceMatrix<'a> for SimpleRootedTree {
     }
 }
 
-impl<'a> DFS<'a> for SimpleRootedTree {
-    fn postord_ids(&self, start_node: TreeNodeID<'a, Self>) -> impl Iterator<Item = TreeNodeID<'a, Self>> {
+impl DFS for SimpleRootedTree {
+    fn postord_ids(&self, start_node: TreeNodeID<Self>) -> impl Iterator<Item = TreeNodeID<Self>> {
         DFSPostOrderIterator::new(self, start_node).map(|x| x.get_id())
     }
 
-    fn postord_nodes(&'a self, start_node: TreeNodeID<'a, Self>) -> impl Iterator<Item = &'a Self::Node> {
+    fn postord_nodes<'a>(&'a self, start_node: TreeNodeID<Self>) -> impl Iterator<Item = &'a Self::Node> {
         DFSPostOrderIterator::new(self, start_node)
     }
 }
 
-impl<'a> BFS<'a> for SimpleRootedTree {
-    fn bfs_nodes(&'a self, start_node_id: TreeNodeID<'a, Self>) -> impl Iterator<Item = &'a Self::Node> {
+impl BFS for SimpleRootedTree {
+    fn bfs_nodes<'a>(&'a self, start_node_id: TreeNodeID<Self>) -> impl Iterator<Item = &'a Self::Node> {
         BFSIterator::new(self, start_node_id)
     }
 
-    fn bfs_ids(&self, start_node_id: TreeNodeID<'a, Self>) -> impl Iterator<Item = TreeNodeID<'a, Self>> {
+    fn bfs_ids(&self, start_node_id: TreeNodeID<Self>) -> impl Iterator<Item = TreeNodeID<Self>> {
         BFSIterator::new(self, start_node_id).map(|x| x.get_id())
     }
 }
 
-impl<'a> ContractTree<'a> for SimpleRootedTree {
-    fn contract_tree(&self, leaf_ids: &[TreeNodeID<'a, Self>]) -> Result<Self> {
+impl ContractTree for SimpleRootedTree {
+    fn contract_tree(&self, leaf_ids: &[TreeNodeID<Self>]) -> Result<Self> {
         let new_tree_root_id = self.get_lca_id(leaf_ids);
         let new_nodes = self.contracted_tree_nodes(leaf_ids).collect_vec();
         let mut new_tree = self.clone();
@@ -580,8 +580,8 @@ impl<'a> ContractTree<'a> for SimpleRootedTree {
 
     fn contract_tree_from_iter(
         &self,
-        leaf_ids: &[TreeNodeID<'a, Self>],
-        node_iter: impl Iterator<Item = TreeNodeID<'a, Self>>,
+        leaf_ids: &[TreeNodeID<Self>],
+        node_iter: impl Iterator<Item = TreeNodeID<Self>>,
     ) -> Result<Self> {
         let new_tree_root_id = self.get_lca_id(leaf_ids);
         let new_nodes = self
@@ -595,7 +595,7 @@ impl<'a> ContractTree<'a> for SimpleRootedTree {
     }
 }
 
-impl<'a> EulerWalk<'a> for SimpleRootedTree {
+impl EulerWalk for SimpleRootedTree {
     fn precompute_fai(&mut self) {
         // todo!()
         let max_id = self.get_node_ids().max().unwrap();
@@ -651,7 +651,7 @@ impl<'a> EulerWalk<'a> for SimpleRootedTree {
 
     fn get_precomputed_fai(
         &self,
-    ) -> Option<impl Index<TreeNodeID<'a, Self>, Output = Option<usize>>> {
+    ) -> Option<impl Index<TreeNodeID<Self>, Output = Option<usize>>> {
         self.precomputed_fai.clone()
     }
 
@@ -664,7 +664,7 @@ impl<'a> EulerWalk<'a> for SimpleRootedTree {
     }
 
     #[allow(refining_impl_trait)]
-    fn first_appearance(&self) -> impl Index<TreeNodeID<'a, Self>, Output = Option<usize>> {
+    fn first_appearance(&self) -> impl Index<TreeNodeID<Self>, Output = Option<usize>> {
         let max_id = self.get_node_ids().max().unwrap();
         let mut fa = vec![None; max_id + 1];
         match self.get_precomputed_walk() {
@@ -686,14 +686,14 @@ impl<'a> EulerWalk<'a> for SimpleRootedTree {
         fa
     }
 
-    fn get_fa_index(&self, node_id: TreeNodeID<'a, Self>) -> usize {
+    fn get_fa_index(&self, node_id: TreeNodeID<Self>) -> usize {
         match &self.precomputed_fai {
             Some(fai) => fai[node_id].unwrap(),
             None => self.first_appearance()[node_id].unwrap(),
         }
     }
 
-    fn get_lca_id(&self, node_id_vec: &[TreeNodeID<'a, Self>]) -> TreeNodeID<'a, Self> {
+    fn get_lca_id(&self, node_id_vec: &[TreeNodeID<Self>]) -> TreeNodeID<Self> {
         let min_pos = node_id_vec
             .iter()
             .map(|x| self.get_fa_index(*x))
@@ -720,25 +720,25 @@ impl<'a> EulerWalk<'a> for SimpleRootedTree {
     }
 }
 
-impl<'a> Clusters<'a> for SimpleRootedTree {
-    fn get_median_node_id(&self) -> TreeNodeID<'a, Self> {
+impl Clusters for SimpleRootedTree {
+    fn get_median_node_id(&self) -> TreeNodeID<Self> {
         self.get_median_node().get_id()
     }
 
     fn get_cluster_ids(
         &self,
-        node_id: TreeNodeID<'a, Self>,
-    ) -> impl ExactSizeIterator<Item = TreeNodeID<'a, Self>> {
+        node_id: TreeNodeID<Self>,
+    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>> {
         self.get_cluster(node_id).map(move |x| x.get_id())
     }
 
 }
 
-impl<'a> Newick<'a> for SimpleRootedTree {
+impl Newick for SimpleRootedTree {
     fn from_newick(newick_str: &[u8]) -> Result<Self> {
         let mut tree = SimpleRootedTree::new(0);
-        let mut stack: Vec<TreeNodeID<'a, Self>> = Vec::new();
-        let mut context: TreeNodeID<'a, Self> = tree.get_root_id();
+        let mut stack: Vec<TreeNodeID<Self>> = Vec::new();
+        let mut context: TreeNodeID<Self> = tree.get_root_id();
         let mut taxa_str = String::new();
         let mut decimal_str: String = String::new();
         let mut str_ptr: usize = 0;
@@ -763,7 +763,7 @@ impl<'a> Newick<'a> for SimpleRootedTree {
                     tree.set_child(*last_context, context);
                     tree.set_edge_weight(
                         (*last_context, context),
-                        decimal_str.parse::<TreeNodeWeight<'a, Self>>().ok(),
+                        decimal_str.parse::<TreeNodeWeight<Self>>().ok(),
                     );
                     if !taxa_str.is_empty() {
                         tree.set_node_taxa(context, Some(taxa_str.to_string()));
@@ -819,7 +819,7 @@ impl<'a> Newick<'a> for SimpleRootedTree {
         Ok(tree)
     }
 
-    fn subtree_to_newick(&self, node_id: TreeNodeID<'a, Self>) -> impl std::fmt::Display {
+    fn subtree_to_newick(&self, node_id: TreeNodeID<Self>) -> impl std::fmt::Display {
         let node = self.get_node(node_id).unwrap();
         let mut tmp = String::new();
         if node.get_children().len() != 0 {
@@ -844,10 +844,10 @@ impl<'a> Newick<'a> for SimpleRootedTree {
     }
 }
 
-impl<'a> Nexus<'a> for SimpleRootedTree {}
+impl Nexus for SimpleRootedTree {}
 
-impl<'a> SPR<'a> for SimpleRootedTree {
-    fn graft(&mut self, tree: Self, edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>))-> Result<()> {
+impl SPR for SimpleRootedTree {
+    fn graft(&mut self, tree: Self, edge: (TreeNodeID<Self>, TreeNodeID<Self>))-> Result<()> {
         let new_node = self.next_node();
         let new_node_id = dbg!(new_node.get_id());
         for node in tree.dfs(tree.get_root_id()) {
@@ -857,7 +857,7 @@ impl<'a> SPR<'a> for SimpleRootedTree {
         self.set_child(dbg!(new_node_id), dbg!(tree.get_root_id()));
         Ok(())
     }
-    fn prune(&mut self, node_id: TreeNodeID<'a, Self>) -> Result<Self> {
+    fn prune(&mut self, node_id: TreeNodeID<Self>) -> Result<Self> {
         let mut pruned_tree = SimpleRootedTree::new(node_id);
         let p_id = self.get_node_parent_id(node_id).unwrap();
         self.get_node_mut(p_id).unwrap().remove_child(&node_id);
@@ -874,7 +874,7 @@ impl<'a> SPR<'a> for SimpleRootedTree {
     }
 }
 
-impl<'a> Balance<'a> for SimpleRootedTree {
+impl Balance for SimpleRootedTree {
     fn balance_subtree(&mut self)->Result<()> {
         assert!(
             self.get_cluster(self.get_root_id()).collect_vec().len() == 4,
@@ -919,12 +919,12 @@ impl<'a> Balance<'a> for SimpleRootedTree {
     }
 }
 
-impl<'a> CopheneticDistance<'a> for SimpleRootedTree {
-    fn cophen_dist_naive_by_taxa(
+impl CopheneticDistance for SimpleRootedTree {
+    fn cophen_dist_naive_by_taxa<'a>(
         &'a self,
         tree: &'a Self,
         norm: u32,
-        taxa_set: impl Iterator<Item = &'a TreeNodeMeta<'a, Self>> + Clone,
+        taxa_set: impl Iterator<Item = &'a TreeNodeMeta<Self>> + Clone,
     ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
         let taxa_set = taxa_set.collect_vec();
         let cophen_vec = taxa_set

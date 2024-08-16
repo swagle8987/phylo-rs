@@ -2,18 +2,18 @@ use crate::{node::simple_rnode::RootedMetaNode, tree::{RootedMetaTree, RootedTre
 use anyhow::Result;
 
 /// A trait describing generation of a random binary tree under the Yule model.
-pub trait Yule<'a>: RootedMetaTree<'a>
+pub trait Yule: RootedMetaTree
 where 
-    <Self as RootedTree<'a>>::Node: RootedMetaNode,
+    <Self as RootedTree>::Node: RootedMetaNode,
 {
     /// Generate a random binary tree under the Yule model with num_taxa
     fn yule(num_taxa:usize)-> Result<Self>;
 }
 
 /// A trait describing generation of a random binary tree under the Uniform model.
-pub trait Uniform<'a>: RootedMetaTree<'a>
+pub trait Uniform: RootedMetaTree
 where 
-    <Self as RootedTree<'a>>::Node: RootedMetaNode,
+    <Self as RootedTree>::Node: RootedMetaNode,
 {
     /// Generate a random binary tree under the Uniform model with num_taxa
     fn unif(num_taxa:usize)-> Result<Self>;

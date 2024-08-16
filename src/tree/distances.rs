@@ -10,21 +10,21 @@ use crate::tree::{Clusters, Ancestors, RootedMetaTree, ContractTree, RootedMetaN
 
 
 /// A type alias for zeta annotation of a node in a tree.
-pub type TreeNodeZeta<'a, T> = <<T as RootedTree<'a>>::Node as RootedZetaNode>::Zeta;
+pub type TreeNodeZeta<'a, T> = <<T as RootedTree>::Node as RootedZetaNode>::Zeta;
 
 /// A trait describing the path functions in a tree.
-pub trait PathFunction<'a>: RootedTree<'a>
+pub trait PathFunction: RootedTree
 where
-    <Self as RootedTree<'a>>::Node: RootedZetaNode,
+    <Self as RootedTree>::Node: RootedZetaNode,
 {
     /// Sets zeta value of all nodes in a tree by function
-    fn set_zeta(&'a mut self, zeta_func: fn(&Self, TreeNodeID<'a, Self>) -> TreeNodeZeta<'a, Self>);
+    fn set_zeta(&mut self, zeta_func: fn(&Self, TreeNodeID<Self>) -> TreeNodeZeta<Self>);
     
     /// Returns zeta value of a node in a tree. None is no zeta value is set
-    fn get_zeta(&self, node_id: TreeNodeID<'a, Self>) -> Result<TreeNodeZeta<'a, Self>>;
+    fn get_zeta(&self, node_id: TreeNodeID<Self>) -> Result<TreeNodeZeta<Self>>;
 
     /// Returns true if node zeta value is not None
-    fn is_zeta_set(&self, node_id: TreeNodeID<'a, Self>) -> bool;
+    fn is_zeta_set(&self, node_id: TreeNodeID<Self>) -> bool;
 
     /// Returns true if all node zeta value is not None    
     fn is_all_zeta_set(&self) -> bool;
@@ -32,64 +32,64 @@ where
     /// Sets zeta value of a node in a tree by value.
     fn set_node_zeta(
         &mut self,
-        node_id: TreeNodeID<'a, Self>,
-        zeta: Option<TreeNodeZeta<'a, Self>>,
+        node_id: TreeNodeID<Self>,
+        zeta: Option<TreeNodeZeta<Self>>,
     );
 }
 
 /// A trait describing efficient computation of vertex to vertex distances
-pub trait DistanceMatrix<'a>: RootedWeightedTree<'a>
+pub trait DistanceMatrix: RootedWeightedTree
 where
-    <Self as RootedTree<'a>>::Node: RootedWeightedNode
+    <Self as RootedTree>::Node: RootedWeightedNode
 {
     /// Return the symmetrical pairwise distance matrix.
-    fn matrix(&self)->Vec<Vec<TreeNodeWeight<'a, Self>>>;
+    fn matrix(&self)->Vec<Vec<TreeNodeWeight<Self>>>;
 
     /// Populates a pairwise distance matrix for a subtree
-    fn pairwise_distance(&self, node_id_1: TreeNodeID<'a, Self>, node_id_2: TreeNodeID<'a, Self>)-> TreeNodeWeight<'a, Self>;
+    fn pairwise_distance(&self, node_id_1: TreeNodeID<Self>, node_id_2: TreeNodeID<Self>)-> TreeNodeWeight<Self>;
 }
 
 /// A trait describing naive computation of Robinson Foulds distance
-pub trait RobinsonFoulds<'a>
+pub trait RobinsonFoulds
 where
-    Self: RootedTree<'a> + Sized,
-    TreeNodeID<'a, Self>: Display + Debug + Hash + Clone + Ord,
+    Self: RootedTree + Sized,
+    TreeNodeID<Self>: Display + Debug + Hash + Clone + Ord,
 {
     /// Returns Robinson Foulds distance between tree and self.
     fn rfs(&self, tree: &Self) -> usize;
 }
 
 /// A trait describing naive computation of Cluster Affinity distance
-pub trait ClusterAffinity<'a>
+pub trait ClusterAffinity
 where
-    Self: RootedTree<'a> + Sized,
+    Self: RootedTree + Sized,
 {
     /// Returns Cluster Affinity distance between tree and self.
     fn ca(&self, tree: &Self) -> usize;
 }
 
 /// A trait describing naive computation of Weighted Robinson Foulds distance
-pub trait WeightedRobinsonFoulds<'a> 
+pub trait WeightedRobinsonFoulds 
 where 
-    Self: RootedWeightedTree<'a> + Sized,
-    <Self as RootedTree<'a>>::Node: RootedWeightedNode,
+    Self: RootedWeightedTree + Sized,
+    <Self as RootedTree>::Node: RootedWeightedNode,
 {
     /// Returns weighted Robinson Foulds distance between tree and self.
-    fn wrfs(&self, tree: &Self) -> TreeNodeWeight<'a, Self>;
+    fn wrfs(&self, tree: &Self) -> TreeNodeWeight<Self>;
 }
 
 /// A trait describing naive computation of cophenetic distance
-pub trait CopheneticDistance<'a>:
-    PathFunction<'a>
-    + RootedMetaTree<'a>
-    + Clusters<'a>
-    + Ancestors<'a>
-    + ContractTree<'a>
+pub trait CopheneticDistance:
+    PathFunction
+    + RootedMetaTree
+    + Clusters
+    + Ancestors
+    + ContractTree
     + Debug
     + Sized
 where
-    <Self as RootedTree<'a>>::Node: RootedMetaNode + RootedZetaNode,
-    <<Self as RootedTree<'a>>::Node as RootedZetaNode>::Zeta: Signed
+    <Self as RootedTree>::Node: RootedMetaNode + RootedZetaNode,
+    <<Self as RootedTree>::Node as RootedZetaNode>::Zeta: Signed
         + Clone
         + NumCast
         + std::iter::Sum
@@ -102,17 +102,17 @@ where
 {
     /// Returns zeta of leaf by taxa
     fn get_zeta_taxa(
-        &'a self,
-        taxa: &TreeNodeMeta<'a, Self>,
+        &self,
+        taxa: &TreeNodeMeta<Self>,
     ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
         self.get_zeta(self.get_taxa_node_id(taxa).unwrap()).unwrap()
     }
 
     /// Reurns the nth norm of an iterator composed of floating point values
     fn compute_norm(
-        vector: impl Iterator<Item = <<Self as RootedTree<'a>>::Node as RootedZetaNode>::Zeta>,
+        vector: impl Iterator<Item = <<Self as RootedTree>::Node as RootedZetaNode>::Zeta>,
         norm: u32,
-    ) -> <<Self as RootedTree<'a>>::Node as RootedZetaNode>::Zeta {
+    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
         if norm == 1 {
             return vector.sum();
         }
@@ -127,7 +127,7 @@ where
     }
 
     /// Reurns the cophenetic distance between two trees using the naive algorithm (\Theta(n^2))
-    fn cophen_dist_naive(
+    fn cophen_dist_naive<'a>(
         &'a self,
         tree: &'a Self,
         norm: u32,
@@ -137,21 +137,21 @@ where
         }
         let binding1 = self
             .get_taxa_space()
-            .collect::<HashSet<&<<Self as RootedTree<'a>>::Node as RootedMetaNode>::Meta>>();
+            .collect::<HashSet<&<<Self as RootedTree>::Node as RootedMetaNode>::Meta>>();
         let binding2 = tree
             .get_taxa_space()
-            .collect::<HashSet<&<<Self as RootedTree<'a>>::Node as RootedMetaNode>::Meta>>();
+            .collect::<HashSet<&<<Self as RootedTree>::Node as RootedMetaNode>::Meta>>();
         let taxa_set = binding1.intersection(&binding2).cloned();
 
         self.cophen_dist_naive_by_taxa(tree, norm, taxa_set)
     }
 
     /// Returns the Cophenetic distance between two trees restricted to a taxa set using the \theta(n^2) naive algorithm.
-    fn cophen_dist_naive_by_taxa(
+    fn cophen_dist_naive_by_taxa<'a>(
         &'a self,
         tree: &'a Self,
         norm: u32,
-        taxa_set: impl Iterator<Item = &'a TreeNodeMeta<'a, Self>> + Clone,
+        taxa_set: impl Iterator<Item = &'a TreeNodeMeta<Self>> + Clone,
     ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
         let taxa_set = taxa_set.collect_vec();
         let cophen_vec = taxa_set

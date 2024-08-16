@@ -16,7 +16,7 @@ pub enum NexusBlock{
 }
 
 /// A trait descibing Newick encoding of a tree.
-pub trait Newick<'a>: RootedTree<'a>
+pub trait Newick: RootedTree
 {
     /// Creates a new tree using a Newick string
     fn from_newick(newick_str: &[u8]) -> Result<Self>;
@@ -24,7 +24,7 @@ pub trait Newick<'a>: RootedTree<'a>
     /// Encodes a subtree starting from a node as a Newick string
     fn subtree_to_newick(
         &self,
-        node_id: TreeNodeID<'a, Self>,
+        node_id: TreeNodeID<Self>,
     ) -> impl Display;
 
     /// Encodes a tree as a Newick string
@@ -51,7 +51,7 @@ pub trait Newick<'a>: RootedTree<'a>
 }
 
 /// A trait for reading and writing Nexus files
-pub trait Nexus<'a>: Newick<'a> {
+pub trait Nexus: Newick {
     /// Creates tree from Nexus string
     /// Note: this attempts to read only the first tree in the file
     fn from_nexus(p: String)->Result<Self>
