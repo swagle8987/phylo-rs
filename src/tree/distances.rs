@@ -6,11 +6,6 @@ use anyhow::Result;
 
 use crate::prelude::*;
 
-// use crate::node::simple_rnode::{RootedZetaNode, RootedWeightedNode};
-// use crate::tree::{RootedTree, TreeNodeID, TreeNodeMeta, RootedWeightedTree, TreeNodeWeight};
-// use crate::tree::{Clusters, Ancestors, RootedMetaTree, ContractTree, RootedMetaNode};
-
-
 /// A type alias for zeta annotation of a node in a tree.
 pub type TreeNodeZeta<'a, T> = <<T as RootedTree>::Node as RootedZetaNode>::Zeta;
 
