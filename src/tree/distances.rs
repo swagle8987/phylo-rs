@@ -70,7 +70,51 @@ where
     <Self as RootedTree>::Node: RootedMetaNode,
 {
     /// Returns Robinson Foulds distance between tree and self.
-    fn rfs(&self, tree: &Self) -> usize;
+    fn rfs(&self, tree: &Self) -> Result<usize>{
+        let self_bps = self.get_node_ids()
+            .filter(|node_id| node_id==&self.get_root_id())
+            .map(|node_id| {
+                let node_parent_id = self.get_node_parent_id(node_id).unwrap();
+                let bp_ids = self.get_bipartition_ids((node_parent_id, node_id));
+                let p0 = bp_ids.0.map(|id| self.get_node_taxa(id).cloned().unwrap()).collect::<HashSet<TreeNodeMeta<Self>>>();
+                let p1 = bp_ids.1.map(|id| self.get_node_taxa(id).cloned().unwrap()).collect::<HashSet<TreeNodeMeta<Self>>>();
+                (p0,p1)
+            })
+            .collect_vec();
+        let tree_bps = tree.get_node_ids()
+            .filter(|node_id| node_id==&tree.get_root_id())
+            .map(|node_id| {
+                let node_parent_id = tree.get_node_parent_id(node_id).unwrap();
+                let bp_ids = tree.get_bipartition_ids((node_parent_id, node_id));
+                let p0 = bp_ids.0.map(|id| tree.get_node_taxa(id).cloned().unwrap()).collect::<HashSet<TreeNodeMeta<Self>>>();
+                let p1 = bp_ids.1.map(|id| tree.get_node_taxa(id).cloned().unwrap()).collect::<HashSet<TreeNodeMeta<Self>>>();
+                (p0,p1)
+            })
+            .collect_vec();
+
+        let mut dist = 0;
+        for i in self_bps.iter(){
+            if tree_bps.contains(&(i.0.clone(), i.1.clone())){
+                dist+=1;
+            }
+            else if tree_bps.contains(&(i.1.clone(), i.0.clone())){
+                dist+=1;
+            }
+            else{}
+        }
+        for i in tree_bps{
+            if self_bps.contains(&(i.0.clone(), i.1.clone())){
+                dist+=1;
+            }
+            else if self_bps.contains(&(i.1, i.0)){
+                dist+=1;
+            }
+            else{}
+        }
+
+        Ok(dist)
+    }
+
 }
 
 /// A trait describing naive computation of Cluster Affinity distance
