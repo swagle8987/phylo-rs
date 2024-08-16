@@ -46,7 +46,7 @@
 //! use phylo::prelude::*;
 //!
 //! let input_str = String::from("((A:0.1,B:0.2),C:0.6);");
-//! let tree = SimpleRootedTree::from_newick(input_str.as_bytes())?;
+//! let tree = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
 //! ```
 //!
 //! ## Traversing trees
@@ -57,7 +57,7 @@
 //! use phylo::prelude::*;
 //!
 //! let input_str = String::from("((A:0.1,B:0.2),C:0.6);");
-//! let tree = SimpleRootedTree::from_newick(input_str.as_bytes())?;
+//! let tree = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
 //! 
 //! let dfs_traversal = tree.dfs(tree.get_root_id()).into_iter();
 //! let bfs_traversal = tree.bfs_ids(tree.get_root_id());
@@ -78,8 +78,8 @@
 //! let newick_1 = "((A:0.1,B:0.2):0.6,(C:0.3,D:0.4):0.5);";
 //! let newick_2 = "((D:0.3,C:0.4):0.5,(B:0.2,A:0.1):0.6);";
 //!
-//! let tree_1 = SimpleRootedTree::from_newick(newick_1.as_bytes())?;
-//! let tree_2 = SimpleRootedTree::from_newick(newick_2.as_bytes())?;
+//! let mut tree_1 = SimpleRootedTree::from_newick(newick_1.as_bytes()).unwrap();
+//! let mut tree_2 = SimpleRootedTree::from_newick(newick_2.as_bytes()).unwrap();
 //! 
 //! tree_1.precompute_constant_time_lca();
 //! tree_2.precompute_constant_time_lca();
@@ -88,8 +88,6 @@
 //! tree_2.set_zeta(depth);
 //!
 //!
-//! let rfs = tree_1.rfs(&tree_2);
-//! let wrfs = tree_1.wrfs(&tree_2);
 //! let ca = tree_1.ca(&tree_2);
 //! let cophen = tree_1.cophen_dist_naive(&tree_2, 2);
 //! ```
