@@ -245,7 +245,7 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
     }
 
     fn split_edge(
-        &'a mut self,
+        &mut self,
         edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>),
         node: Self::Node,
     ) {
@@ -259,7 +259,7 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
     }
 
     fn add_sibling(
-        &'a mut self,
+        &mut self,
         node_id: TreeNodeID<'a, Self>,
         split_node: Self::Node,
         sibling_node: Self::Node,
@@ -278,7 +278,7 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
     }
 
     fn remove_children(
-        &'a mut self,
+        &mut self,
         parent_id: TreeNodeID<'a, Self>,
         child_ids: impl Iterator<Item=TreeNodeID<'a, Self>>,
     ) {
@@ -289,7 +289,7 @@ impl<'a> RootedTree<'a> for SimpleRootedTree {
         }
     }
 
-    fn remove_all_children(&'a mut self, node_id: TreeNodeID<'a, Self>) {
+    fn remove_all_children(&mut self, node_id: TreeNodeID<'a, Self>) {
         let node_children_ids = self.get_node_children_ids(node_id).collect_vec().into_iter();
         self.remove_children(node_id, node_children_ids);
     }

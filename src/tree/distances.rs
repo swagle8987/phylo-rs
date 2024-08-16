@@ -88,7 +88,7 @@ pub trait CopheneticDistance<'a>:
     + Debug
     + Sized
 where
-    <Self as RootedTree<'a>>::Node: RootedMetaNode<'a> + RootedZetaNode,
+    <Self as RootedTree<'a>>::Node: RootedMetaNode + RootedZetaNode,
     <<Self as RootedTree<'a>>::Node as RootedZetaNode>::Zeta: Signed
         + Clone
         + NumCast

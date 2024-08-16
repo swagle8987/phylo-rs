@@ -69,10 +69,10 @@ impl RootedTreeNode for Node {
     }
 }
 
-impl<'a> RootedMetaNode<'a> for Node {
+impl RootedMetaNode for Node {
     type Meta = String;
 
-    fn get_taxa(&'a self) -> Option<&'a Self::Meta> {
+    fn get_taxa<'a>(&'a self) -> Option<&'a Self::Meta> {
         self.taxa.as_ref()
     }
 

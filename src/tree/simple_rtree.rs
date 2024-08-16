@@ -8,7 +8,7 @@ use super::TreeQueryErr;
 /// A type alias for Tree Node ID
 pub type TreeNodeID<'a, T> = <<T as RootedTree<'a>>::Node as RootedTreeNode>::NodeID;
 /// A type alias for Tree Node meta annotation
-pub type TreeNodeMeta<'a, T> = <<T as RootedTree<'a>>::Node as RootedMetaNode<'a>>::Meta;
+pub type TreeNodeMeta<'a, T> = <<T as RootedTree<'a>>::Node as RootedMetaNode>::Meta;
 /// A type alias for Tree edge weight
 pub type TreeNodeWeight<'a, T> = <<T as RootedTree<'a>>::Node as RootedWeightedNode>::Weight;
 
@@ -39,31 +39,31 @@ where
     fn get_root_id(&self) -> TreeNodeID<'a, Self>;
 
     /// Sets node with NodeID and root node
-    fn set_root(&'a mut self, node_id: TreeNodeID<'a, Self>);
+    fn set_root(&mut self, node_id: TreeNodeID<'a, Self>);
 
     /// Inserts a floating node into tree.
-    fn set_node(&'a mut self, node: Self::Node);
+    fn set_node(&mut self, node: Self::Node);
 
     /// Adds node as child to an existing node in tree.
-    fn add_child(&'a mut self, parent_id: TreeNodeID<'a, Self>, child: Self::Node);
+    fn add_child(&mut self, parent_id: TreeNodeID<'a, Self>, child: Self::Node);
 
     /// Removes node from tree while deleting any edges if they exist
-    fn remove_node(&'a mut self, node_id: TreeNodeID<'a, Self>) -> Option<Self::Node>;
+    fn remove_node(&mut self, node_id: TreeNodeID<'a, Self>) -> Option<Self::Node>;
 
     /// Removes nodes from tree without deleting any edges that may exist
-    fn delete_node(&'a mut self, node_id: TreeNodeID<'a, Self>);
+    fn delete_node(&mut self, node_id: TreeNodeID<'a, Self>);
 
     /// Returns true if node with node_id exists in tree
     fn contains_node(&self, node_id: TreeNodeID<'a, Self>) -> bool;
 
     /// Removes internal nodes of degree 2 and any floating nodes
-    fn clean(&'a mut self);
+    fn clean(&mut self);
 
     /// Removes all nodes from tree except root node
-    fn clear(&'a mut self);
+    fn clear(&mut self);
 
     /// Deletes an edge from the tree without deleting an nodes
-    fn delete_edge(&'a mut self, parent_id: TreeNodeID<'a, Self>, child_id: TreeNodeID<'a, Self>);
+    fn delete_edge(&mut self, parent_id: TreeNodeID<'a, Self>, child_id: TreeNodeID<'a, Self>);
 
     /// Inserts nodes into tree from iterator. Note: this will overwrite any existing node with a NodeID that already exists in tree.
     fn set_nodes(
@@ -72,18 +72,22 @@ where
             Item = Self::Node,
             IntoIter = impl ExactSizeIterator<Item = Self::Node>,
         >,
-    );
+    ){
+        for node in node_list{
+            self.set_node(node);
+        }
+    }
 
     /// Splits an edge in the tree with provided node.
     fn split_edge(
-        &'a mut self,
+        &mut self,
         edge: (TreeNodeID<'a, Self>, TreeNodeID<'a, Self>),
         node: Self::Node,
     );
 
     /// Add node as a sibling to the provided NodeID.
     fn add_sibling(
-        &'a mut self,
+        &mut self,
         node_id: TreeNodeID<'a, Self>,
         split_node: Self::Node,
         sibling_node: Self::Node,
@@ -114,7 +118,7 @@ where
     fn get_root_mut(&'a mut self) -> &'a mut Self::Node;
 
     /// creates an edge from node with parent ID to child ID. The child node must already exist in tree.
-    fn set_child(&'a mut self, parent_id: TreeNodeID<'a, Self>, child_id: TreeNodeID<'a, Self>);
+    fn set_child(&mut self, parent_id: TreeNodeID<'a, Self>, child_id: TreeNodeID<'a, Self>);
 
     /// Removes edge from prant to child without deleting either node.
     fn remove_child(&'a mut self, parent_id: TreeNodeID<'a, Self>, child_id: TreeNodeID<'a, Self>) {
@@ -125,13 +129,13 @@ where
 
     /// Removes set of children from parent node.
     fn remove_children(
-        &'a mut self,
+        &mut self,
         parent_id: TreeNodeID<'a, Self>,
         child_ids: impl Iterator<Item = TreeNodeID<'a, Self>>,
     );
 
     /// Removes all children from parent node.
-    fn remove_all_children(&'a mut self, node_id: TreeNodeID<'a, Self>);
+    fn remove_all_children(&mut self, node_id: TreeNodeID<'a, Self>);
 
     /// Returns parent ID of a node in tree
     fn get_node_parent_id(&self, node_id: TreeNodeID<'a, Self>) -> Option<TreeNodeID<'a, Self>>;
@@ -239,7 +243,7 @@ where
 /// A trait describing the behaviour of a rooted tree where some of the nodes have a meta annotation. The terms meta and taxa are used interchangably here.
 pub trait RootedMetaTree<'a>: RootedTree<'a>
 where
-    Self::Node: RootedMetaNode<'a>,
+    Self::Node: RootedMetaNode,
 {
     ///  Returns an immutable reference to a node with a give meta annotation
     fn get_taxa_node(&'a self, taxa: &TreeNodeMeta<'a, Self>) -> Result<&'a Self::Node>;

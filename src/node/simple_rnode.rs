@@ -100,15 +100,15 @@ where
 }
 
 /// A trait describing the behaviour of a Node in a n-ary tree that carries node annotations
-pub trait RootedMetaNode<'a>: RootedTreeNode {
+pub trait RootedMetaNode: RootedTreeNode {
     /// Meta annotation of node
     type Meta: Display + Debug + Eq + PartialEq + Clone + Ord + Hash;
 
     /// Returns node annotation
-    fn get_taxa(&'a self) -> Option<&'a Self::Meta>;
+    fn get_taxa<'a>(&'a self) -> Option<&'a Self::Meta>;
 
     /// Sets node annotation
-    fn set_taxa(&'a mut self, taxa: Option<Self::Meta>);
+    fn set_taxa(&mut self, taxa: Option<Self::Meta>);
 }
 
 /// A trait describing the behaviour of a Node in a n-ary tree that has numeric edge annotations
