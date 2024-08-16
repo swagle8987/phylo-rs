@@ -195,7 +195,7 @@ fn contract_tree() {
     tree.precompute_constant_time_lca();
     dbg!(&tree);
     tree.precompute_constant_time_lca();
-    tree.set_zeta(depth);
+    tree.set_zeta(depth).unwrap();
     println!("{}", tree.to_newick());
     let taxa_subset = vec![
         "1".to_string(),
@@ -224,8 +224,8 @@ fn cophenetic_dist() {
     t1.precompute_constant_time_lca();
     t2.precompute_constant_time_lca();
 
-    t1.set_zeta(depth);
-    t2.set_zeta(depth);
+    t1.set_zeta(depth).unwrap();
+    t2.set_zeta(depth).unwrap();
 
     assert_eq!(t1.cophen_dist_naive(&t2, 1), 4_f32);
 }

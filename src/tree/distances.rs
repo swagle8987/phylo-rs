@@ -1,4 +1,4 @@
-use std::{fmt::{Display, Debug}, hash::Hash};
+use std::fmt::{Debug, Display};
 use num::{Float, NumCast, Signed};
 use fxhash::FxHashSet as HashSet;
 use itertools::Itertools;
@@ -66,8 +66,8 @@ where
 /// A trait describing naive computation of Robinson Foulds distance
 pub trait RobinsonFoulds
 where
-    Self: RootedTree,
-    TreeNodeID<Self>: Display + Debug + Hash + Clone + Ord,
+    Self: RootedTree + RootedMetaTree + Clusters,
+    <Self as RootedTree>::Node: RootedMetaNode,
 {
     /// Returns Robinson Foulds distance between tree and self.
     fn rfs(&self, tree: &Self) -> usize;
@@ -76,17 +76,27 @@ where
 /// A trait describing naive computation of Cluster Affinity distance
 pub trait ClusterAffinity
 where
-    Self: RootedTree,
+    Self: RootedTree + RootedMetaTree + Clusters,
+    <Self as RootedTree>::Node: RootedMetaNode,
 {
     /// Returns Cluster Affinity distance between tree and self.
-    fn ca(&self, tree: &Self) -> usize;
+    fn ca(&self, tree: &Self) -> Result<usize>{
+        let self_clusters = self.get_node_ids()
+            .map(|node_id| self.get_cluster_ids(node_id).map(|id| self.get_node_taxa(id).unwrap()).collect_vec())
+            .collect::<HashSet<_>>();
+        let tree_clusters= tree.get_node_ids()
+            .map(|node_id| tree.get_cluster_ids(node_id).map(|id| tree.get_node_taxa(id).unwrap()).collect_vec())
+            .collect::<HashSet<_>>();
+
+        Ok(self_clusters.difference(&tree_clusters).collect_vec().len() + tree_clusters.difference(&self_clusters).collect_vec().len())
+    }
 }
 
 /// A trait describing naive computation of Weighted Robinson Foulds distance
 pub trait WeightedRobinsonFoulds 
 where 
-    Self: RootedWeightedTree,
-    <Self as RootedTree>::Node: RootedWeightedNode,
+    Self: RootedWeightedTree + RootedMetaTree + Clusters,
+    <Self as RootedTree>::Node: RootedWeightedNode + RootedMetaNode,
 {
     /// Returns weighted Robinson Foulds distance between tree and self.
     fn wrfs(&self, tree: &Self) -> TreeNodeWeight<Self>;

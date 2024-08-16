@@ -269,6 +269,8 @@ impl Subtree for SimpleRootedTree {}
 
 impl PreOrder for SimpleRootedTree {}
 
+impl ClusterAffinity for SimpleRootedTree {}
+
 impl DistanceMatrix for SimpleRootedTree {
     fn matrix(&self)->Vec<Vec<TreeNodeWeight<Self>>> {
         let mut out_mat = vec![vec![f32::INFINITY; self.nodes.len()]; self.nodes.len()];
