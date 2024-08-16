@@ -427,7 +427,9 @@ pub trait Clusters: DFS + BFS + Sized {
     fn get_cluster_ids(
         &self,
         node_id: TreeNodeID<Self>,
-    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>>;
+    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>>{
+            self.get_cluster(node_id).map(move |x| x.get_id())
+        }
 
     /// Returns size of a cluster of nodes
     fn get_cluster_size(&self, node_id: TreeNodeID<Self>) -> usize {

@@ -5,7 +5,7 @@ use std::fs;
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::tree::{NexusErr, RootedTree, TreeNodeID};
+use crate::prelude::*;
 
 /// Enum to track block of Nexus file. This enum can be extended in the future to include new blocks for different use cases.
 pub enum NexusBlock{

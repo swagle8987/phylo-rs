@@ -298,35 +298,7 @@ impl PathFunction for SimpleRootedTree {
 
 impl Ancestors for SimpleRootedTree {}
 
-impl Subtree for SimpleRootedTree {
-    fn induce_tree(
-        &self,
-        node_id_list: impl IntoIterator<
-            Item = TreeNodeID<Self>,
-            IntoIter = impl ExactSizeIterator<Item = TreeNodeID<Self>>,
-        >,
-    ) -> Result<Self> {
-        let mut subtree = self.clone();
-        subtree.clear();
-        for node_id in node_id_list.into_iter() {
-            let ancestors = self
-                .root_to_node(node_id)
-                .into_iter()
-                .cloned()
-                .collect_vec();
-            subtree.set_nodes(ancestors);
-        }
-        subtree.clean();
-        Ok(subtree.clone())
-    }
-
-    fn subtree(&self, node_id: TreeNodeID<Self>) -> Result<Self> {
-        let mut subtree = self.clone();
-        let dfs = self.dfs(node_id).into_iter().cloned().collect_vec();
-        subtree.set_nodes(dfs);
-        Ok(subtree)
-    }
-}
+impl Subtree for SimpleRootedTree {}
 
 impl PreOrder for SimpleRootedTree {}
 
@@ -487,7 +459,6 @@ impl EulerWalk for SimpleRootedTree {
         self.precomputed_euler.is_some()
     }
 
-    #[allow(refining_impl_trait)]
     fn first_appearance(&self) -> impl Index<TreeNodeID<Self>, Output = Option<usize>> {
         let max_id = self.get_node_ids().max().unwrap();
         let mut fa = vec![None; max_id + 1];
@@ -544,19 +515,7 @@ impl EulerWalk for SimpleRootedTree {
     }
 }
 
-impl Clusters for SimpleRootedTree {
-    fn get_median_node_id(&self) -> TreeNodeID<Self> {
-        self.get_median_node().get_id()
-    }
-
-    fn get_cluster_ids(
-        &self,
-        node_id: TreeNodeID<Self>,
-    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>> {
-        self.get_cluster(node_id).map(move |x| x.get_id())
-    }
-
-}
+impl Clusters for SimpleRootedTree {}
 
 impl Newick for SimpleRootedTree {
     fn from_newick(newick_str: &[u8]) -> Result<Self> {
@@ -743,45 +702,4 @@ impl Balance for SimpleRootedTree {
     }
 }
 
-impl CopheneticDistance for SimpleRootedTree {
-    fn cophen_dist_naive_by_taxa<'a>(
-        &'a self,
-        tree: &'a Self,
-        norm: u32,
-        taxa_set: impl Iterator<Item = &'a TreeNodeMeta<Self>> + Clone,
-    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
-        let taxa_set = taxa_set.collect_vec();
-        let cophen_vec = taxa_set
-            .iter()
-            .combinations_with_replacement(2)
-            .map(|x| match x[0] == x[1] {
-                true => vec![x[0]],
-                false => x,
-            })
-            .map(|x| match x.len() {
-                1 => {
-                    let zeta_1 = self.get_zeta_taxa(x[0]);
-                    let zeta_2 = tree.get_zeta_taxa(x[0]);
-                    (zeta_1 - zeta_2).abs()
-                }
-                _ => {
-                    let self_ids = x
-                        .iter()
-                        .map(|a| self.get_taxa_node_id(a).unwrap())
-                        .collect_vec();
-                    let tree_ids = x
-                        .iter()
-                        .map(|a| tree.get_taxa_node_id(a).unwrap())
-                        .collect_vec();
-                    let t_lca_id = self.get_lca_id(self_ids.as_slice());
-                    let t_hat_lca_id = tree.get_lca_id(tree_ids.as_slice());
-                    let zeta_1 = self.get_zeta(t_lca_id).unwrap();
-                    let zeta_2 = tree.get_zeta(t_hat_lca_id).unwrap();
-                    (zeta_1 - zeta_2).abs()
-                }
-            })
-            .collect_vec();
-
-        Self::compute_norm(cophen_vec.into_iter(), norm)
-    }
-}
+impl CopheneticDistance for SimpleRootedTree {}
