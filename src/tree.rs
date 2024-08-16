@@ -261,40 +261,7 @@ impl RootedWeightedTree for SimpleRootedTree {
     }
 }
 
-impl PathFunction for SimpleRootedTree {
-    fn get_zeta(&self, node_id: NodeID) -> Result<f32> {
-        self.get_node(node_id)?
-            // .ok_or(TreeQueryErr("No such node exists".to_string()))?
-            .get_zeta().ok_or(NodeQueryErr("Node zeta node set".to_string()).into())
-    }
-    fn set_zeta(&mut self, zeta_func: fn(&Self, NodeID) -> TreeNodeZeta<Self>) {
-        let zetas = (0..self.nodes.len())
-            .filter(|x| self.nodes[*x].is_some())
-            .map(|node_id| (node_id, Some(zeta_func(self, node_id))))
-            .collect_vec();
-        for (node_id, zeta) in zetas {
-            self.nodes[node_id].as_mut().unwrap().set_zeta(zeta);
-        }
-    }
-    fn is_zeta_set(
-        &self,
-        node_id: <<Self as RootedTree>::Node as RootedTreeNode>::NodeID,
-    ) -> bool {
-        self.get_node(node_id).unwrap().is_zeta_set()
-    }
-    fn set_node_zeta(
-        &mut self,
-        node_id: TreeNodeID<Self>,
-        zeta: Option<TreeNodeZeta<Self>>,
-    ) {
-        self.nodes[node_id].as_mut().unwrap().set_zeta(zeta);
-    }
-
-    fn is_all_zeta_set(&self) -> bool {
-        !self.get_nodes().any(|x| !x.is_zeta_set())
-    }
-
-}
+impl PathFunction for SimpleRootedTree {}
 
 impl Ancestors for SimpleRootedTree {}
 

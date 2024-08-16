@@ -4,9 +4,11 @@ use fxhash::FxHashSet as HashSet;
 use itertools::Itertools;
 use anyhow::Result;
 
-use crate::node::simple_rnode::{RootedZetaNode, RootedWeightedNode};
-use crate::tree::{RootedTree, TreeNodeID, TreeNodeMeta, RootedWeightedTree, TreeNodeWeight};
-use crate::tree::{Clusters, Ancestors, RootedMetaTree, ContractTree, RootedMetaNode};
+use crate::prelude::*;
+
+// use crate::node::simple_rnode::{RootedZetaNode, RootedWeightedNode};
+// use crate::tree::{RootedTree, TreeNodeID, TreeNodeMeta, RootedWeightedTree, TreeNodeWeight};
+// use crate::tree::{Clusters, Ancestors, RootedMetaTree, ContractTree, RootedMetaNode};
 
 
 /// A type alias for zeta annotation of a node in a tree.
@@ -18,23 +20,40 @@ where
     <Self as RootedTree>::Node: RootedZetaNode,
 {
     /// Sets zeta value of all nodes in a tree by function
-    fn set_zeta(&mut self, zeta_func: fn(&Self, TreeNodeID<Self>) -> TreeNodeZeta<Self>);
+    fn set_zeta(&mut self, zeta_func: fn(&Self, TreeNodeID<Self>) -> TreeNodeZeta<Self>)->Result<()> {
+        let node_ids = self.get_node_ids().collect_vec();
+        for node_id in node_ids{
+            let zeta = zeta_func(self, node_id);
+            self.set_node_zeta(node_id, Some(zeta))?;
+        }
+        Ok(())
+    }
     
     /// Returns zeta value of a node in a tree. None is no zeta value is set
-    fn get_zeta(&self, node_id: TreeNodeID<Self>) -> Result<TreeNodeZeta<Self>>;
+    fn get_zeta(&self, node_id: TreeNodeID<Self>) -> Result<TreeNodeZeta<Self>> {
+        self.get_node(node_id)?
+            .get_zeta().ok_or(NodeQueryErr("Node zeta node set".to_string()).into())
+    }
 
     /// Returns true if node zeta value is not None
-    fn is_zeta_set(&self, node_id: TreeNodeID<Self>) -> bool;
+    fn is_zeta_set(&self, node_id: TreeNodeID<Self>) -> bool{
+        self.get_node(node_id).unwrap().is_zeta_set()
+    }
 
     /// Returns true if all node zeta value is not None    
-    fn is_all_zeta_set(&self) -> bool;
+    fn is_all_zeta_set(&self) -> bool{
+        !self.get_nodes().any(|x| !x.is_zeta_set())
+    }
 
     /// Sets zeta value of a node in a tree by value.
     fn set_node_zeta(
         &mut self,
         node_id: TreeNodeID<Self>,
         zeta: Option<TreeNodeZeta<Self>>,
-    );
+    )->Result<()>{
+        self.get_node_mut(node_id)?.set_zeta(zeta);
+        Ok(())
+    }
 }
 
 /// A trait describing efficient computation of vertex to vertex distances
@@ -52,7 +71,7 @@ where
 /// A trait describing naive computation of Robinson Foulds distance
 pub trait RobinsonFoulds
 where
-    Self: RootedTree + Sized,
+    Self: RootedTree,
     TreeNodeID<Self>: Display + Debug + Hash + Clone + Ord,
 {
     /// Returns Robinson Foulds distance between tree and self.
@@ -62,7 +81,7 @@ where
 /// A trait describing naive computation of Cluster Affinity distance
 pub trait ClusterAffinity
 where
-    Self: RootedTree + Sized,
+    Self: RootedTree,
 {
     /// Returns Cluster Affinity distance between tree and self.
     fn ca(&self, tree: &Self) -> usize;
@@ -71,7 +90,7 @@ where
 /// A trait describing naive computation of Weighted Robinson Foulds distance
 pub trait WeightedRobinsonFoulds 
 where 
-    Self: RootedWeightedTree + Sized,
+    Self: RootedWeightedTree,
     <Self as RootedTree>::Node: RootedWeightedNode,
 {
     /// Returns weighted Robinson Foulds distance between tree and self.
@@ -86,7 +105,6 @@ pub trait CopheneticDistance:
     + Ancestors
     + ContractTree
     + Debug
-    + Sized
 where
     <Self as RootedTree>::Node: RootedMetaNode + RootedZetaNode,
     <<Self as RootedTree>::Node as RootedZetaNode>::Zeta: Signed
