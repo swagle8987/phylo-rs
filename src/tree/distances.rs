@@ -7,7 +7,7 @@ use anyhow::Result;
 use crate::prelude::*;
 
 /// A type alias for zeta annotation of a node in a tree.
-pub type TreeNodeZeta<'a, T> = <<T as RootedTree>::Node as RootedZetaNode>::Zeta;
+pub type TreeNodeZeta<T> = <<T as RootedTree>::Node as RootedZetaNode>::Zeta;
 
 /// A trait describing the path functions in a tree.
 pub trait PathFunction: RootedTree
