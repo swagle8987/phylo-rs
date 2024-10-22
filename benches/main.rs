@@ -49,8 +49,8 @@ fn benchmark_cophen_dist_naive(bencher: divan::Bencher) {
             let mut t2 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
             t1.precompute_constant_time_lca();
             t2.precompute_constant_time_lca();
-            t1.set_zeta(depth);
-            t2.set_zeta(depth);
+            let _ = t1.set_zeta(depth);
+            let _ = t2.set_zeta(depth);
             (t1, t2)
         })
         .bench_refs(|(t1, t2)| {
@@ -67,11 +67,11 @@ fn benchmark_contract(bencher: divan::Bencher) {
             let taxa_set = (0..NUM_TAXA).collect_vec();
             let taxa_subset = taxa_set
                 .into_iter()
-                .choose_multiple(&mut rng, (NUM_TAXA / 3) as usize);
+                .choose_multiple(&mut rng, (NUM_TAXA / 3));
             t1.precompute_constant_time_lca();
             (t1, taxa_subset)
         })
         .bench_refs(|(t1, taxa_subset)| {
-            t1.contract_tree(taxa_subset.as_slice());
+            let _ = t1.contract_tree(taxa_subset.as_slice());
         });
 }
