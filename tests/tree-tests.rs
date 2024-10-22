@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
-use itertools::Itertools;
-use phylo::prelude::*;
 use anyhow::Result;
+use itertools::Itertools;
 use phylo::node::Node;
+use phylo::prelude::*;
 use phylo::tree::SimpleRootedTree;
 
 #[test]
@@ -28,10 +28,7 @@ fn build_small_tree() {
     tree.add_child(2, new_node);
     dbg!(
         &tree,
-        tree.get_node(1)
-            .unwrap()
-            .get_children()
-            .collect_vec()
+        tree.get_node(1).unwrap().get_children().collect_vec()
     );
     dbg!(RootedTree::get_node_depth(&tree, 2));
     dbg!(&tree.to_newick().to_string());
@@ -54,17 +51,11 @@ fn tree_iter() {
     tree.add_child(5, new_node);
     let new_node: Node = Node::new(7);
     tree.add_child(5, new_node);
-    dbg!(&tree
-        .get_node(1)
-        .unwrap()
-        .get_children()
-        .collect_vec());
+    dbg!(&tree.get_node(1).unwrap().get_children().collect_vec());
     dbg!(&tree.dfs(tree.get_root_id()).collect_vec());
     dbg!(&tree.bfs_ids(tree.get_root_id()).collect_vec());
     dbg!(&tree.postord_ids(tree.get_root_id()).collect_vec());
-    dbg!(&tree
-        .euler_walk_ids(tree.get_root_id())
-        .collect_vec());
+    dbg!(&tree.euler_walk_ids(tree.get_root_id()).collect_vec());
     dbg!(&tree.dfs(tree.get_root_id()).collect_vec());
     dbg!(&tree.node_to_root(5).collect_vec());
     dbg!(&tree.root_to_node(5).collect_vec());
@@ -73,34 +64,31 @@ fn tree_iter() {
 fn read_small_tree() {
     let input_str = String::from("((A,B),C);");
     let tree = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
-    dbg!(&tree
-        .euler_walk_ids(tree.get_root_id())
-        .collect_vec());
+    dbg!(&tree.euler_walk_ids(tree.get_root_id()).collect_vec());
     let input_str = String::from("((A:0.1,B:0.2),C:0.6);");
     let tree = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
-    dbg!(&tree
-        .euler_walk_ids(tree.get_root_id())
-        .collect_vec());
+    dbg!(&tree.euler_walk_ids(tree.get_root_id()).collect_vec());
     dbg!(format!("{}", &tree.to_newick()));
     assert_eq!(
-        &tree
-            .get_taxa_space()
-            .collect::<HashSet<&String>>(),
+        &tree.get_taxa_space().collect::<HashSet<&String>>(),
         &HashSet::from([&"A".to_string(), &"B".to_string(), &"C".to_string()])
     );
     let input_str = String::from("((A:1e-3,B:2e-3),C:6e-3);");
     let tree = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
     dbg!(format!("{}", &tree.to_newick()));
-    for node in tree.postord_nodes(tree.get_root_id()){
+    for node in tree.postord_nodes(tree.get_root_id()) {
         dbg!(node.get_weight());
     }
-
 }
 #[test]
 fn read_nexus() {
-    let input_str = String::from("#NEXUS\n\nBEGIN TREES;\n\tTree tree=((A:1,B:1):1,(C:1,D:1):1);\nEND;");
+    let input_str =
+        String::from("#NEXUS\n\nBEGIN TREES;\n\tTree tree=((A:1,B:1):1,(C:1,D:1):1);\nEND;");
     let tree = SimpleRootedTree::from_nexus(input_str.clone()).unwrap();
-    assert_eq!(tree.to_newick().to_string(), "((A:1,B:1):1,(C:1,D:1):1);".to_string());
+    assert_eq!(
+        tree.to_newick().to_string(),
+        "((A:1,B:1):1,(C:1,D:1):1);".to_string()
+    );
     assert_eq!(tree.to_nexus().unwrap(), input_str);
 }
 #[test]
@@ -162,9 +150,7 @@ fn median_node() {
     let input_str: String = String::from("(((A,B),C),D);");
     let tree = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
     dbg!(format!("{}", &tree.to_newick()));
-    dbg!(tree
-        .get_cluster(tree.get_median_node_id())
-        .collect_vec());
+    dbg!(tree.get_cluster(tree.get_median_node_id()).collect_vec());
 }
 
 #[test]

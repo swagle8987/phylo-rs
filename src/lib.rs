@@ -4,10 +4,10 @@
 //! It can be used to build such trees or read then from newick files, and perform phylogenetic anaysis.
 //!
 //! # A note on implementation
-//! 
-//! Implementation of tree-like structures in rust can be difficult and time-intensive. Additionally implementing 
-//! tree traversals and operations on tree structures (recursive or otherwise) can be an even bigger task. 
-//! 
+//!
+//! Implementation of tree-like structures in rust can be difficult and time-intensive. Additionally implementing
+//! tree traversals and operations on tree structures (recursive or otherwise) can be an even bigger task.
+//!
 //! This crate aims to implement a majority of such methods as easily-derivable traits, so you don't have to implement them from scratch where they are not needed.
 //!   
 //! **We also provide a struct so you don't have to implement one...**  
@@ -28,7 +28,7 @@
 //! use phylo::prelude::*;
 //!
 //! let mut tree = SimpleRootedTree::new(1);
-//! 
+//!
 //! let new_node = Node::new(2);
 //! tree.add_child(tree.get_root_id(), new_node);
 //! let new_node = Node::new(3);
@@ -58,7 +58,7 @@
 //!
 //! let input_str = String::from("((A:0.1,B:0.2),C:0.6);");
 //! let tree = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
-//! 
+//!
 //! let dfs_traversal = tree.dfs(tree.get_root_id()).into_iter();
 //! let bfs_traversal = tree.bfs_ids(tree.get_root_id());
 //! let postfix_traversal = tree.postord_ids(tree.get_root_id());
@@ -80,10 +80,10 @@
 //!
 //! let mut tree_1 = SimpleRootedTree::from_newick(newick_1.as_bytes()).unwrap();
 //! let mut tree_2 = SimpleRootedTree::from_newick(newick_2.as_bytes()).unwrap();
-//! 
+//!
 //! tree_1.precompute_constant_time_lca();
 //! tree_2.precompute_constant_time_lca();
-//! 
+//!
 //! tree_1.set_zeta(depth);
 //! tree_2.set_zeta(depth);
 //!
@@ -93,17 +93,19 @@
 //! ```
 //!
 
+/// Module with errors.
+pub mod error;
 /// Module with tree traversal iterator traits and structs
 pub mod iter;
 /// Module with tree node traits and structs
 pub mod node;
 /// Module with tree traits and structs
 pub mod tree;
-/// Module with errors.
-pub mod error;
 
 /// Prelude module that imports all active and tested traits along with any required struct and type alias.
 pub mod prelude {
+    #[doc(no_inline)]
+    pub use crate::error::*;
     #[doc(no_inline)]
     pub use crate::iter::node_iter::*;
     #[doc(no_inline)]
@@ -115,9 +117,7 @@ pub mod prelude {
     #[doc(no_inline)]
     pub use crate::tree::ops::*;
     #[doc(no_inline)]
-    pub use crate::tree::{simple_rtree::*, SimpleRootedTree};
-    #[doc(no_inline)]
     pub use crate::tree::simulation::*;
     #[doc(no_inline)]
-    pub use crate::error::*;
+    pub use crate::tree::{simple_rtree::*, SimpleRootedTree};
 }

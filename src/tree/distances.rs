@@ -1,8 +1,8 @@
-use std::fmt::{Debug, Display};
-use num::{Float, NumCast, Signed};
+use anyhow::Result;
 use fxhash::FxHashSet as HashSet;
 use itertools::Itertools;
-use anyhow::Result;
+use num::{Float, NumCast, Signed};
+use std::fmt::{Debug, Display};
 
 use crate::prelude::*;
 
@@ -15,28 +15,32 @@ where
     <Self as RootedTree>::Node: RootedZetaNode,
 {
     /// Sets zeta value of all nodes in a tree by function
-    fn set_zeta(&mut self, zeta_func: fn(&Self, TreeNodeID<Self>) -> TreeNodeZeta<Self>)->Result<()> {
+    fn set_zeta(
+        &mut self,
+        zeta_func: fn(&Self, TreeNodeID<Self>) -> TreeNodeZeta<Self>,
+    ) -> Result<()> {
         let node_ids = self.get_node_ids().collect_vec();
-        for node_id in node_ids{
+        for node_id in node_ids {
             let zeta = zeta_func(self, node_id);
             self.set_node_zeta(node_id, Some(zeta))?;
         }
         Ok(())
     }
-    
+
     /// Returns zeta value of a node in a tree. None is no zeta value is set
     fn get_zeta(&self, node_id: TreeNodeID<Self>) -> Result<TreeNodeZeta<Self>> {
         self.get_node(node_id)?
-            .get_zeta().ok_or(NodeQueryErr("Node zeta node set".to_string()).into())
+            .get_zeta()
+            .ok_or(NodeQueryErr("Node zeta node set".to_string()).into())
     }
 
     /// Returns true if node zeta value is not None
-    fn is_zeta_set(&self, node_id: TreeNodeID<Self>) -> bool{
+    fn is_zeta_set(&self, node_id: TreeNodeID<Self>) -> bool {
         self.get_node(node_id).unwrap().is_zeta_set()
     }
 
     /// Returns true if all node zeta value is not None    
-    fn is_all_zeta_set(&self) -> bool{
+    fn is_all_zeta_set(&self) -> bool {
         !self.get_nodes().any(|x| !x.is_zeta_set())
     }
 
@@ -45,7 +49,7 @@ where
         &mut self,
         node_id: TreeNodeID<Self>,
         zeta: Option<TreeNodeZeta<Self>>,
-    )->Result<()>{
+    ) -> Result<()> {
         self.get_node_mut(node_id)?.set_zeta(zeta);
         Ok(())
     }
@@ -54,13 +58,17 @@ where
 /// A trait describing efficient computation of vertex to vertex distances
 pub trait DistanceMatrix: RootedWeightedTree
 where
-    <Self as RootedTree>::Node: RootedWeightedNode
+    <Self as RootedTree>::Node: RootedWeightedNode,
 {
     /// Return the symmetrical pairwise distance matrix.
-    fn matrix(&self)->Vec<Vec<TreeNodeWeight<Self>>>;
+    fn matrix(&self) -> Vec<Vec<TreeNodeWeight<Self>>>;
 
     /// Populates a pairwise distance matrix for a subtree
-    fn pairwise_distance(&self, node_id_1: TreeNodeID<Self>, node_id_2: TreeNodeID<Self>)-> TreeNodeWeight<Self>;
+    fn pairwise_distance(
+        &self,
+        node_id_1: TreeNodeID<Self>,
+        node_id_2: TreeNodeID<Self>,
+    ) -> TreeNodeWeight<Self>;
 }
 
 /// A trait describing naive computation of Robinson Foulds distance
@@ -70,45 +78,58 @@ where
     <Self as RootedTree>::Node: RootedMetaNode,
 {
     /// Returns Robinson Foulds distance between tree and self.
-    fn rfs(&self, tree: &Self) -> Result<usize>{
-        let self_bps = self.get_node_ids()
-            .filter(|node_id| node_id==&self.get_root_id())
+    fn rfs(&self, tree: &Self) -> Result<usize> {
+        let self_bps = self
+            .get_node_ids()
+            .filter(|node_id| node_id == &self.get_root_id())
             .map(|node_id| {
                 let node_parent_id = self.get_node_parent_id(node_id).unwrap();
                 let bp_ids = self.get_bipartition_ids((node_parent_id, node_id));
-                let p0 = bp_ids.0.map(|id| self.get_node_taxa(id).cloned().unwrap()).collect::<HashSet<TreeNodeMeta<Self>>>();
-                let p1 = bp_ids.1.map(|id| self.get_node_taxa(id).cloned().unwrap()).collect::<HashSet<TreeNodeMeta<Self>>>();
-                (p0,p1)
+                let p0 = bp_ids
+                    .0
+                    .map(|id| self.get_node_taxa(id).cloned().unwrap())
+                    .collect::<HashSet<TreeNodeMeta<Self>>>();
+                let p1 = bp_ids
+                    .1
+                    .map(|id| self.get_node_taxa(id).cloned().unwrap())
+                    .collect::<HashSet<TreeNodeMeta<Self>>>();
+                (p0, p1)
             })
             .collect_vec();
-        let tree_bps = tree.get_node_ids()
-            .filter(|node_id| node_id==&tree.get_root_id())
+        let tree_bps = tree
+            .get_node_ids()
+            .filter(|node_id| node_id == &tree.get_root_id())
             .map(|node_id| {
                 let node_parent_id = tree.get_node_parent_id(node_id).unwrap();
                 let bp_ids = tree.get_bipartition_ids((node_parent_id, node_id));
-                let p0 = bp_ids.0.map(|id| tree.get_node_taxa(id).cloned().unwrap()).collect::<HashSet<TreeNodeMeta<Self>>>();
-                let p1 = bp_ids.1.map(|id| tree.get_node_taxa(id).cloned().unwrap()).collect::<HashSet<TreeNodeMeta<Self>>>();
-                (p0,p1)
+                let p0 = bp_ids
+                    .0
+                    .map(|id| tree.get_node_taxa(id).cloned().unwrap())
+                    .collect::<HashSet<TreeNodeMeta<Self>>>();
+                let p1 = bp_ids
+                    .1
+                    .map(|id| tree.get_node_taxa(id).cloned().unwrap())
+                    .collect::<HashSet<TreeNodeMeta<Self>>>();
+                (p0, p1)
             })
             .collect_vec();
 
         let mut dist = 0;
-        for i in self_bps.iter(){
-            if tree_bps.contains(&(i.0.clone(), i.1.clone()))||tree_bps.contains(&(i.1.clone(), i.0.clone())){
-                dist+=1;
+        for i in self_bps.iter() {
+            if tree_bps.contains(&(i.0.clone(), i.1.clone()))
+                || tree_bps.contains(&(i.1.clone(), i.0.clone()))
+            {
+                dist += 1;
             }
-            
         }
-        for i in tree_bps{
-            if self_bps.contains(&(i.0.clone(), i.1.clone()))||self_bps.contains(&(i.1, i.0)){
-                dist+=1;
+        for i in tree_bps {
+            if self_bps.contains(&(i.0.clone(), i.1.clone())) || self_bps.contains(&(i.1, i.0)) {
+                dist += 1;
             }
-            
         }
 
         Ok(dist)
     }
-
 }
 
 /// A trait describing naive computation of Cluster Affinity distance
@@ -118,21 +139,32 @@ where
     <Self as RootedTree>::Node: RootedMetaNode,
 {
     /// Returns Cluster Affinity distance between tree and self.
-    fn ca(&self, tree: &Self) -> Result<usize>{
-        let self_clusters = self.get_node_ids()
-            .map(|node_id| self.get_cluster_ids(node_id).map(|id| self.get_node_taxa(id).unwrap()).collect_vec())
+    fn ca(&self, tree: &Self) -> Result<usize> {
+        let self_clusters = self
+            .get_node_ids()
+            .map(|node_id| {
+                self.get_cluster_ids(node_id)
+                    .map(|id| self.get_node_taxa(id).unwrap())
+                    .collect_vec()
+            })
             .collect::<HashSet<_>>();
-        let tree_clusters= tree.get_node_ids()
-            .map(|node_id| tree.get_cluster_ids(node_id).map(|id| tree.get_node_taxa(id).unwrap()).collect_vec())
+        let tree_clusters = tree
+            .get_node_ids()
+            .map(|node_id| {
+                tree.get_cluster_ids(node_id)
+                    .map(|id| tree.get_node_taxa(id).unwrap())
+                    .collect_vec()
+            })
             .collect::<HashSet<_>>();
 
-        Ok(self_clusters.difference(&tree_clusters).collect_vec().len() + tree_clusters.difference(&self_clusters).collect_vec().len())
+        Ok(self_clusters.difference(&tree_clusters).collect_vec().len()
+            + tree_clusters.difference(&self_clusters).collect_vec().len())
     }
 }
 
 /// A trait describing naive computation of Weighted Robinson Foulds distance
-pub trait WeightedRobinsonFoulds 
-where 
+pub trait WeightedRobinsonFoulds
+where
     Self: RootedWeightedTree + RootedMetaTree + Clusters,
     <Self as RootedTree>::Node: RootedWeightedNode + RootedMetaNode,
 {
@@ -142,12 +174,7 @@ where
 
 /// A trait describing naive computation of cophenetic distance
 pub trait CopheneticDistance:
-    PathFunction
-    + RootedMetaTree
-    + Clusters
-    + Ancestors
-    + ContractTree
-    + Debug
+    PathFunction + RootedMetaTree + Clusters + Ancestors + ContractTree + Debug
 where
     <Self as RootedTree>::Node: RootedMetaNode + RootedZetaNode,
     <<Self as RootedTree>::Node as RootedZetaNode>::Zeta: Signed

@@ -65,9 +65,7 @@ fn benchmark_contract(bencher: divan::Bencher) {
             let mut rng = thread_rng();
             let mut t1 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
             let taxa_set = (0..NUM_TAXA).collect_vec();
-            let taxa_subset = taxa_set
-                .into_iter()
-                .choose_multiple(&mut rng, NUM_TAXA / 3);
+            let taxa_subset = taxa_set.into_iter().choose_multiple(&mut rng, NUM_TAXA / 3);
             t1.precompute_constant_time_lca();
             (t1, taxa_subset)
         })

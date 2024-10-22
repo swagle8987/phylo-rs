@@ -128,7 +128,7 @@ pub trait RootedWeightedNode: RootedTreeNode {
     }
 
     /// Checks if edge leading into node is weighted
-    fn is_weighted(&self)->bool{
+    fn is_weighted(&self) -> bool {
         self.get_weight().is_some()
     }
 }

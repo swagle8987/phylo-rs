@@ -3,10 +3,10 @@
 /// Module with traits of rooted tree nodes
 pub mod simple_rnode;
 
-use std::fmt::{Debug, Display};
 use crate::node::simple_rnode::{
     RootedMetaNode, RootedTreeNode, RootedWeightedNode, RootedZetaNode,
 };
+use std::fmt::{Debug, Display};
 
 /// A type alias for NodeID
 pub type NodeID = usize;

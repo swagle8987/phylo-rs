@@ -16,17 +16,19 @@ where
     Self: RootedTree + Sized,
 {
     /// Returns an iterator of immutable reference of nodes in a tree in postfix order
-    fn postord_nodes<'a>(&'a self, start_node: TreeNodeID<Self>) -> impl Iterator<Item = &'a Self::Node>;
+    fn postord_nodes<'a>(
+        &'a self,
+        start_node: TreeNodeID<Self>,
+    ) -> impl Iterator<Item = &'a Self::Node>;
 
     /// Returns an iterator of NodeID's in a tree in postfix order
     fn postord_ids(&self, start_node: TreeNodeID<Self>) -> impl Iterator<Item = TreeNodeID<Self>>;
 
-    /// Returns a DFS iterator of immutable node references a tree 
+    /// Returns a DFS iterator of immutable node references a tree
     fn dfs<'a>(
         &'a self,
         start_node_id: TreeNodeID<Self>,
-    ) -> impl ExactSizeIterator<Item = &'a Self::Node>
-    {
+    ) -> impl ExactSizeIterator<Item = &'a Self::Node> {
         let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
         let mut out_vec = vec![];
         let mut visited = vec![];
@@ -52,7 +54,10 @@ where
     Self: RootedTree + Sized,
 {
     /// Returns an iterator of immutable reference of nodes in a tree in postfix order
-    fn bfs_nodes<'a>(&'a self, start_node_id: TreeNodeID<Self>) -> impl Iterator<Item = &'a Self::Node>;
+    fn bfs_nodes<'a>(
+        &'a self,
+        start_node_id: TreeNodeID<Self>,
+    ) -> impl Iterator<Item = &'a Self::Node>;
 
     /// Returns an iterator of NodeID's in a tree in postfix order
     fn bfs_ids(&self, start_node_id: TreeNodeID<Self>) -> impl Iterator<Item = TreeNodeID<Self>>;
@@ -67,8 +72,7 @@ where
     fn preord_nodes<'a>(
         &'a self,
         start_node_id: TreeNodeID<Self>,
-    ) -> impl ExactSizeIterator<Item = &'a Self::Node>
-    {
+    ) -> impl ExactSizeIterator<Item = &'a Self::Node> {
         let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
         let mut out_vec = vec![];
         let mut visited = vec![];
@@ -91,8 +95,7 @@ where
     fn preord_ids(
         &self,
         start_node_id: TreeNodeID<Self>,
-    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>>
-    {
+    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>> {
         let mut stack = VecDeque::from([start_node_id]);
         let mut out_vec = vec![];
         let mut visited = vec![];
@@ -101,7 +104,12 @@ where
                 false => {
                     visited.push(x);
                     out_vec.push(x);
-                    for child_id in self.get_node_children_ids(x).collect_vec().into_iter().rev() {
+                    for child_id in self
+                        .get_node_children_ids(x)
+                        .collect_vec()
+                        .into_iter()
+                        .rev()
+                    {
                         stack.push_front(child_id);
                     }
                 }
@@ -121,8 +129,7 @@ where
     fn root_to_node<'a>(
         &'a self,
         start_node_id: TreeNodeID<Self>,
-    ) -> impl ExactSizeIterator<Item = &'a Self::Node>
-    {
+    ) -> impl ExactSizeIterator<Item = &'a Self::Node> {
         let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
         while let Some(x) = stack.pop_front() {
             stack.push_front(x);
@@ -142,8 +149,7 @@ where
     fn root_to_node_ids(
         &self,
         start_node_id: TreeNodeID<Self>,
-    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>>
-    {
+    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>> {
         let mut stack = VecDeque::from([start_node_id]);
         while let Some(x) = stack.pop_front() {
             stack.push_front(x);
@@ -163,8 +169,7 @@ where
     fn node_to_root<'a>(
         &'a self,
         start_node_id: TreeNodeID<Self>,
-    ) -> impl ExactSizeIterator<Item = &'a Self::Node>
-    {
+    ) -> impl ExactSizeIterator<Item = &'a Self::Node> {
         let mut stack = VecDeque::from([self.get_node(start_node_id).unwrap()]);
         while let Some(x) = stack.pop_front() {
             stack.push_back(x);
@@ -184,8 +189,7 @@ where
     fn node_to_root_ids(
         &self,
         start_node_id: TreeNodeID<Self>,
-    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>>
-    {
+    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>> {
         let mut stack = VecDeque::from([start_node_id]);
         while let Some(x) = stack.pop_front() {
             stack.push_back(x);
@@ -222,9 +226,7 @@ where
     fn precompute_fai(&mut self);
 
     /// Returns the first-appearance index of nodes in an euler walk
-    fn get_precomputed_fai(
-        &self,
-    ) -> Option<impl Index<TreeNodeID<Self>, Output = Option<usize>>>;
+    fn get_precomputed_fai(&self) -> Option<impl Index<TreeNodeID<Self>, Output = Option<usize>>>;
 
     /// Precomutes the depth-array of nodes in an euler walk
     fn precompute_da(&mut self);
@@ -278,7 +280,7 @@ where
         while let Some(node_id) = stack.pop_front() {
             match visited.contains(&node_id) {
                 true => {
-                    if let Some(parent_id) = self.get_node_parent_id(node_id){
+                    if let Some(parent_id) = self.get_node_parent_id(node_id) {
                         out_vec.push(parent_id)
                     }
                 }
@@ -286,7 +288,12 @@ where
                     visited.push(node_id);
                     out_vec.push(node_id);
                     stack.push_front(node_id);
-                    for child_id in self.get_node_children_ids(node_id).collect_vec().iter().rev() {
+                    for child_id in self
+                        .get_node_children_ids(node_id)
+                        .collect_vec()
+                        .iter()
+                        .rev()
+                    {
                         stack.push_front(*child_id)
                     }
                 }
@@ -348,10 +355,7 @@ where
     fn get_euler_slice(&self, start: usize, end: usize) -> Vec<TreeNodeID<Self>> {
         match self.get_precomputed_walk() {
             Some(walk) => walk[start..end].to_vec(),
-            None => self
-                .euler_walk_ids(self.get_root_id())
-                .collect_vec()[start..end]
-                .to_vec(),
+            None => self.euler_walk_ids(self.get_root_id()).collect_vec()[start..end].to_vec(),
         }
     }
 
@@ -367,16 +371,12 @@ where
     fn get_euler_pos(&self, pos: usize) -> TreeNodeID<Self> {
         match self.get_precomputed_walk() {
             Some(walk) => walk[pos],
-            None => self
-                .euler_walk_ids(self.get_root_id())
-                .nth(pos)
-                .unwrap(),
+            None => self.euler_walk_ids(self.get_root_id()).nth(pos).unwrap(),
         }
     }
 
     /// Constant time lca query of slice of nodes by NodeID
-    fn get_lca_id(&self, node_id_vec: &[TreeNodeID<Self>]) -> TreeNodeID<Self>
-    {
+    fn get_lca_id(&self, node_id_vec: &[TreeNodeID<Self>]) -> TreeNodeID<Self> {
         if node_id_vec.len() == 1 {
             return node_id_vec[0];
         }
@@ -406,8 +406,7 @@ where
 
     /// Constant time lca query of slice of nodes by immutable reference to node.
     fn get_lca<'a>(&'a self, node_id_vec: &[TreeNodeID<Self>]) -> &'a Self::Node {
-        self.get_node(self.get_lca_id(node_id_vec))
-            .unwrap()
+        self.get_node(self.get_lca_id(node_id_vec)).unwrap()
     }
 }
 
@@ -428,9 +427,9 @@ pub trait Clusters: DFS + BFS + Sized {
     fn get_cluster_ids(
         &self,
         node_id: TreeNodeID<Self>,
-    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>>{
-            self.get_cluster(node_id).map(move |x| x.get_id())
-        }
+    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>> {
+        self.get_cluster(node_id).map(move |x| x.get_id())
+    }
 
     /// Returns size of a cluster of nodes
     fn get_cluster_size(&self, node_id: TreeNodeID<Self>) -> usize {
@@ -522,8 +521,7 @@ pub trait Clusters: DFS + BFS + Sized {
     }
 
     /// Returns median NodeID of all leaves in a tree.
-    fn get_median_node_id(&self) -> TreeNodeID<Self>
-    {
+    fn get_median_node_id(&self) -> TreeNodeID<Self> {
         let leaves = self.get_leaf_ids();
         self.get_median_node_id_for_leaves(leaves)
     }

@@ -1,6 +1,6 @@
 use crate::node::simple_rnode::*;
-use itertools::Itertools;
 use anyhow::Result;
+use itertools::Itertools;
 use std::fmt::Debug;
 
 use super::TreeQueryErr;
@@ -31,9 +31,11 @@ where
     fn get_node_ids(&self) -> impl Iterator<Item = TreeNodeID<Self>>;
 
     /// Returns an iterator with immutable references to nodes
-    fn get_nodes<'a>(&'a self) -> impl ExactSizeIterator<Item = &'a Self::Node>
-    {
-        self.get_node_ids().map(|id| self.get_node(id).unwrap()).collect_vec().into_iter()
+    fn get_nodes<'a>(&'a self) -> impl ExactSizeIterator<Item = &'a Self::Node> {
+        self.get_node_ids()
+            .map(|id| self.get_node(id).unwrap())
+            .collect_vec()
+            .into_iter()
     }
 
     /// Returns iterator with mutable references to nodes
@@ -49,7 +51,7 @@ where
     fn set_node(&mut self, node: Self::Node);
 
     /// Adds node as child to an existing node in tree.
-    fn add_child(&mut self, parent_id: TreeNodeID<Self>, child: Self::Node){
+    fn add_child(&mut self, parent_id: TreeNodeID<Self>, child: Self::Node) {
         let new_child_id = child.get_id();
         self.set_node(child);
         self.get_node_mut(parent_id)
@@ -67,12 +69,12 @@ where
     fn delete_node(&mut self, node_id: TreeNodeID<Self>);
 
     /// Returns true if node with node_id exists in tree
-    fn contains_node(&self, node_id: TreeNodeID<Self>) -> bool{
+    fn contains_node(&self, node_id: TreeNodeID<Self>) -> bool {
         self.get_node(node_id).is_ok()
     }
 
     /// Removes internal nodes of degree 2 and any floating nodes
-    fn clean(&mut self){
+    fn clean(&mut self) {
         let node_iter = self.get_nodes().cloned().collect_vec();
         for node in &node_iter {
             // remove root with only one child
@@ -80,7 +82,9 @@ where
             if node.get_id() == self.get_root_id() && node.degree() < 2 {
                 let new_root = self.get_root().get_children().next().unwrap();
                 self.set_root(new_root);
-                self.get_node_mut(self.get_root_id()).unwrap().set_parent(None);
+                self.get_node_mut(self.get_root_id())
+                    .unwrap()
+                    .set_parent(None);
                 self.remove_node(node_id);
             }
             // remove nodes with only one child
@@ -106,7 +110,7 @@ where
     fn clear(&mut self);
 
     /// Deletes an edge from the tree without deleting an nodes
-    fn delete_edge(&mut self, parent_id: TreeNodeID<Self>, child_id: TreeNodeID<Self>){
+    fn delete_edge(&mut self, parent_id: TreeNodeID<Self>, child_id: TreeNodeID<Self>) {
         self.get_node_mut(parent_id)
             .unwrap()
             .remove_child(&child_id);
@@ -120,18 +124,14 @@ where
             Item = Self::Node,
             IntoIter = impl ExactSizeIterator<Item = Self::Node>,
         >,
-    ){
-        for node in node_list{
+    ) {
+        for node in node_list {
             self.set_node(node);
         }
     }
 
     /// Splits an edge in the tree with provided node.
-    fn split_edge(
-        &mut self,
-        edge: (TreeNodeID<Self>, TreeNodeID<Self>),
-        node: Self::Node,
-    ){
+    fn split_edge(&mut self, edge: (TreeNodeID<Self>, TreeNodeID<Self>), node: Self::Node) {
         let p_id = edge.0;
         let c_id = edge.1;
         let n_id = node.get_id();
@@ -147,7 +147,7 @@ where
         node_id: TreeNodeID<Self>,
         split_node: Self::Node,
         sibling_node: Self::Node,
-    ){
+    ) {
         let node_parent_id = self.get_node_parent_id(node_id).unwrap();
         let split_node_id = split_node.get_id();
         self.split_edge((node_parent_id, node_id), split_node);
@@ -176,12 +176,12 @@ where
     }
 
     /// Returns a mutable reference to the root node
-    fn get_root_mut<'a>(&'a mut self) -> &'a mut Self::Node{
+    fn get_root_mut<'a>(&'a mut self) -> &'a mut Self::Node {
         self.get_node_mut(self.get_root_id()).unwrap()
     }
 
     /// creates an edge from node with parent ID to child ID. The child node must already exist in tree.
-    fn set_child(&mut self, parent_id: TreeNodeID<Self>, child_id: TreeNodeID<Self>){
+    fn set_child(&mut self, parent_id: TreeNodeID<Self>, child_id: TreeNodeID<Self>) {
         self.get_node_mut(parent_id).unwrap().add_child(child_id);
         self.get_node_mut(child_id)
             .unwrap()
@@ -200,7 +200,7 @@ where
         &mut self,
         parent_id: TreeNodeID<Self>,
         child_ids: impl Iterator<Item = TreeNodeID<Self>>,
-    ){
+    ) {
         for child_id in child_ids {
             self.get_node_mut(parent_id)
                 .unwrap()
@@ -209,26 +209,37 @@ where
     }
 
     /// Removes all children from parent node.
-    fn remove_all_children(&mut self, node_id: TreeNodeID<Self>){
-        let node_children_ids = self.get_node_children_ids(node_id).collect_vec().into_iter();
+    fn remove_all_children(&mut self, node_id: TreeNodeID<Self>) {
+        let node_children_ids = self
+            .get_node_children_ids(node_id)
+            .collect_vec()
+            .into_iter();
         self.remove_children(node_id, node_children_ids);
     }
 
     /// Returns parent ID of a node in tree
-    fn get_node_parent_id(&self, node_id: TreeNodeID<Self>) -> Option<TreeNodeID<Self>>{
+    fn get_node_parent_id(&self, node_id: TreeNodeID<Self>) -> Option<TreeNodeID<Self>> {
         self.get_node(node_id).unwrap().get_parent()
     }
 
     /// Returns immutable reference to parent for a node
     fn get_node_parent<'a>(&'a self, node_id: TreeNodeID<Self>) -> Result<&'a Self::Node> {
-        self.get_node(self.get_node_parent_id(node_id).ok_or(TreeQueryErr("Node does not have a parent".to_string()))?)
+        self.get_node(
+            self.get_node_parent_id(node_id)
+                .ok_or(TreeQueryErr("Node does not have a parent".to_string()))?,
+        )
     }
 
     /// Returns immutable reference to parent for a node
-    fn get_node_parent_mut<'a>(&'a mut self, node_id: TreeNodeID<Self>) -> Result<&'a mut Self::Node> {
-        self.get_node_mut(self.get_node_parent_id(node_id).ok_or(TreeQueryErr("Node does not have a parent".to_string()))?)
+    fn get_node_parent_mut<'a>(
+        &'a mut self,
+        node_id: TreeNodeID<Self>,
+    ) -> Result<&'a mut Self::Node> {
+        self.get_node_mut(
+            self.get_node_parent_id(node_id)
+                .ok_or(TreeQueryErr("Node does not have a parent".to_string()))?,
+        )
     }
-    
 
     /// Returns an iterator of immutable references to children of a node
     fn get_node_children<'a>(
@@ -243,7 +254,7 @@ where
     fn get_node_children_ids(
         &self,
         node_id: TreeNodeID<Self>,
-    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>>{
+    ) -> impl ExactSizeIterator<Item = TreeNodeID<Self>> {
         self.get_node(node_id)
             .unwrap()
             .get_children()
@@ -269,13 +280,12 @@ where
 
     /// Returns true if tree is binary
     fn is_binary(&self) -> bool {
-        for node_id in self.get_node_ids(){
-            if node_id==self.get_root_id(){
-                if self.node_degree(node_id)!=2{
+        for node_id in self.get_node_ids() {
+            if node_id == self.get_root_id() {
+                if self.node_degree(node_id) != 2 {
                     return false;
                 }
-            }
-            else if self.node_degree(node_id)%2!=1{
+            } else if self.node_degree(node_id) % 2 != 1 {
                 return false;
             }
         }
@@ -283,7 +293,7 @@ where
     }
 
     /// Returns true if node with node_id is a leaf node
-    fn is_leaf(&self, node_id: TreeNodeID<Self>) -> bool{
+    fn is_leaf(&self, node_id: TreeNodeID<Self>) -> bool {
         self.get_node(node_id).unwrap().is_leaf()
     }
 
@@ -306,25 +316,31 @@ where
     }
 
     /// Returns iterator of NodeID's of node siblings
-    fn get_sibling_ids(
-        &self,
-        node_id: TreeNodeID<Self>,
-    ) -> impl Iterator<Item = TreeNodeID<Self>> {
-        let parent_id = self.get_node_parent_id(node_id).expect("Root does not have siblings!");
-        let sibling_ids = self.get_node_children_ids(parent_id).filter(move |x| x != &node_id);
+    fn get_sibling_ids(&self, node_id: TreeNodeID<Self>) -> impl Iterator<Item = TreeNodeID<Self>> {
+        let parent_id = self
+            .get_node_parent_id(node_id)
+            .expect("Root does not have siblings!");
+        let sibling_ids = self
+            .get_node_children_ids(parent_id)
+            .filter(move |x| x != &node_id);
         sibling_ids
     }
 
     /// Connects a nodes children to it's parent, then deletes all edges to the node, without deleting the node from the tree
-    fn supress_node<'a>(&'a mut self, node_id: TreeNodeID<Self>) -> Result<()>{
-        let node_parent_id = self.get_node_parent_id(node_id).ok_or(TreeQueryErr(format!("Node {} does not have a parent!", node_id)))?;
+    fn supress_node<'a>(&'a mut self, node_id: TreeNodeID<Self>) -> Result<()> {
+        let node_parent_id = self
+            .get_node_parent_id(node_id)
+            .ok_or(TreeQueryErr(format!(
+                "Node {} does not have a parent!",
+                node_id
+            )))?;
         let node_children_ids = self.get_node_children_ids(node_id).collect_vec();
-        for child_id in node_children_ids.as_slice(){
+        for child_id in node_children_ids.as_slice() {
             let child = self.get_node_mut(*child_id)?;
             child.set_parent(Some(node_parent_id));
         }
         let node_parent = self.get_node_parent_mut(node_id)?;
-        for child_id in node_children_ids{
+        for child_id in node_children_ids {
             node_parent.add_child(child_id);
         }
         self.remove_node(node_id);
@@ -345,8 +361,7 @@ where
     fn get_taxa_node<'a>(&'a self, taxa: &TreeNodeMeta<Self>) -> Result<&'a Self::Node>;
 
     /// Returns the node id of a node with a meta annotation
-    fn get_taxa_node_id(&self, taxa: &TreeNodeMeta<Self>) -> Result<TreeNodeID<Self>>
-    {
+    fn get_taxa_node_id(&self, taxa: &TreeNodeMeta<Self>) -> Result<TreeNodeID<Self>> {
         Ok(self.get_taxa_node(taxa)?.get_id())
     }
 
@@ -361,24 +376,23 @@ where
     ) {
         self.get_node_mut(node_id).unwrap().set_taxa(taxa)
     }
-    
-    /// Returns an immutable reference to the meta annotation of a node, and None is there is no meta annotation 
-    fn get_node_taxa<'a>(
-        &'a self,
-        node_id: TreeNodeID<Self>,
-    ) -> Option<&'a TreeNodeMeta<Self>> {
+
+    /// Returns an immutable reference to the meta annotation of a node, and None is there is no meta annotation
+    fn get_node_taxa<'a>(&'a self, node_id: TreeNodeID<Self>) -> Option<&'a TreeNodeMeta<Self>> {
         self.get_node(node_id).unwrap().get_taxa()
     }
 
     /// Returns a deep copy of the meta annotation of a node
-    fn get_node_taxa_cloned(
-        &self,
-        node_id: TreeNodeID<Self>,
-    ) -> Option<TreeNodeMeta<Self>>;
+    fn get_node_taxa_cloned(&self, node_id: TreeNodeID<Self>) -> Option<TreeNodeMeta<Self>>;
 
     /// Returns an iterator with immutable references to all meta annotations in a tree.
-    fn get_taxa_space<'a>(&'a self) -> impl ExactSizeIterator<Item = &'a TreeNodeMeta<Self>>{
-        self.get_nodes().map(|node| node.get_taxa()).filter(|x| x.is_none()).map(|x| x.unwrap()).collect_vec().into_iter()
+    fn get_taxa_space<'a>(&'a self) -> impl ExactSizeIterator<Item = &'a TreeNodeMeta<Self>> {
+        self.get_nodes()
+            .map(|node| node.get_taxa())
+            .filter(|x| x.is_none())
+            .map(|x| x.unwrap())
+            .collect_vec()
+            .into_iter()
     }
 }
 
@@ -389,9 +403,9 @@ where
     Self::Node: RootedWeightedNode,
 {
     /// Sets all edge weights to None
-    fn unweight<'a>(&'a mut self){
+    fn unweight<'a>(&'a mut self) {
         let ids = self.get_node_ids().collect_vec();
-        for id in ids{
+        for id in ids {
             self.get_node_mut(id).unwrap().set_weight(None);
         }
     }
