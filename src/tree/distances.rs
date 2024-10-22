@@ -94,22 +94,16 @@ where
 
         let mut dist = 0;
         for i in self_bps.iter(){
-            if tree_bps.contains(&(i.0.clone(), i.1.clone())){
+            if tree_bps.contains(&(i.0.clone(), i.1.clone()))||tree_bps.contains(&(i.1.clone(), i.0.clone())){
                 dist+=1;
             }
-            else if tree_bps.contains(&(i.1.clone(), i.0.clone())){
-                dist+=1;
-            }
-            else{}
+            
         }
         for i in tree_bps{
-            if self_bps.contains(&(i.0.clone(), i.1.clone())){
+            if self_bps.contains(&(i.0.clone(), i.1.clone()))||self_bps.contains(&(i.1, i.0)){
                 dist+=1;
             }
-            else if self_bps.contains(&(i.1, i.0)){
-                dist+=1;
-            }
-            else{}
+            
         }
 
         Ok(dist)

@@ -1,3 +1,5 @@
+#![allow(clippy::needless_lifetimes)]
+
 /// Module with traits and structs for distance computation
 pub mod distances;
 /// Module with traits and structs for tree encoding
@@ -83,7 +85,7 @@ impl RootedTree for SimpleRootedTree {
     }
 
     fn get_node_mut(&mut self, node_id: TreeNodeID<Self>) -> Result<&mut Node> {
-        self.nodes[node_id].as_mut().ok_or(TreeQueryErr(format!("No such node exists!")).into())
+        self.nodes[node_id].as_mut().ok_or(TreeQueryErr("No such node exists!".to_string()).into())
     }
 
     fn get_node_ids(&self) -> impl Iterator<Item = TreeNodeID<Self>> {
@@ -291,21 +293,21 @@ impl DistanceMatrix for SimpleRootedTree {
         let lca = self.get_lca_id(vec![node_id_1, node_id_2].as_slice());
         let d1: TreeNodeWeight<Self> = self.node_to_root_ids(node_id_1).map(|x| {
             match x==self.get_root_id(){
-                true => { return 0_f32;},
+                true => { 0_f32},
                 false => { self.get_edge_weight(0, x).unwrap_or(1_f32)}
             }
         }).sum();
 
         let d2: TreeNodeWeight<Self> = self.node_to_root_ids(node_id_2).map(|x| {
             match x==self.get_root_id(){
-                true => { return 0_f32;},
+                true => { 0_f32},
                 false => { self.get_edge_weight(0, x).unwrap_or(1_f32)}
             }
         }).sum();
 
         let dlca: TreeNodeWeight<Self> = self.node_to_root_ids(lca).map(|x| {
             match x==self.get_root_id(){
-                true => { return 0_f32;},
+                true => { 0_f32},
                 false => { self.get_edge_weight(0, x).unwrap_or(1_f32)}
             }
         }).sum();
@@ -432,7 +434,7 @@ impl ContractTree for SimpleRootedTree {
         remove_list.into_iter().for_each(|x| {
             node_map[x] = None;
         });
-        node_map.into_iter().filter(|x| x.is_some()).map(|x| x.unwrap())
+        node_map.into_iter().flatten()
     }
 
 
@@ -693,7 +695,7 @@ impl Newick for SimpleRootedTree {
         }
         tmp.push_str(node.get_taxa().unwrap_or(&"".to_string()));
         if let Some(w)=node.get_weight(){
-            tmp.push_str(":");
+            tmp.push(':');
             tmp.push_str(&w.to_string());
         }
         tmp
@@ -721,7 +723,7 @@ impl SPR for SimpleRootedTree {
             .get_node_mut(pruned_tree.get_root_id())
             .unwrap()
             .add_children(self.get_node(node_id).unwrap().get_children());
-        let dfs = self.dfs(node_id).into_iter().collect_vec();
+        let dfs = self.dfs(node_id).collect_vec();
         for node in dfs {
             // self.nodes.remove(node.get_id());
             pruned_tree.set_node(node.clone());

@@ -12,7 +12,8 @@ pub type TreeNodeMeta<T> = <<T as RootedTree>::Node as RootedMetaNode>::Meta;
 /// A type alias for Tree edge weight
 pub type TreeNodeWeight<T> = <<T as RootedTree>::Node as RootedWeightedNode>::Weight;
 
-/// A trait describing the behaviour of a rooted tree
+/// A trait describing the behaviour of a rooted tree#[allow(clippy::needless_lifetimes)]
+#[allow(clippy::needless_lifetimes)]
 pub trait RootedTree: Clone + Sync
 where
     Self::Node: RootedTreeNode + Debug,
@@ -274,10 +275,8 @@ where
                     return false;
                 }
             }
-            else{
-                if self.node_degree(node_id)%2!=1{
-                    return false;
-                }
+            else if self.node_degree(node_id)%2!=1{
+                return false;
             }
         }
         true
@@ -313,7 +312,7 @@ where
     ) -> impl Iterator<Item = TreeNodeID<Self>> {
         let parent_id = self.get_node_parent_id(node_id).expect("Root does not have siblings!");
         let sibling_ids = self.get_node_children_ids(parent_id).filter(move |x| x != &node_id);
-        return sibling_ids;
+        sibling_ids
     }
 
     /// Connects a nodes children to it's parent, then deletes all edges to the node, without deleting the node from the tree
@@ -337,6 +336,7 @@ where
 }
 
 /// A trait describing the behaviour of a rooted tree where some of the nodes have a meta annotation. The terms meta and taxa are used interchangably here.
+#[allow(clippy::needless_lifetimes)]
 pub trait RootedMetaTree: RootedTree
 where
     Self::Node: RootedMetaNode,
@@ -383,6 +383,7 @@ where
 }
 
 /// A trait describing the behaviour of a rooted tree where some of the edges are weighted
+#[allow(clippy::needless_lifetimes)]
 pub trait RootedWeightedTree: RootedTree
 where
     Self::Node: RootedWeightedNode,

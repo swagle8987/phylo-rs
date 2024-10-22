@@ -1,3 +1,5 @@
+#![allow(clippy::needless_lifetimes)]
+
 use std::fmt::Display;
 use std::path::Path;
 use std::ffi::OsStr;
@@ -44,7 +46,7 @@ pub trait Newick: RootedTree
     fn from_file(p: &Path)->Result<Self>
     {
         assert!(p.extension() == Some(OsStr::new("nwk")));
-        let nwk_string = fs::read_to_string(p)?.as_bytes().into_iter().map(|x| *x).take_while(|x| *x!=(';' as u8)).collect_vec();
+        let nwk_string = fs::read_to_string(p)?.as_bytes().iter().copied().take_while(|x| *x!=b';').collect_vec();
 
         Self::from_newick(nwk_string.as_slice())
     }
@@ -65,10 +67,10 @@ pub trait Nexus: Newick {
             let mut curr_block = NexusBlock::NONE;
             for line in file_lines{
                 let line_words = line.split_ascii_whitespace().map(|x| x.to_ascii_lowercase()).collect_vec();
-                if line_words.len()==0{
+                if line_words.is_empty(){
                     continue;
                 }
-                else if line_words[0]=="begin".to_string(){
+                else if line_words[0]==*"begin"{
                     curr_block = match line_words[1].as_str() {
                         "trees;" => NexusBlock::TREE,
                         _ => NexusBlock::NONE,
@@ -84,7 +86,7 @@ pub trait Nexus: Newick {
                     };
                 }
             }
-            let first_tree = tree_block.split(";").collect_vec()[0].split("=").collect_vec()[1].split_whitespace().collect::<String>();
+            let first_tree = tree_block.split(';').collect_vec()[0].split('=').collect_vec()[1].split_whitespace().collect::<String>();
             Self::from_newick(format!("{first_tree};").as_bytes())
         }
     }

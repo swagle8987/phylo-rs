@@ -1,3 +1,5 @@
+#![allow(clippy::needless_lifetimes)]
+
 use std::{collections::VecDeque, ops::Index};
 
 // use fxhash::FxHashMap as HashMap;
@@ -201,7 +203,7 @@ where
 
     /// Returns depth of a node as number of edges in the path from node to root
     fn depth(&self, node_id: TreeNodeID<Self>) -> usize {
-        self.node_to_root_ids(node_id).into_iter().len() - 1
+        self.node_to_root_ids(node_id).len() - 1
     }
 }
 
@@ -417,7 +419,6 @@ pub trait Clusters: DFS + BFS + Sized {
         node_id: TreeNodeID<Self>,
     ) -> impl ExactSizeIterator<Item = &'a Self::Node> {
         self.dfs(node_id)
-            .into_iter()
             .filter(|x| x.is_leaf())
             .collect_vec()
             .into_iter()
@@ -465,7 +466,7 @@ pub trait Clusters: DFS + BFS + Sized {
         let c2_ids = self.get_cluster_ids(edge.1).collect_vec();
         let c1 = self
             .get_cluster_ids(edge.0)
-            .filter(|x| !c2_ids.contains(&x))
+            .filter(|x| !c2_ids.contains(x))
             .collect_vec();
         (c1.into_iter(), c2.into_iter())
     }

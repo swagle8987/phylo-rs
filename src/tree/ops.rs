@@ -79,7 +79,6 @@ where
         for node_id in node_id_list.into_iter() {
             let ancestors = self
                 .root_to_node(node_id)
-                .into_iter()
                 .cloned()
                 .collect_vec();
             subtree.set_nodes(ancestors);
@@ -91,7 +90,7 @@ where
     /// Returns subtree starting at provided node.
     fn subtree(&self, node_id: TreeNodeID<Self>) -> Result<Self>{
         let mut subtree = self.clone();
-        let dfs = self.dfs(node_id).into_iter().cloned().collect_vec();
+        let dfs = self.dfs(node_id).cloned().collect_vec();
         subtree.set_nodes(dfs);
         Ok(subtree)
     }

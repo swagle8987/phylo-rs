@@ -1,3 +1,5 @@
+#![allow(clippy::needless_lifetimes)]
+
 /// Module with traits of rooted tree nodes
 pub mod simple_rnode;
 
