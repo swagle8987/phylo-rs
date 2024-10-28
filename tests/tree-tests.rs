@@ -216,3 +216,76 @@ fn suppress_tree_node() -> Result<()> {
     tree.supress_node(2)?;
     Ok(())
 }
+
+#[test]
+fn robinson_foulds() -> Result<()> {
+    let input_str: String = String::from("(((A,B),C),D);");
+    let t1 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    let input_str: String = String::from("(A,(B,(C,D)));");
+    let t2 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    assert_eq!(t1.rfs(&t2).unwrap(), 0);
+
+    let input_str: String = String::from("(((A,B),C),D);");
+    let t1 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    let input_str: String = String::from("(A,(D,(C,B)));");
+    let t2 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    assert_eq!(t1.rfs(&t2).unwrap(), 1);
+
+    Ok(())
+}
+
+#[test]
+fn cluster_affinity() -> Result<()> {
+    let input_str: String = String::from("(((A,B),C),D);");
+    let t1 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    let input_str: String = String::from("(A,(B,(C,D)));");
+    let t2 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    assert_eq!(t1.ca(&t2).unwrap(), 2);
+
+    let input_str: String = String::from("(((A,B),C),D);");
+    let t1 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    let input_str: String = String::from("(((A,B),C),D);");
+    let t2 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    assert_eq!(t1.ca(&t2).unwrap(), 0);
+
+    let input_str: String = String::from("(((A,B),C),D);");
+    let t1 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    let input_str: String = String::from("(A,(D,(C,B)));");
+    let t2 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    assert_eq!(t1.ca(&t2).unwrap(), 2);
+
+    Ok(())
+}
+
+#[test]
+fn bipartitions() -> Result<()> {
+    let input_str: String = String::from("(((A,B),C),D);");
+    let t1 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    let _bps = t1
+        .get_bipartitions_ids()
+        .map(|(p1, p2)| {
+            (
+                p1.map(|x| t1.get_node_taxa(x).cloned().unwrap())
+                    .collect_vec(),
+                p2.map(|x| t1.get_node_taxa(x).cloned().unwrap())
+                    .collect_vec(),
+            )
+        })
+        .collect_vec();
+
+    let input_str: String = String::from("(A, (B, (C, (D, (E, (F, (G, H)))))));");
+    let t1 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
+    let _bps = t1
+        .get_bipartitions_ids()
+        .map(|(p1, p2)| {
+            (
+                p1.map(|x| t1.get_node_taxa(x).cloned().unwrap())
+                    .collect_vec(),
+                p2.map(|x| t1.get_node_taxa(x).cloned().unwrap())
+                    .collect_vec(),
+            )
+        })
+        .collect_vec();
+
+    Ok(())
+}

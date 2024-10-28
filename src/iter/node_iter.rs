@@ -1,8 +1,9 @@
 #![allow(clippy::needless_lifetimes)]
 
+use fxhash::FxHashMap as HashMap;
+use fxhash::FxHashSet as HashSet;
 use std::{collections::VecDeque, ops::Index};
 
-// use fxhash::FxHashMap as HashMap;
 use itertools::Itertools;
 
 use crate::{
@@ -431,6 +432,37 @@ pub trait Clusters: DFS + BFS + Sized {
         self.get_cluster(node_id).map(move |x| x.get_id())
     }
 
+    /// Returns all clusters of a tree as iterator of NodeID's
+    fn get_clusters_ids(
+        &self,
+    ) -> impl ExactSizeIterator<
+        Item = (
+            TreeNodeID<Self>,
+            impl ExactSizeIterator<Item = TreeNodeID<Self>>,
+        ),
+    > {
+        let mut clusters: HashMap<TreeNodeID<Self>, Vec<TreeNodeID<Self>>> =
+            vec![].into_iter().collect();
+        for n_id in self.postord_ids(self.get_root_id()) {
+            match self.is_leaf(n_id) {
+                true => {
+                    clusters.insert(n_id, vec![n_id]);
+                }
+                false => {
+                    let node_cluster = self
+                        .get_node_children_ids(n_id)
+                        .flat_map(|x| clusters.get(&x).cloned().unwrap())
+                        .collect_vec();
+                    clusters.insert(n_id, node_cluster);
+                }
+            };
+        }
+
+        clusters
+            .into_iter()
+            .map(|(n_id, cluster)| (n_id, cluster.into_iter()))
+    }
+
     /// Returns size of a cluster of nodes
     fn get_cluster_size(&self, node_id: TreeNodeID<Self>) -> usize {
         self.get_cluster_ids(node_id).len()
@@ -468,6 +500,92 @@ pub trait Clusters: DFS + BFS + Sized {
             .filter(|x| !c2_ids.contains(x))
             .collect_vec();
         (c1.into_iter(), c2.into_iter())
+    }
+
+    /// Returns all bipartitions of a tree as iterator of NodeID's
+    fn get_bipartitions_ids(
+        &self,
+    ) -> impl ExactSizeIterator<
+        Item = (
+            impl ExactSizeIterator<Item = TreeNodeID<Self>>,
+            impl ExactSizeIterator<Item = TreeNodeID<Self>>,
+        ),
+    > {
+        let leaf_ids: HashMap<TreeNodeID<Self>, usize> = self
+            .get_leaf_ids()
+            .enumerate()
+            .map(|(idx, id)| (id, idx))
+            .collect();
+        let leaf_ids_rev: HashMap<usize, TreeNodeID<Self>> =
+            leaf_ids.iter().map(|(id, idx)| (*idx, *id)).collect();
+        let mut bps: HashMap<TreeNodeID<Self>, Vec<bool>> = vec![].into_iter().collect();
+        let mut skip_clusters: HashSet<Vec<bool>> = vec![].into_iter().collect();
+        let mut keep_nodes: Vec<TreeNodeID<Self>> = vec![];
+        for n_id in self.postord_ids(self.get_root_id()) {
+            match self.is_leaf(n_id) {
+                true => {
+                    let bp: (HashSet<TreeNodeID<Self>>, HashSet<TreeNodeID<Self>>) = (
+                        vec![n_id].into_iter().collect(),
+                        leaf_ids.keys().filter(|x| **x != n_id).copied().collect(),
+                    );
+                    let mut binary_str = vec![false; leaf_ids.len()];
+                    for i in bp.0.iter() {
+                        binary_str[*leaf_ids.get(i).unwrap()] = true;
+                    }
+                    if !skip_clusters.contains(&binary_str)
+                        && !skip_clusters.contains(&binary_str.iter().map(|x| !x).collect_vec())
+                    {
+                        skip_clusters.insert(binary_str.iter().map(|x| !x).collect_vec());
+                        keep_nodes.push(n_id);
+                    }
+                    bps.insert(n_id, binary_str);
+                }
+                false => {
+                    if n_id == self.get_root_id() {
+                        continue;
+                    }
+                    let children_clusters = self
+                        .get_node_children_ids(n_id)
+                        .map(|x| bps.get(&x).unwrap())
+                        .collect_vec();
+                    let binary_str = (0..leaf_ids.len())
+                        .map(|x| {
+                            let values = children_clusters
+                                .iter()
+                                .map(|y| y[x] as usize)
+                                .collect_vec();
+                            values.iter().sum::<usize>() > 0
+                        })
+                        .collect_vec();
+                    if !skip_clusters.contains(&binary_str)
+                        && !skip_clusters.contains(&binary_str.iter().map(|x| !x).collect_vec())
+                    {
+                        skip_clusters.insert(binary_str.iter().map(|x| !x).collect_vec());
+                        keep_nodes.push(n_id);
+                    }
+                    bps.insert(n_id, binary_str);
+                }
+            };
+        }
+
+        return keep_nodes.into_iter().map(move |n_id| {
+            let mut bp1 = vec![];
+            let mut bp2 = vec![];
+            bps.get(&n_id)
+                .unwrap()
+                .iter()
+                .enumerate()
+                .for_each(|(idx, x)| match x {
+                    true => {
+                        bp1.push(leaf_ids_rev.get(&idx).unwrap().to_owned());
+                    }
+                    false => {
+                        bp2.push(leaf_ids_rev.get(&idx).unwrap().to_owned());
+                    }
+                });
+
+            (bp1.into_iter(), bp2.into_iter())
+        });
     }
 
     /// Returns median NodeID of a set of leaves in a tree.

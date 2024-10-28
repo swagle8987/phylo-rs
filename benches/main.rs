@@ -59,6 +59,32 @@ fn benchmark_cophen_dist_naive(bencher: divan::Bencher) {
 }
 
 #[divan::bench]
+fn benchmark_rfs(bencher: divan::Bencher) {
+    bencher
+        .with_inputs(|| {
+            let t1 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
+            let t2 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
+            (t1, t2)
+        })
+        .bench_refs(|(t1, t2)| {
+            let _ = t1.rfs(t2);
+        });
+}
+
+#[divan::bench]
+fn benchmark_ca(bencher: divan::Bencher) {
+    bencher
+        .with_inputs(|| {
+            let t1 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
+            let t2 = SimpleRootedTree::yule(NUM_TAXA).unwrap();
+            (t1, t2)
+        })
+        .bench_refs(|(t1, t2)| {
+            let _ = t1.ca(t2);
+        });
+}
+
+#[divan::bench]
 fn benchmark_contract(bencher: divan::Bencher) {
     bencher
         .with_inputs(|| {

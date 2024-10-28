@@ -1,4 +1,5 @@
 use anyhow::Result;
+use fxhash::FxHashMap as HashMap;
 use fxhash::FxHashSet as HashSet;
 use itertools::Itertools;
 use num::{Float, NumCast, Signed};
@@ -79,67 +80,60 @@ where
 {
     /// Returns Robinson Foulds distance between tree and self.
     fn rfs(&self, tree: &Self) -> Result<usize> {
-        let self_bps = self
-            .get_node_ids()
-            .filter(|node_id| node_id == &self.get_root_id())
-            .map(|node_id| {
-                let node_parent_id = self.get_node_parent_id(node_id).unwrap();
-                let bp_ids = self.get_bipartition_ids((node_parent_id, node_id));
-                let p0 = bp_ids
-                    .0
-                    .map(|id| self.get_node_taxa(id).cloned().unwrap())
-                    .collect::<HashSet<TreeNodeMeta<Self>>>();
-                let p1 = bp_ids
-                    .1
-                    .map(|id| self.get_node_taxa(id).cloned().unwrap())
-                    .collect::<HashSet<TreeNodeMeta<Self>>>();
-                (p0, p1)
+        let mut all_taxa: HashSet<&TreeNodeMeta<Self>> = self.get_taxa_space().collect();
+        all_taxa.extend(tree.get_taxa_space());
+        let num_taxa = all_taxa.len();
+        let all_taxa_map: HashMap<&TreeNodeMeta<Self>, usize> = all_taxa
+            .into_iter()
+            .enumerate()
+            .map(|x| (x.1, x.0))
+            .collect();
+
+        let self_bps: HashSet<Vec<bool>> = self
+            .get_clusters_ids()
+            .map(|(_, cluster)| {
+                let mut bit_str = vec![false; num_taxa];
+                cluster
+                    .map(|x| self.get_node_taxa(x).unwrap())
+                    .for_each(|x| bit_str[*all_taxa_map.get(x).unwrap()] = true);
+                bit_str
             })
-            .collect_vec();
-        let tree_bps = tree
-            .get_node_ids()
-            .filter(|node_id| node_id == &tree.get_root_id())
-            .map(|node_id| {
-                let node_parent_id = tree.get_node_parent_id(node_id).unwrap();
-                let bp_ids = tree.get_bipartition_ids((node_parent_id, node_id));
-                let p0 = bp_ids
-                    .0
-                    .map(|id| tree.get_node_taxa(id).cloned().unwrap())
-                    .collect::<HashSet<TreeNodeMeta<Self>>>();
-                let p1 = bp_ids
-                    .1
-                    .map(|id| tree.get_node_taxa(id).cloned().unwrap())
-                    .collect::<HashSet<TreeNodeMeta<Self>>>();
-                (p0, p1)
+            .collect();
+        let tree_bps: HashSet<Vec<bool>> = tree
+            .get_clusters_ids()
+            .map(|(_, cluster)| {
+                let mut bit_str = vec![false; num_taxa];
+                cluster
+                    .map(|x| tree.get_node_taxa(x).unwrap())
+                    .for_each(|x| bit_str[*all_taxa_map.get(x).unwrap()] = true);
+                bit_str
             })
-            .collect_vec();
+            .collect();
 
         let mut dist = 0;
         for i in self_bps.iter() {
-            if tree_bps.contains(&(i.0.clone(), i.1.clone()))
-                || tree_bps.contains(&(i.1.clone(), i.0.clone()))
-            {
+            if !tree_bps.contains(i) && !tree_bps.contains(&i.iter().map(|x| !x).collect_vec()) {
                 dist += 1;
             }
         }
-        for i in tree_bps {
-            if self_bps.contains(&(i.0.clone(), i.1.clone())) || self_bps.contains(&(i.1, i.0)) {
+        for i in tree_bps.iter() {
+            if !self_bps.contains(i) && !self_bps.contains(&i.iter().map(|x| !x).collect_vec()) {
                 dist += 1;
             }
         }
 
-        Ok(dist)
+        Ok(dist / 2)
     }
 }
 
-/// A trait describing naive computation of Cluster Affinity distance
-pub trait ClusterAffinity
+/// A trait describing naive computation of Cluster Matching distance
+pub trait ClusterMatching
 where
     Self: RootedTree + RootedMetaTree + Clusters,
     <Self as RootedTree>::Node: RootedMetaNode,
 {
-    /// Returns Cluster Affinity distance between tree and self.
-    fn ca(&self, tree: &Self) -> Result<usize> {
+    /// Returns Cluster Matching distance between tree and self.
+    fn cm(&self, tree: &Self) -> Result<usize> {
         let self_clusters = self
             .get_node_ids()
             .map(|node_id| {
@@ -159,6 +153,50 @@ where
 
         Ok(self_clusters.difference(&tree_clusters).collect_vec().len()
             + tree_clusters.difference(&self_clusters).collect_vec().len())
+    }
+}
+
+/// A trait describing computation of Cluster Affinity
+pub trait ClusterAffinity
+where
+    Self: RootedTree + RootedMetaTree + Clusters,
+    <Self as RootedTree>::Node: RootedMetaNode,
+{
+    /// Returns Cluster Affinity cost from self to tree..
+    fn ca(&self, tree: &Self) -> Result<usize> {
+        let tree_clusters = tree
+            .get_clusters_ids()
+            .map(|(id, cluster)| {
+                (
+                    id,
+                    cluster
+                        .map(|x| tree.get_node_taxa(x).unwrap())
+                        .collect::<HashSet<_>>(),
+                )
+            })
+            .collect::<HashMap<TreeNodeID<Self>, HashSet<_>>>();
+
+        let mut ca_cost = 0;
+
+        for (_, cluster) in self.get_clusters_ids().map(|(id, cluster)| {
+            (
+                id,
+                cluster
+                    .map(|x| self.get_node_taxa(x).unwrap())
+                    .collect::<HashSet<_>>(),
+            )
+        }) {
+            ca_cost += tree_clusters
+                .values()
+                .map(|t_cluster| {
+                    cluster.difference(t_cluster).collect_vec().len()
+                        + t_cluster.difference(&cluster).collect_vec().len()
+                })
+                .min()
+                .unwrap();
+        }
+
+        Ok(ca_cost)
     }
 }
 

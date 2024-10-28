@@ -269,6 +269,8 @@ impl Subtree for SimpleRootedTree {}
 
 impl PreOrder for SimpleRootedTree {}
 
+impl ClusterMatching for SimpleRootedTree {}
+
 impl ClusterAffinity for SimpleRootedTree {}
 
 impl RobinsonFoulds for SimpleRootedTree {}

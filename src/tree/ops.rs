@@ -50,7 +50,7 @@ where
     fn reroot_at_edge(&mut self, edge: (TreeNodeID<Self>, TreeNodeID<Self>)) -> Result<()>;
 }
 
-/// A trait describing blancing a binary tree
+/// A trait describing balancing a binary tree
 pub trait Balance: Clusters + SPR + Sized
 where
     TreeNodeID<Self>: Display + Debug + Hash + Clone + Ord,
