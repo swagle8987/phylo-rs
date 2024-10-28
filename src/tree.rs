@@ -16,7 +16,6 @@ use fxhash::FxHashMap as HashMap;
 use simulation::{Uniform, Yule};
 use std::ops::Index;
 
-use anyhow::Result;
 use itertools::Itertools;
 use rand::prelude::IteratorRandom;
 
@@ -80,16 +79,12 @@ impl RootedTree for SimpleRootedTree {
     type Node = Node;
 
     /// Returns reference to node by ID
-    fn get_node<'a>(&'a self, node_id: TreeNodeID<Self>) -> Result<&'a Node> {
-        self.nodes[node_id]
-            .as_ref()
-            .ok_or(TreeQueryErr("No such node exists!".to_string()).into())
+    fn get_node<'a>(&'a self, node_id: TreeNodeID<Self>) -> Option<&'a Node> {
+        self.nodes[node_id].as_ref()
     }
 
-    fn get_node_mut(&mut self, node_id: TreeNodeID<Self>) -> Result<&mut Node> {
-        self.nodes[node_id]
-            .as_mut()
-            .ok_or(TreeQueryErr("No such node exists!".to_string()).into())
+    fn get_node_mut(&mut self, node_id: TreeNodeID<Self>) -> Option<&mut Node> {
+        self.nodes[node_id].as_mut()
     }
 
     fn get_node_ids(&self) -> impl Iterator<Item = TreeNodeID<Self>> {
@@ -147,19 +142,12 @@ impl RootedTree for SimpleRootedTree {
     }
 
     /// Supresses all nodes of degree 2
-    fn supress_unifurcations<'a>(&'a mut self) -> Result<()> {
-        Ok(())
-    }
+    fn supress_unifurcations<'a>(&'a mut self) {}
 }
 
 impl RootedMetaTree for SimpleRootedTree {
-    fn get_taxa_node(&self, taxa: &TreeNodeMeta<Self>) -> Result<&Self::Node> {
-        self.get_node(
-            *self
-                .taxa_node_id_map
-                .get(taxa)
-                .ok_or(TreeQueryErr(format!("No node with taxa {} exists", &taxa)))?,
-        )
+    fn get_taxa_node(&self, taxa: &TreeNodeMeta<Self>) -> Option<&Self::Node> {
+        self.get_node(*self.taxa_node_id_map.get(taxa)?)
     }
 
     fn set_node_taxa(&mut self, node_id: TreeNodeID<Self>, taxa: Option<TreeNodeMeta<Self>>) {
@@ -183,10 +171,10 @@ impl RootedMetaTree for SimpleRootedTree {
 }
 
 impl Yule for SimpleRootedTree {
-    fn yule(num_taxa: usize) -> Result<SimpleRootedTree> {
+    fn yule(num_taxa: usize) -> SimpleRootedTree {
         let mut tree = SimpleRootedTree::new(0);
         if num_taxa < 3 {
-            return Ok(tree);
+            return tree;
         }
         let new_node = Node::new(1);
         tree.add_child(0, new_node);
@@ -195,7 +183,7 @@ impl Yule for SimpleRootedTree {
         tree.add_child(0, new_node);
         tree.set_node_taxa(2, Some("1".to_string()));
         if num_taxa < 4 {
-            return Ok(tree);
+            return tree;
         }
         let mut current_leaf_ids = vec![1, 2];
         for i in 2..num_taxa {
@@ -213,15 +201,15 @@ impl Yule for SimpleRootedTree {
             tree.set_node_taxa(new_leaf_id, Some(i.to_string()));
             current_leaf_ids.push(new_leaf_id);
         }
-        Ok(tree)
+        tree
     }
 }
 
 impl Uniform for SimpleRootedTree {
-    fn unif(num_taxa: usize) -> Result<SimpleRootedTree> {
+    fn unif(num_taxa: usize) -> SimpleRootedTree {
         let mut tree = SimpleRootedTree::new(0);
         if num_taxa < 3 {
-            return Ok(tree);
+            return tree;
         }
         let new_node = Node::new(1);
         tree.add_child(0, new_node);
@@ -230,7 +218,7 @@ impl Uniform for SimpleRootedTree {
         tree.add_child(0, new_node);
         tree.set_node_taxa(2, Some("1".to_string()));
         if num_taxa < 3 {
-            return Ok(tree);
+            return tree;
         }
         let mut current_node_ids = vec![1, 2];
         for i in 1..num_taxa {
@@ -248,7 +236,7 @@ impl Uniform for SimpleRootedTree {
             current_node_ids.push(new_leaf.get_id());
             tree.add_child(split_node_id, new_leaf)
         }
-        Ok(tree)
+        tree
     }
 }
 
@@ -360,11 +348,8 @@ impl ContractTree for SimpleRootedTree {
         node_postord_iter.for_each(|orig_node| {
             let mut node = orig_node.clone();
             match node.is_leaf() {
-                true => match leaf_ids.contains(&node.get_id()) {
-                    true => {
-                        node_map[node.get_id()] = Some(node.clone());
-                    }
-                    false => {}
+                true => if leaf_ids.contains(&node.get_id()) {
+                    node_map[node.get_id()] = Some(node.clone());
                 },
                 false => {
                     let node_children_ids = node.get_children().collect_vec();
@@ -383,23 +368,20 @@ impl ContractTree for SimpleRootedTree {
                             // if child of node is already in remove list, attach node children to node first
                             let child_node_id = node_children_ids[0];
 
-                            match remove_list.contains(&child_node_id) {
-                                true => {
-                                    node.remove_child(&child_node_id);
-                                    let grandchildren_ids = node_map[child_node_id]
+                            if remove_list.contains(&child_node_id) {
+                                node.remove_child(&child_node_id);
+                                let grandchildren_ids = node_map[child_node_id]
+                                    .as_mut()
+                                    .unwrap()
+                                    .get_children()
+                                    .collect_vec();
+                                for grandchild_id in grandchildren_ids {
+                                    node_map[grandchild_id]
                                         .as_mut()
                                         .unwrap()
-                                        .get_children()
-                                        .collect_vec();
-                                    for grandchild_id in grandchildren_ids {
-                                        node_map[grandchild_id]
-                                            .as_mut()
-                                            .unwrap()
-                                            .set_parent(Some(node.get_id()));
-                                        node.add_child(grandchild_id);
-                                    }
+                                        .set_parent(Some(node.get_id()));
+                                    node.add_child(grandchild_id);
                                 }
-                                false => {}
                             }
                             let n_id = node.get_id();
                             remove_list.push(n_id);
@@ -409,28 +391,25 @@ impl ContractTree for SimpleRootedTree {
                             // node has multiple children
                             // for each child, suppress child if child is in remove list
                             node_children_ids.into_iter().for_each(|chid| {
-                                match remove_list.contains(&chid) {
-                                    true => {
-                                        // suppress chid
-                                        // remove chid from node children
-                                        // children of chid are node grandchildren
-                                        // add grandchildren to node children
-                                        // set grandchildren parent to node
-                                        node.remove_child(&chid);
-                                        let node_grandchildren = node_map[chid]
+                                if remove_list.contains(&chid) {
+                                    // suppress chid
+                                    // remove chid from node children
+                                    // children of chid are node grandchildren
+                                    // add grandchildren to node children
+                                    // set grandchildren parent to node
+                                    node.remove_child(&chid);
+                                    let node_grandchildren = node_map[chid]
+                                        .as_mut()
+                                        .unwrap()
+                                        .get_children()
+                                        .collect_vec();
+                                    for grandchild in node_grandchildren {
+                                        node.add_child(grandchild);
+                                        node_map[grandchild]
                                             .as_mut()
                                             .unwrap()
-                                            .get_children()
-                                            .collect_vec();
-                                        for grandchild in node_grandchildren {
-                                            node.add_child(grandchild);
-                                            node_map[grandchild]
-                                                .as_mut()
-                                                .unwrap()
-                                                .set_parent(Some(node.get_id()))
-                                        }
+                                            .set_parent(Some(node.get_id()))
                                     }
-                                    false => {}
                                 }
                             });
                             if node.get_id() == new_tree_root_id {
@@ -448,7 +427,7 @@ impl ContractTree for SimpleRootedTree {
         node_map.into_iter().flatten()
     }
 
-    fn contract_tree(&self, leaf_ids: &[TreeNodeID<Self>]) -> Result<Self> {
+    fn contract_tree(&self, leaf_ids: &[TreeNodeID<Self>]) -> Result<Self, ()> {
         let new_tree_root_id = self.get_lca_id(leaf_ids);
         let new_nodes = self.contracted_tree_nodes(leaf_ids).collect_vec();
         let mut new_tree = self.clone();
@@ -462,7 +441,7 @@ impl ContractTree for SimpleRootedTree {
         &self,
         leaf_ids: &[TreeNodeID<Self>],
         node_iter: impl Iterator<Item = TreeNodeID<Self>>,
-    ) -> Result<Self> {
+    ) -> Result<Self, ()> {
         let new_tree_root_id = self.get_lca_id(leaf_ids);
         let new_nodes = self
             .contracted_tree_nodes_from_iter(new_tree_root_id, leaf_ids, node_iter)
@@ -593,7 +572,7 @@ impl EulerWalk for SimpleRootedTree {
 impl Clusters for SimpleRootedTree {}
 
 impl Newick for SimpleRootedTree {
-    fn from_newick(newick_str: &[u8]) -> Result<Self> {
+    fn from_newick(newick_str: &[u8]) -> std::io::Result<Self> {
         let mut tree = SimpleRootedTree::new(0);
         let mut stack: Vec<TreeNodeID<Self>> = Vec::new();
         let mut context: TreeNodeID<Self> = tree.get_root_id();
@@ -616,9 +595,12 @@ impl Newick for SimpleRootedTree {
                 }
                 ')' | ',' => {
                     // last context id
-                    let last_context = stack
-                        .last()
-                        .ok_or(NewickErr("Newick string ended abruptly!".to_string()))?;
+                    let last_context = stack.last().ok_or_else(|| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            NewickError::InvalidCharacter { idx: str_ptr },
+                        )
+                    })?;
                     // add current context as a child to last context
                     tree.set_child(*last_context, context);
                     tree.set_edge_weight(
@@ -640,9 +622,12 @@ impl Newick for SimpleRootedTree {
                             str_ptr += 1;
                         }
                         _ => {
-                            context = stack
-                                .pop()
-                                .ok_or(NewickErr("Newick string ended abruptly!".to_string()))?;
+                            context = stack.pop().ok_or_else(|| {
+                                std::io::Error::new(
+                                    std::io::ErrorKind::InvalidData,
+                                    NewickError::InvalidCharacter { idx: str_ptr },
+                                )
+                            })?;
                             str_ptr += 1;
                         }
                     }
@@ -713,7 +698,7 @@ impl Newick for SimpleRootedTree {
 impl Nexus for SimpleRootedTree {}
 
 impl SPR for SimpleRootedTree {
-    fn graft(&mut self, tree: Self, edge: (TreeNodeID<Self>, TreeNodeID<Self>)) -> Result<()> {
+    fn graft(&mut self, tree: Self, edge: (TreeNodeID<Self>, TreeNodeID<Self>)) -> Result<(), ()> {
         let new_node = self.next_node();
         let new_node_id = dbg!(new_node.get_id());
         for node in tree.dfs(tree.get_root_id()) {
@@ -723,7 +708,7 @@ impl SPR for SimpleRootedTree {
         self.set_child(dbg!(new_node_id), dbg!(tree.get_root_id()));
         Ok(())
     }
-    fn prune(&mut self, node_id: TreeNodeID<Self>) -> Result<Self> {
+    fn prune(&mut self, node_id: TreeNodeID<Self>) -> Result<Self, ()> {
         let mut pruned_tree = SimpleRootedTree::new(node_id);
         let p_id = self.get_node_parent_id(node_id).unwrap();
         self.get_node_mut(p_id).unwrap().remove_child(&node_id);
@@ -741,7 +726,7 @@ impl SPR for SimpleRootedTree {
 }
 
 impl Balance for SimpleRootedTree {
-    fn balance_subtree(&mut self) -> Result<()> {
+    fn balance_subtree(&mut self) -> Result<(), ()> {
         assert!(
             self.get_cluster(self.get_root_id()).collect_vec().len() == 4,
             "Quartets have 4 leaves!"
