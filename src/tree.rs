@@ -350,9 +350,11 @@ impl ContractTree for SimpleRootedTree {
         node_postord_iter.for_each(|orig_node| {
             let mut node = orig_node.clone();
             match node.is_leaf() {
-                true => if leaf_ids.contains(&node.get_id()) {
-                    node_map[node.get_id()] = Some(node.clone());
-                },
+                true => {
+                    if leaf_ids.contains(&node.get_id()) {
+                        node_map[node.get_id()] = Some(node.clone());
+                    }
+                }
                 false => {
                     let node_children_ids = node.get_children().collect_vec();
                     for child_id in &node_children_ids {

@@ -249,11 +249,10 @@ fn cluster_affinity() {
     let input_str: String = String::from("(A,(D,(C,B)));");
     let t2 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
     assert_eq!(t1.ca(&t2), 2);
-
 }
 
 #[test]
-fn bipartitions(){
+fn bipartitions() {
     let input_str: String = String::from("(((A,B),C),D);");
     let t1 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
     let _bps = t1
@@ -281,5 +280,4 @@ fn bipartitions(){
             )
         })
         .collect_vec();
-
 }

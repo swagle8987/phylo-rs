@@ -106,9 +106,11 @@ pub trait ContractTree: EulerWalk + DFS {
             .map(|x| self.get_node(x).cloned().unwrap())
             .for_each(|mut node| {
                 match node.is_leaf() {
-                    true => if leaf_ids.contains(&node.get_id()) {
-                        node_map.insert(node.get_id(), node);
-                    },
+                    true => {
+                        if leaf_ids.contains(&node.get_id()) {
+                            node_map.insert(node.get_id(), node);
+                        }
+                    }
                     false => {
                         let node_children_ids = node.get_children().collect_vec();
                         for child_id in &node_children_ids {
@@ -197,9 +199,11 @@ pub trait ContractTree: EulerWalk + DFS {
         node_postord_iter.for_each(|orig_node| {
             let mut node = orig_node.clone();
             match node.is_leaf() {
-                true => if leaf_ids.contains(&node.get_id()) {
-                    node_map.insert(node.get_id(), node);
-                },
+                true => {
+                    if leaf_ids.contains(&node.get_id()) {
+                        node_map.insert(node.get_id(), node);
+                    }
+                }
                 false => {
                     let node_children_ids = node.get_children().collect_vec();
                     for child_id in &node_children_ids {
@@ -246,11 +250,8 @@ pub trait ContractTree: EulerWalk + DFS {
                                     // add grandchildren to node children
                                     // set grandchildren parent to node
                                     node.remove_child(&chid);
-                                    let node_grandchildren = node_map
-                                        .get(&chid)
-                                        .unwrap()
-                                        .get_children()
-                                        .collect_vec();
+                                    let node_grandchildren =
+                                        node_map.get(&chid).unwrap().get_children().collect_vec();
                                     for grandchild in node_grandchildren {
                                         node.add_child(grandchild);
                                         node_map
