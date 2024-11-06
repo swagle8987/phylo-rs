@@ -16,7 +16,7 @@ pub use simple_rooted_tree::*;
 #[cfg(feature = "simple_rooted_tree")]
 mod simple_rooted_tree {
     use super::simulation::{Uniform, Yule};
-        use std::ops::Index;
+    use std::ops::Index;
 
     use itertools::Itertools;
     use rand::prelude::IteratorRandom;
@@ -147,22 +147,22 @@ mod simple_rooted_tree {
             self.taxa_node_id_map.clear();
         }
 
-    /// Supresses all nodes of degree 2
-    fn supress_unifurcations<'a>(&'a mut self) {
-        let post_ord_node_ids = self.postord_ids(self.get_root_id()).collect_vec();
-        for node_id in post_ord_node_ids{
-            if !self.is_leaf(node_id) && node_id !=self.root{
-                let node_degree = self.node_degree(node_id);
-                if node_degree==2{
-                    let node_parent_id = self.get_node_parent_id(node_id).unwrap();
-                    let node_child_id = self.get_node_children_ids(node_id).next().unwrap();
-                    self.remove_node(node_id);
-                    self.set_child(node_parent_id, node_child_id);
+        /// Supresses all nodes of degree 2
+        fn supress_unifurcations<'a>(&'a mut self) {
+            let post_ord_node_ids = self.postord_ids(self.get_root_id()).collect_vec();
+            for node_id in post_ord_node_ids {
+                if !self.is_leaf(node_id) && node_id != self.root {
+                    let node_degree = self.node_degree(node_id);
+                    if node_degree == 2 {
+                        let node_parent_id = self.get_node_parent_id(node_id).unwrap();
+                        let node_child_id = self.get_node_children_ids(node_id).next().unwrap();
+                        self.remove_node(node_id);
+                        self.set_child(node_parent_id, node_child_id);
+                    }
                 }
             }
         }
     }
-}
 
     impl RootedMetaTree for SimpleRootedTree {
         fn get_taxa_node(&self, taxa: &TreeNodeMeta<Self>) -> Option<&Self::Node> {
@@ -363,7 +363,7 @@ mod simple_rooted_tree {
     }
 
     impl ContractTree for SimpleRootedTree {
-    fn contracted_tree_nodes(
+        fn contracted_tree_nodes(
             &self,
             leaf_ids: &[TreeNodeID<Self>],
         ) -> impl Iterator<Item = Self::Node> {
@@ -372,10 +372,10 @@ mod simple_rooted_tree {
             let mut node_map: Vec<Option<Self::Node>> = vec![None; self.nodes.len()];
             node_map[new_tree_root_id] = Some(self.get_lca(leaf_ids).clone());
             let mut leaf_id_set = vec![false; self.nodes.len()];
-        for id in leaf_ids{
-            leaf_id_set[*id] = true;
-        }
-        let mut remove_list = vec![false; self.nodes.len()];
+            for id in leaf_ids {
+                leaf_id_set[*id] = true;
+            }
+            let mut remove_list = vec![false; self.nodes.len()];
             node_postord_iter.for_each(|orig_node: &Node| {
                 let mut node = orig_node.clone();
                 match node.is_leaf() {
@@ -392,7 +392,7 @@ mod simple_rooted_tree {
                                 false => node.remove_child(child_id),
                             }
                         }
-                            match node_children_ids.len() {
+                        match node_children_ids.len() {
                             0 => {}
                             1 => {
                                 // the node is a unifurcation
@@ -416,7 +416,7 @@ mod simple_rooted_tree {
                                     }
                                 }
                                 let n_id = node.get_id();
-                                remove_list[n_id]=true;
+                                remove_list[n_id] = true;
                                 node_map[n_id] = Some(node.clone());
                             }
                             _ => {
@@ -454,10 +454,10 @@ mod simple_rooted_tree {
                 }
             });
             remove_list.into_iter().enumerate().for_each(|(n_id, x)| {
-                if x{
-                node_map[n_id] = None;
+                if x {
+                    node_map[n_id] = None;
                 }
-        });
+            });
             node_map.into_iter().flatten()
         }
 

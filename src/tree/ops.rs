@@ -199,7 +199,7 @@ pub trait ContractTree: EulerWalk + DFS {
         let node_postord_iter = self.postord_nodes(new_tree_root_id);
         let mut node_map: HashMap<TreeNodeID<Self>, Self::Node> =
             HashMap::from_iter(vec![(new_tree_root_id, self.get_lca(leaf_ids).clone())]);
-        let leaf_ids: HashSet<&TreeNodeID<Self>> = leaf_ids.into_iter().collect();    
+        let leaf_ids: HashSet<&TreeNodeID<Self>> = leaf_ids.iter().collect();
         let mut remove_list = vec![];
         node_postord_iter.for_each(|orig_node| {
             let mut node = orig_node.clone();

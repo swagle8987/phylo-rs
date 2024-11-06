@@ -93,7 +93,7 @@ fn benchmark_contract(bencher: divan::Bencher, taxa_size: usize) {
             let taxa_set = (0..taxa_size).collect_vec();
             let taxa_subset = taxa_set
                 .into_iter()
-                .choose_multiple(&mut rng, (3*taxa_size / 4) as usize);
+                .choose_multiple(&mut rng, (3 * taxa_size / 4));
             t1.precompute_constant_time_lca();
             (t1, taxa_subset)
         })
