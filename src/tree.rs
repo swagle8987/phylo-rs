@@ -392,6 +392,7 @@ mod simple_rooted_tree {
                                 false => node.remove_child(child_id),
                             }
                         }
+                        let node_children_ids = node.get_children().collect_vec();
                         match node_children_ids.len() {
                             0 => {}
                             1 => {
@@ -706,7 +707,6 @@ mod simple_rooted_tree {
         }
 
         fn subtree_to_newick(&self, node_id: TreeNodeID<Self>) -> impl std::fmt::Display {
-            dbg!(node_id);
             let node = self.get_node(node_id).unwrap();
             let mut tmp = String::new();
             if node.get_children().len() != 0 {
