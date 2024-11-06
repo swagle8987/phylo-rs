@@ -1,4 +1,5 @@
 use fxhash::FxHashMap as HashMap;
+use fxhash::FxHashSet as HashSet;
 use itertools::Itertools;
 use std::{
     fmt::{Debug, Display},
@@ -101,7 +102,7 @@ pub trait ContractTree: EulerWalk + DFS {
     ) -> impl Iterator<Item = Self::Node> {
         let mut node_map: HashMap<TreeNodeID<Self>, Self::Node> =
             HashMap::from_iter(vec![(new_tree_root_id, self.get_lca(leaf_ids).clone())]);
-        let mut remove_list = vec![];
+        let mut remove_list = HashSet::from_iter(vec![]);
         node_iter
             .map(|x| self.get_node(x).cloned().unwrap())
             .for_each(|mut node| {
@@ -143,7 +144,7 @@ pub trait ContractTree: EulerWalk + DFS {
                                         node.add_child(grandchild_id);
                                     }
                                 }
-                                remove_list.push(node.get_id());
+                                remove_list.insert(node.get_id());
                                 node_map.insert(node.get_id(), node);
                             }
                             _ => {
@@ -195,6 +196,7 @@ pub trait ContractTree: EulerWalk + DFS {
         let node_postord_iter = self.postord_nodes(new_tree_root_id);
         let mut node_map: HashMap<TreeNodeID<Self>, Self::Node> =
             HashMap::from_iter(vec![(new_tree_root_id, self.get_lca(leaf_ids).clone())]);
+        let leaf_ids: HashSet<&TreeNodeID<Self>> = leaf_ids.into_iter().collect();    
         let mut remove_list = vec![];
         node_postord_iter.for_each(|orig_node| {
             let mut node = orig_node.clone();

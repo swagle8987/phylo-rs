@@ -11,7 +11,6 @@ pub mod simple_rtree;
 /// Module with traits and structs for tree simulation
 pub mod simulation;
 
-use core::f32;
 use fxhash::FxHashMap as HashMap;
 use simulation::{Uniform, Yule};
 use std::ops::Index;
@@ -142,7 +141,20 @@ impl RootedTree for SimpleRootedTree {
     }
 
     /// Supresses all nodes of degree 2
-    fn supress_unifurcations<'a>(&'a mut self) {}
+    fn supress_unifurcations<'a>(&'a mut self) {
+        let post_ord_node_ids = self.postord_ids(self.get_root_id()).collect_vec();
+        for node_id in post_ord_node_ids{
+            if !self.is_leaf(node_id) && node_id !=self.root{
+                let node_degree = self.node_degree(node_id);
+                if node_degree==2{
+                    let node_parent_id = self.get_node_parent_id(node_id).unwrap();
+                    let node_child_id = self.get_node_children_ids(node_id).next().unwrap();
+                    self.remove_node(node_id);
+                    self.set_child(node_parent_id, node_child_id);
+                }
+            }
+        }
+    }
 }
 
 impl RootedMetaTree for SimpleRootedTree {
@@ -338,6 +350,31 @@ impl BFS for SimpleRootedTree {
 }
 
 impl ContractTree for SimpleRootedTree {
+
+    // fn contracted_tree_node_ids(
+    //         &self,
+    //         leaf_ids: &[TreeNodeID<Self>],
+    //     ) -> impl Iterator<Item = TreeNodeID<Self>> {
+    //         let mut keep_list = vec![false; self.nodes.len()];
+    //         let new_tree_root_id = self.get_lca_id(leaf_ids);
+    //         let leaf_ids: HashSet<&TreeNodeID<Self>> = leaf_ids.into_iter().collect();
+    //         let node_postord_iter = self.postord_ids(new_tree_root_id);
+    //         node_postord_iter.for_each(|n_id| {
+    //             match self.is_leaf(n_id) {
+    //                 true => {
+    //                     if leaf_id_set(n_id) {
+    //                         node_map[node.get_id()] = Some(node.clone());
+    //                     }
+    //                 },
+    //                 false => {
+    //                 }  
+    //                 }
+    //             }
+    //         );
+
+    //         keep_list.into_iter().enumerate().filter(|(_, x)| !x).map(|(n_id, _)| n_id)
+    // }
+
     fn contracted_tree_nodes(
         &self,
         leaf_ids: &[TreeNodeID<Self>],
@@ -346,24 +383,27 @@ impl ContractTree for SimpleRootedTree {
         let node_postord_iter = self.postord_nodes(new_tree_root_id);
         let mut node_map: Vec<Option<Self::Node>> = vec![None; self.nodes.len()];
         node_map[new_tree_root_id] = Some(self.get_lca(leaf_ids).clone());
-        let mut remove_list = vec![];
-        node_postord_iter.for_each(|orig_node| {
+        let mut leaf_id_set = vec![false; self.nodes.len()];
+        for id in leaf_ids{
+            leaf_id_set[*id] = true;
+        }
+        let mut remove_list = vec![false; self.nodes.len()];
+        node_postord_iter.for_each(|orig_node: &Node| {
             let mut node = orig_node.clone();
             match node.is_leaf() {
                 true => {
-                    if leaf_ids.contains(&node.get_id()) {
+                    if leaf_id_set[node.get_id()] {
                         node_map[node.get_id()] = Some(node.clone());
                     }
                 }
                 false => {
                     let node_children_ids = node.get_children().collect_vec();
-                    for child_id in &node_children_ids {
+                    for child_id in node_children_ids.iter() {
                         match node_map[*child_id].is_some() {
                             true => {}
                             false => node.remove_child(child_id),
                         }
                     }
-                    let node_children_ids = node.get_children().collect_vec();
                     match node_children_ids.len() {
                         0 => {}
                         1 => {
@@ -372,7 +412,7 @@ impl ContractTree for SimpleRootedTree {
                             // if child of node is already in remove list, attach node children to node first
                             let child_node_id = node_children_ids[0];
 
-                            if remove_list.contains(&child_node_id) {
+                            if remove_list[child_node_id] {
                                 node.remove_child(&child_node_id);
                                 let grandchildren_ids = node_map[child_node_id]
                                     .as_mut()
@@ -388,14 +428,14 @@ impl ContractTree for SimpleRootedTree {
                                 }
                             }
                             let n_id = node.get_id();
-                            remove_list.push(n_id);
+                            remove_list[n_id]=true;
                             node_map[n_id] = Some(node.clone());
                         }
                         _ => {
                             // node has multiple children
                             // for each child, suppress child if child is in remove list
                             node_children_ids.into_iter().for_each(|chid| {
-                                if remove_list.contains(&chid) {
+                                if remove_list[chid] {
                                     // suppress chid
                                     // remove chid from node children
                                     // children of chid are node grandchildren
@@ -425,8 +465,10 @@ impl ContractTree for SimpleRootedTree {
                 }
             }
         });
-        remove_list.into_iter().for_each(|x| {
-            node_map[x] = None;
+        remove_list.into_iter().enumerate().for_each(|(n_id, x)| {
+            if x{
+                node_map[n_id] = None;
+            }
         });
         node_map.into_iter().flatten()
     }
