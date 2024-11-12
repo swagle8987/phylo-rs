@@ -1,7 +1,7 @@
 #![allow(clippy::needless_lifetimes)]
 
 #[cfg(feature = "non_crypto_hash")]
-use fxhash::FxHashMap as HashMap;
+use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
 #[cfg(not(feature = "non_crypto_hash"))]
 use std::collections::{HashMap, HashSet};
 
@@ -558,30 +558,30 @@ pub trait Clusters: DFS + BFS + Sized {
         &self,
         taxa_set: impl ExactSizeIterator<Item = TreeNodeID<Self>>,
     ) -> TreeNodeID<Self> {
+        let mut cluster_sizes: HashMap<TreeNodeID<Self>, usize> = vec![].into_iter().collect();
         let mut median_node_id: TreeNodeID<Self> = self.get_root_id();
-        let leaf_ids = taxa_set.collect_vec();
+        let leaf_ids: HashSet<TreeNodeID<Self>> = taxa_set.collect();
+        for n_id in self.postord_ids(self.get_root_id()){
+            if self.is_leaf(n_id) && leaf_ids.contains(&n_id){
+                cluster_sizes.insert(n_id, 1);
+            }
+            else{
+                let mut cluster_size = 0;
+                for c_id in self.get_node_children_ids(n_id){
+                    cluster_size+=cluster_sizes.get(&c_id).unwrap();
+                }
+                cluster_sizes.insert(n_id, cluster_size);
+            }
+        }
         loop {
-            median_node_id = self
-                .get_node_children_ids(median_node_id)
-                // .filter(|x| !self.is_leaf(x))
+            median_node_id = self.get_node_children_ids(median_node_id)
                 .max_by(|x, y| {
-                    let x_cluster = self
-                        .get_cluster_ids(*x)
-                        .filter(|nids| leaf_ids.contains(nids))
-                        .collect_vec();
-                    let y_cluster = self
-                        .get_cluster_ids(*y)
-                        .filter(|nids| leaf_ids.contains(nids))
-                        .collect_vec();
-                    x_cluster.len().cmp(&y_cluster.len())
+                    let x_cluster_size = cluster_sizes.get(x).unwrap();
+                    let y_cluster_size = cluster_sizes.get(y).unwrap();
+                    x_cluster_size.cmp(&y_cluster_size)
                 })
                 .unwrap();
-            let num_leaves = self
-                .get_cluster_ids(median_node_id)
-                .filter(|nids| leaf_ids.contains(nids))
-                .collect_vec()
-                .len();
-            if (num_leaves) <= (leaf_ids.len() / 2) {
+            if cluster_sizes.get(&median_node_id).unwrap() <= &(leaf_ids.len() / 2) {
                 break;
             }
         }
