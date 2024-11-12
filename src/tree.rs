@@ -25,6 +25,7 @@ mod simple_rooted_tree {
     use crate::node::{Node, NodeID};
     use crate::prelude::*;
     use vers_vecs::BinaryRmq;
+    // use bitvec::prelude::*;
 
     #[cfg(feature = "non_crypto_hash")]
     use fxhash::FxHashMap as HashMap;

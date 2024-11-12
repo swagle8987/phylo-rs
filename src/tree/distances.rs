@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use num::{Float, NumCast, Signed};
 use std::fmt::{Debug, Display};
+use vers_vecs::BitVec;
 
 #[cfg(feature = "non_crypto_hash")]
 use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -80,6 +81,7 @@ where
 {
     /// Returns Robinson Foulds distance between tree and self.
     fn rfs(&self, tree: &Self) -> usize {
+        let mut dist = 0;
         let mut all_taxa: HashSet<&TreeNodeMeta<Self>> = self.get_taxa_space().collect();
         all_taxa.extend(tree.get_taxa_space());
         let num_taxa = all_taxa.len();
@@ -88,40 +90,73 @@ where
             .enumerate()
             .map(|x| (x.1, x.0))
             .collect();
+        let mut self_bps: HashMap<TreeNodeID<Self>, BitVec> = vec![].into_iter().collect();
+        let mut self_out_bps: HashSet<BitVec> = vec![].into_iter().collect();
+        for n_id in self.postord_ids(self.get_root_id()) {
+            let mut bp = BitVec::from_zeros(num_taxa);
+            match self.is_leaf(n_id) {
+                true => {
+                    let leaf_meta = self.get_node_taxa(n_id).unwrap();
+                    bp.flip_bit(*all_taxa_map.get(leaf_meta).unwrap());
+                    self_bps.insert(n_id, bp.clone());  
+                    self_out_bps.insert(bp);  
+                }
+                false => {
+                    if n_id==self.get_root_id(){
+                        continue;
+                    }
+                    self.get_node_children_ids(n_id)
+                        .map(|x| self_bps.get(&x).unwrap())
+                        .for_each(|x| {let _ = bp.apply_mask_or(x);});
+                    if !(self.get_node_parent_id(n_id)==Some(self.get_root_id())){
+                        self_out_bps.insert(bp.clone());
+                    }
+                    self_bps.insert(n_id, bp);        
+                }
+            };
+        }
 
-        let self_bps: HashSet<Vec<bool>> = self
-            .get_clusters_ids()
-            .map(|(_, cluster)| {
-                let mut bit_str = vec![false; num_taxa];
-                cluster
-                    .map(|x| self.get_node_taxa(x).unwrap())
-                    .for_each(|x| bit_str[*all_taxa_map.get(x).unwrap()] = true);
-                bit_str
-            })
-            .collect();
-        let tree_bps: HashSet<Vec<bool>> = tree
-            .get_clusters_ids()
-            .map(|(_, cluster)| {
-                let mut bit_str = vec![false; num_taxa];
-                cluster
-                    .map(|x| tree.get_node_taxa(x).unwrap())
-                    .for_each(|x| bit_str[*all_taxa_map.get(x).unwrap()] = true);
-                bit_str
-            })
-            .collect();
+        let mut tree_bps: HashMap<TreeNodeID<Self>, BitVec> = vec![].into_iter().collect();
+        let mut tree_out_bps: HashSet<BitVec> = vec![].into_iter().collect();
+        for n_id in tree.postord_ids(tree.get_root_id()) {
+            let mut bp = BitVec::from_zeros(num_taxa);
+            match tree.is_leaf(n_id) {
+                true => {
+                    let leaf_meta = tree.get_node_taxa(n_id).unwrap();
+                    bp.flip_bit(*all_taxa_map.get(leaf_meta).unwrap());
+                    tree_bps.insert(n_id, bp.clone());  
+                    tree_out_bps.insert(bp.clone());
+                }
+                false => {
+                    if n_id==tree.get_root_id(){
+                        continue;
+                    }
+                    tree.get_node_children_ids(n_id)
+                        .map(|x| tree_bps.get(&x).unwrap())
+                        .for_each(|x| {let _ = bp.apply_mask_or(x);});
+                    if !(tree.get_node_parent_id(n_id)==Some(tree.get_root_id())){
+                        tree_out_bps.insert(bp.clone());
+                    }
+                    tree_bps.insert(n_id, bp.clone());
+                }
+            };
+        }
 
-        let mut dist = 0;
-        for i in self_bps.iter() {
-            if !tree_bps.contains(i) && !tree_bps.contains(&i.iter().map(|x| !x).collect_vec()) {
+        for i in self_out_bps.iter() {
+            let mut i_rev = BitVec::from_ones(num_taxa);
+            let _ = i_rev.apply_mask_xor(i);
+            if !tree_out_bps.contains(i) && !tree_out_bps.contains(&i_rev) {
                 dist += 1;
             }
         }
-        for i in tree_bps.iter() {
-            if !self_bps.contains(i) && !self_bps.contains(&i.iter().map(|x| !x).collect_vec()) {
+        for i in tree_out_bps.iter() {
+            let mut i_rev = BitVec::from_ones(num_taxa);
+            let _ = i_rev.apply_mask_xor(i);
+            if !self_out_bps.contains(i) && !self_out_bps.contains(&i_rev) {
                 dist += 1;
             }
         }
-
+        
         dist / 2
     }
 }

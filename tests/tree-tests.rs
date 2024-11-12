@@ -1,4 +1,7 @@
-use std::collections::HashSet;
+#[cfg(feature = "non_crypto_hash")]
+use fxhash::FxHashSet as HashSet;
+#[cfg(not(feature = "non_crypto_hash"))]
+use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 use phylo::node::Node;
@@ -70,7 +73,7 @@ fn read_small_tree() {
     dbg!(format!("{}", &tree.to_newick()));
     assert_eq!(
         &tree.get_taxa_space().collect::<HashSet<&String>>(),
-        &HashSet::from([&"A".to_string(), &"B".to_string(), &"C".to_string()])
+        &vec![&"A".to_string(), &"B".to_string(), &"C".to_string()].into_iter().collect()
     );
     let input_str = String::from("((A:1e-3,B:2e-3),C:6e-3);");
     let tree = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
@@ -266,7 +269,7 @@ fn bipartitions() {
             )
         })
         .collect_vec();
-
+    
     let input_str: String = String::from("(A, (B, (C, (D, (E, (F, (G, H)))))));");
     let t1 = SimpleRootedTree::from_newick(input_str.as_bytes()).unwrap();
     let _bps = t1

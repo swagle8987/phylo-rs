@@ -1,12 +1,12 @@
 #![allow(clippy::needless_lifetimes)]
 
 #[cfg(feature = "non_crypto_hash")]
-use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use fxhash::FxHashMap as HashMap;
 #[cfg(not(feature = "non_crypto_hash"))]
 use std::collections::{HashMap, HashSet};
 
 use std::{collections::VecDeque, ops::Index};
-
+use vers_vecs::BitVec;
 use itertools::Itertools;
 
 use crate::{
@@ -510,74 +510,45 @@ pub trait Clusters: DFS + BFS + Sized {
             .enumerate()
             .map(|(idx, id)| (id, idx))
             .collect();
-        let leaf_ids_rev: HashMap<usize, TreeNodeID<Self>> =
-            leaf_ids.iter().map(|(id, idx)| (*idx, *id)).collect();
-        let mut bps: HashMap<TreeNodeID<Self>, Vec<bool>> = vec![].into_iter().collect();
-        let mut skip_clusters: HashSet<Vec<bool>> = vec![].into_iter().collect();
-        let mut keep_nodes: Vec<TreeNodeID<Self>> = vec![];
+        let leaf_ids_rev: Vec<TreeNodeID<Self>> =
+            leaf_ids.iter().map(|(id,_)| *id).collect();
+        let num_leaves = leaf_ids.len();
+        let mut bps: HashMap<TreeNodeID<Self>, BitVec> = vec![].into_iter().collect();
         for n_id in self.postord_ids(self.get_root_id()) {
+            let mut bp = BitVec::from_zeros(num_leaves);
             match self.is_leaf(n_id) {
                 true => {
-                    let bp: (HashSet<TreeNodeID<Self>>, HashSet<TreeNodeID<Self>>) = (
-                        vec![n_id].into_iter().collect(),
-                        leaf_ids.keys().filter(|x| **x != n_id).copied().collect(),
-                    );
-                    let mut binary_str = vec![false; leaf_ids.len()];
-                    for i in bp.0.iter() {
-                        binary_str[*leaf_ids.get(i).unwrap()] = true;
-                    }
-                    if !skip_clusters.contains(&binary_str)
-                        && !skip_clusters.contains(&binary_str.iter().map(|x| !x).collect_vec())
-                    {
-                        skip_clusters.insert(binary_str.iter().map(|x| !x).collect_vec());
-                        keep_nodes.push(n_id);
-                    }
-                    bps.insert(n_id, binary_str);
+                    bp.flip_bit(*leaf_ids.get(&n_id).unwrap());
+                    bps.insert(n_id, bp.clone());  
                 }
                 false => {
-                    if n_id == self.get_root_id() {
+                    if n_id==self.get_root_id(){
                         continue;
                     }
-                    let children_clusters = self
+                    self
                         .get_node_children_ids(n_id)
                         .map(|x| bps.get(&x).unwrap())
-                        .collect_vec();
-                    let binary_str = (0..leaf_ids.len())
-                        .map(|x| {
-                            let values = children_clusters
-                                .iter()
-                                .map(|y| y[x] as usize)
-                                .collect_vec();
-                            values.iter().sum::<usize>() > 0
-                        })
-                        .collect_vec();
-                    if !skip_clusters.contains(&binary_str)
-                        && !skip_clusters.contains(&binary_str.iter().map(|x| !x).collect_vec())
-                    {
-                        skip_clusters.insert(binary_str.iter().map(|x| !x).collect_vec());
-                        keep_nodes.push(n_id);
+                        .for_each(|x| {let _ = bp.apply_mask_or(x);});
+                    if !(self.get_node_parent_id(n_id)==Some(self.get_root_id())){
+                        bps.insert(n_id, bp);        
                     }
-                    bps.insert(n_id, binary_str);
                 }
             };
         }
 
-        return keep_nodes.into_iter().map(move |n_id| {
-            let mut bp1 = vec![];
-            let mut bp2 = vec![];
-            bps.get(&n_id)
-                .unwrap()
-                .iter()
-                .enumerate()
-                .for_each(|(idx, x)| match x {
+        return bps.into_values().map(move |bit_bp| {
+            let mut bp1 = Vec::with_capacity(leaf_ids.len());
+            let mut bp2 = Vec::with_capacity(leaf_ids.len());
+            for idx in 0..bit_bp.len(){
+                 match bit_bp.is_bit_set(idx).unwrap() {
                     true => {
-                        bp1.push(leaf_ids_rev.get(&idx).unwrap().to_owned());
+                        bp1.push(leaf_ids_rev[idx].to_owned());
                     }
                     false => {
-                        bp2.push(leaf_ids_rev.get(&idx).unwrap().to_owned());
+                        bp2.push(leaf_ids_rev[idx].to_owned());
                     }
-                });
-
+                }
+            }
             (bp1.into_iter(), bp2.into_iter())
         });
     }
