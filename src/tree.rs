@@ -68,6 +68,22 @@ mod simple_rooted_tree {
             }
         }
 
+        /// Creates tree with specified capacity
+        pub fn with_capacity(capacity: usize) -> Self {
+            let root_node = Node::new(0);
+            let mut nodes = vec![None; capacity];
+            nodes[0] = Some(root_node);
+            SimpleRootedTree {
+                root: 0,
+                nodes,
+                precomputed_euler: None,
+                taxa_node_id_map: [].into_iter().collect::<HashMap<_, _>>(),
+                precomputed_fai: None,
+                precomputed_da: None,
+                precomputed_rmq: None,
+            }
+        }
+
         /// Returns new empty tree
         pub fn next_id(&self) -> usize {
             match &self.nodes.iter().position(|r| r.is_none()) {
@@ -79,6 +95,11 @@ mod simple_rooted_tree {
         /// Creates new node with next NodeID
         pub fn next_node(&self) -> Node {
             Node::new(self.next_id())
+        }
+
+        /// returns max number of nodes in tree without reallocating node vec
+        pub fn get_capacity(&self)->usize{
+            self.nodes.len()
         }
     }
 

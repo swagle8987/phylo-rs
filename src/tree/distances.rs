@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use num::{Float, NumCast, Signed};
+use num::{One, Float, NumCast, Signed};
 use std::fmt::{Debug, Display};
 use vers_vecs::BitVec;
 
@@ -278,7 +278,13 @@ where
             return vector.sum();
         }
         vector
-            .map(|x| x.powi(norm as i32))
+            .map(|x| {
+                let mut out = <TreeNodeZeta<Self>>::one();
+                for _ in 0..norm{
+                    out = out* x;
+                }
+                out
+            })
             .sum::<<<Self as RootedTree>::Node as RootedZetaNode>::Zeta>()
             .powf(
                 <<<Self as RootedTree>::Node as RootedZetaNode>::Zeta as NumCast>::from(norm)
