@@ -4,16 +4,24 @@
 pub mod simple_rnode;
 
 use crate::node::simple_rnode::{
-    RootedMetaNode, RootedTreeNode, RootedWeightedNode, RootedZetaNode,
+    RootedMetaNode, RootedTreeNode, RootedWeightedNode, RootedZetaNode, EdgeWeight, NodeWeight, NodeTaxa
 };
 use std::fmt::{Debug, Display};
 
-/// A type alias for NodeID
+/// Default NodeID type 
 pub type NodeID = usize;
+
+/// Default NodeID type 
+pub type PhyloNode = Node<String,f32,f32>;
 
 /// A node structure in an arena-memory managed tree, linking to connected neighbours via NodeID
 #[derive(Clone)]
-pub struct Node {
+pub struct Node<T,W,Z> 
+where 
+    T: NodeTaxa,
+    W: EdgeWeight,
+    Z: NodeWeight,
+{
     /// A unique identifier for a node
     id: NodeID,
     /// A link to the node parent (set to None for root)
@@ -21,14 +29,19 @@ pub struct Node {
     /// Children of node
     children: Vec<NodeID>,
     /// Taxa annotation of node
-    taxa: Option<String>,
+    taxa: Option<T>,
     /// Weight of edge ending in node
-    weight: Option<f32>,
+    weight: Option<W>,
     /// Real number annotation of node (used by some algorithms)
-    zeta: Option<f32>,
+    zeta: Option<Z>,
 }
 
-impl RootedTreeNode for Node {
+impl<T,W,Z> RootedTreeNode for Node<T,W,Z> 
+where 
+    T: NodeTaxa,
+    W: EdgeWeight,
+    Z: NodeWeight,
+{
     type NodeID = NodeID;
 
     fn new(id: Self::NodeID) -> Self {
@@ -71,8 +84,13 @@ impl RootedTreeNode for Node {
     }
 }
 
-impl RootedMetaNode for Node {
-    type Meta = String;
+impl<T,W,Z> RootedMetaNode for Node<T,W,Z> 
+where 
+    T: NodeTaxa,
+    W: EdgeWeight,
+    Z: NodeWeight,
+{
+    type Meta = T;
 
     fn get_taxa<'a>(&'a self) -> Option<&'a Self::Meta> {
         self.taxa.as_ref()
@@ -83,8 +101,13 @@ impl RootedMetaNode for Node {
     }
 }
 
-impl RootedWeightedNode for Node {
-    type Weight = f32;
+impl<T,W,Z> RootedWeightedNode for Node<T,W,Z> 
+where 
+    T: NodeTaxa,
+    W: EdgeWeight,
+    Z: NodeWeight,
+{
+    type Weight = W;
 
     fn get_weight(&self) -> Option<Self::Weight> {
         self.weight
@@ -95,8 +118,13 @@ impl RootedWeightedNode for Node {
     }
 }
 
-impl RootedZetaNode for Node {
-    type Zeta = f32;
+impl<T,W,Z> RootedZetaNode for Node<T,W,Z> 
+where 
+    T: NodeTaxa,
+    W: EdgeWeight,
+    Z: NodeWeight,
+{
+    type Zeta = Z;
 
     fn get_zeta(&self) -> Option<Self::Zeta> {
         self.zeta
@@ -107,7 +135,12 @@ impl RootedZetaNode for Node {
     }
 }
 
-impl Debug for Node {
+impl<T,W,Z> Debug for Node<T,W,Z> 
+where 
+    T: NodeTaxa,
+    W: EdgeWeight,
+    Z: NodeWeight,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -130,7 +163,12 @@ impl Debug for Node {
     }
 }
 
-impl Display for Node {
+impl<T,W,Z> Display for Node<T,W,Z> 
+where 
+    T: NodeTaxa,
+    W: EdgeWeight,
+    Z: NodeWeight,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

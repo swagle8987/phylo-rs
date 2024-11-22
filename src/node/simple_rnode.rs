@@ -1,8 +1,21 @@
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
-
 use itertools::Itertools;
-use num::{Num, NumCast};
+use num::{Float, Num, NumCast, Signed};
+use std::{hash::Hash, marker::Sync, fmt::{Debug, Display}, str::FromStr, iter::Sum};
+
+/// Trait bound alias for Edge Weight.
+pub trait EdgeWeight: Num + Display + Debug + Clone + PartialOrd + NumCast + Sum + Copy + ToString + Sync + FromStr + Float + Signed{}
+/// Trait bound alias for Node Weight.
+pub trait NodeWeight: Num + Display + Debug + Clone + PartialOrd + NumCast + Sum + Copy + ToString + Sync + FromStr + Float + Signed{}
+/// Trait bound alias for Node Taxa.
+pub trait NodeTaxa: Display + Debug + Clone + Sync + FromStr + Ord + Hash + Sync{}
+// /// Trait bound alias for Node ID.
+// pub trait NodeID: Display + Debug + Hash + Ord + Eq + Copy + Sync{}
+
+impl NodeTaxa for String{}
+impl EdgeWeight for f32{}
+impl EdgeWeight for f64{}
+impl NodeWeight for f32{}
+impl NodeWeight for f64{}
 
 /// A trait describing the behaviour of a Node in a n-ary tree
 pub trait RootedTreeNode

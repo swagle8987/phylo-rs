@@ -89,7 +89,7 @@
 //!
 //!
 //! let ca = tree_1.ca(&tree_2);
-//! let cophen = tree_1.cophen_dist_naive(&tree_2, 2);
+//! let cophen = tree_1.cophen_dist(&tree_2, 2);
 //! ```
 //!
 

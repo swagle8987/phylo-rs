@@ -8,6 +8,9 @@ use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
 #[cfg(not(feature = "non_crypto_hash"))]
 use std::collections::{HashMap, HashSet};
 
+#[cfg(feature = "parallel")]
+use rayon::{prelude::*, iter::ParallelBridge};
+
 use crate::prelude::*;
 
 /// A type alias for zeta annotation of a node in a tree.
@@ -259,7 +262,7 @@ where
         + Float
         + PartialOrd
         + Copy
-        + Send,
+        + Sync,
 {
     /// Returns zeta of leaf by taxa
     fn get_zeta_taxa(
@@ -271,17 +274,18 @@ where
 
     /// Reurns the nth norm of an iterator composed of floating point values
     fn compute_norm(
-        vector: impl Iterator<Item = <<Self as RootedTree>::Node as RootedZetaNode>::Zeta>,
+        vector: impl IntoIterator<Item = <<Self as RootedTree>::Node as RootedZetaNode>::Zeta>,
         norm: u32,
     ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
         if norm == 1 {
-            return vector.sum();
+            return vector.into_iter().map(|x| x.clone()).sum();
         }
         vector
+        .into_iter()
             .map(|x| {
                 let mut out = <TreeNodeZeta<Self>>::one();
                 for _ in 0..norm{
-                    out = out* x;
+                    out = out* x.clone();
                 }
                 out
             })
@@ -293,8 +297,29 @@ where
             )
     }
 
+    #[cfg(feature = "parallel")]
+    fn compute_norm_par(
+        vector: impl IntoIterator<Item = <<Self as RootedTree>::Node as RootedZetaNode>::Zeta> + IntoParallelIterator<Item = <<Self as RootedTree>::Node as RootedZetaNode>::Zeta>,
+        norm: u32,
+    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
+        if norm == 1 {
+            return vector.into_iter().map(|x| x.clone()).sum();
+        }
+        vector
+            .into_par_iter()
+            .map(|x| {
+                x.clone().powi(norm as i32)
+            })
+            .sum::<<<Self as RootedTree>::Node as RootedZetaNode>::Zeta>()
+            .powf(
+                <<<Self as RootedTree>::Node as RootedZetaNode>::Zeta as NumCast>::from(norm)
+                    .unwrap()
+                    .powi(-1),
+            )
+    }
+
     /// Reurns the cophenetic distance between two trees using the naive algorithm (\Theta(n^2))
-    fn cophen_dist_naive<'a>(
+    fn cophen_dist<'a>(
         &'a self,
         tree: &'a Self,
         norm: u32,
@@ -310,11 +335,75 @@ where
             .collect::<HashSet<&<<Self as RootedTree>::Node as RootedMetaNode>::Meta>>();
         let taxa_set = binding1.intersection(&binding2).cloned();
 
-        self.cophen_dist_naive_by_taxa(tree, norm, taxa_set)
+        self.cophen_dist_by_taxa(tree, norm, taxa_set)
+    }
+
+    #[cfg(feature = "parallel")]
+    /// Returns the cophenetic distance between two trees using the naive algorithm (\Theta(n^2))
+    fn cophen_dist_par<'a>(
+        &'a self,
+        tree: &'a Self,
+        norm: u32,
+    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
+        if !self.is_all_zeta_set() || !tree.is_all_zeta_set() {
+            panic!("Zeta values not set");
+        }
+        let binding1 = self
+            .get_taxa_space()
+            .collect::<HashSet<&<<Self as RootedTree>::Node as RootedMetaNode>::Meta>>();
+        let binding2 = tree
+            .get_taxa_space()
+            .collect::<HashSet<&<<Self as RootedTree>::Node as RootedMetaNode>::Meta>>();
+        let taxa_set = binding1.intersection(&binding2).cloned().map(|x| x.clone()).collect_vec();
+
+        self.cophen_dist_by_taxa_par(tree, norm, taxa_set)
+    }
+
+    #[cfg(feature = "parallel")]
+    /// Returns the Cophenetic distance between two trees restricted to a taxa set using the \theta(n^2) naive algorithm.
+    fn cophen_dist_by_taxa_par<'a>(
+        &'a self,
+        tree: &'a Self,
+        norm: u32,
+        taxa_set: impl IntoIterator<Item = TreeNodeMeta<Self>> + Clone,
+    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
+        // let taxa_set = taxa_set.collect_vec();
+        let cophen_vec = taxa_set.into_iter()
+            .par_bridge()
+            .combinations_with_replacement(2)
+            .map(|x| match x[0] == x[1] {
+                true => vec![x[0].clone()],
+                false => x,
+            })
+            .map(|x| match x.len() {
+                1 => {
+                    let zeta_1 = self.get_zeta_taxa(&x[0]);
+                    let zeta_2 = tree.get_zeta_taxa(&x[0]);
+                    (zeta_1 - zeta_2).abs()
+                }
+                _ => {
+                    let self_ids = x
+                        .iter()
+                        .map(|a| self.get_taxa_node_id(a).unwrap())
+                        .collect_vec();
+                    let tree_ids = x
+                        .iter()
+                        .map(|a| tree.get_taxa_node_id(a).unwrap())
+                        .collect_vec();
+                    let t_lca_id = self.get_lca_id(self_ids.as_slice());
+                    let t_hat_lca_id = tree.get_lca_id(tree_ids.as_slice());
+                    let zeta_1 = self.get_zeta(t_lca_id).unwrap();
+                    let zeta_2 = tree.get_zeta(t_hat_lca_id).unwrap();
+                    (zeta_1 - zeta_2).abs()
+                }
+            })
+            .collect_vec();
+
+        Self::compute_norm_par(cophen_vec, norm)
     }
 
     /// Returns the Cophenetic distance between two trees restricted to a taxa set using the \theta(n^2) naive algorithm.
-    fn cophen_dist_naive_by_taxa<'a>(
+    fn cophen_dist_by_taxa<'a>(
         &'a self,
         tree: &'a Self,
         norm: u32,
@@ -352,6 +441,6 @@ where
             })
             .collect_vec();
 
-        Self::compute_norm(cophen_vec.into_iter(), norm)
+        Self::compute_norm(cophen_vec, norm)
     }
 }
