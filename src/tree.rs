@@ -906,7 +906,10 @@ mod simple_rooted_tree {
                     tmp.push(')');
                 }
             }
-            tmp.push_str(&node.get_taxa().unwrap().to_string());
+            match &node.get_taxa(){
+                Some(taxa_str) => {tmp.push_str(&taxa_str.to_string());},
+                None => {}
+            };
             if let Some(w) = node.get_weight() {
                 tmp.push(':');
                 tmp.push_str(&w.to_string());
