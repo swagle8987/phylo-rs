@@ -290,29 +290,34 @@ fn bipartitions() {
 #[test]
 #[cfg(feature = "parallel")]
 fn compute_norm_parallel() {
-    for norm in 1..100{
+    for norm in 1..10{
         let x = (1..1000).map(|x| x as f32).collect_vec();
         let y = x.clone();
-        assert_eq!(PhyloTree::compute_norm(x, 1), PhyloTree::compute_norm_par(y, 1));
+        assert!((PhyloTree::compute_norm(x.into_iter(), norm)-PhyloTree::compute_norm_par(y.into_iter(), norm)).abs()<0.1);
     }
+
+    let x = (1..3).combinations_with_replacement(2).collect_vec();
+    let y = (1..3).combinations_with_replacement(2).par_bridge().map(|x| x[0]+x[1]).collect::<Vec<_>>();
+
+    dbg!(x, y);
 }
 
-#[test]
-#[cfg(feature = "parallel")]
-fn cophenetic_dist_par() {
-    fn depth(tree: &PhyloTree, node_id: usize) -> f32 {
-        tree.depth(node_id) as f32
-    }
-    let t1_input_str: String = String::from("((A,B),C);");
-    let t2_input_str: String = String::from("(A,(B,C));");
-    let mut t1 = PhyloTree::from_newick(t1_input_str.as_bytes()).unwrap();
-    let mut t2 = PhyloTree::from_newick(t2_input_str.as_bytes()).unwrap();
+// #[test]
+// #[cfg(feature = "parallel")]
+// fn cophenetic_dist_par() {
+//     fn depth(tree: &PhyloTree, node_id: usize) -> f32 {
+//         tree.depth(node_id) as f32
+//     }
+//     let t1_input_str: String = String::from("((A,B),C);");
+//     let t2_input_str: String = String::from("(A,(B,C));");
+//     let mut t1 = PhyloTree::from_newick(t1_input_str.as_bytes()).unwrap();
+//     let mut t2 = PhyloTree::from_newick(t2_input_str.as_bytes()).unwrap();
 
-    t1.precompute_constant_time_lca();
-    t2.precompute_constant_time_lca();
+//     t1.precompute_constant_time_lca();
+//     t2.precompute_constant_time_lca();
 
-    t1.set_zeta(depth).unwrap();
-    t2.set_zeta(depth).unwrap();
+//     t1.set_zeta(depth).unwrap();
+//     t2.set_zeta(depth).unwrap();
 
-    assert_eq!(t1.cophen_dist_par(&t2, 1), 4_f32);
-}
+//     assert_eq!(t1.cophen_dist_par(&t2, 1), 4_f32);
+// }

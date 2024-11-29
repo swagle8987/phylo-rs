@@ -1,13 +1,15 @@
 use itertools::Itertools;
-use num::{Float, Num, NumCast, Signed};
+use num::{Float, Signed};
 use std::{hash::Hash, marker::Sync, fmt::{Debug, Display}, str::FromStr, iter::Sum};
 
 /// Trait bound alias for Edge Weight.
-pub trait EdgeWeight: Num + Display + Debug + Clone + PartialOrd + NumCast + Sum + Copy + ToString + Sync + FromStr + Float + Signed{}
+pub trait EdgeWeight: Display + Debug + Sum + FromStr + Float + Signed + Sync + Send{}
+
 /// Trait bound alias for Node Weight.
-pub trait NodeWeight: Num + Display + Debug + Clone + PartialOrd + NumCast + Sum + Copy + ToString + Sync + FromStr + Float + Signed{}
+pub trait NodeWeight: Display + Debug + Sum + FromStr + Float + Signed + Sync + Send{}
+
 /// Trait bound alias for Node Taxa.
-pub trait NodeTaxa: Display + Debug + Clone + Sync + FromStr + Ord + Hash + Sync{}
+pub trait NodeTaxa: Display + Debug + Clone + FromStr + Ord + Hash + Sync + Send{}
 // /// Trait bound alias for Node ID.
 // pub trait NodeID: Display + Debug + Hash + Ord + Eq + Copy + Sync{}
 
@@ -115,7 +117,7 @@ where
 /// A trait describing the behaviour of a Node in a n-ary tree that carries node annotations
 pub trait RootedMetaNode: RootedTreeNode {
     /// Meta annotation of node
-    type Meta: Display + Debug + Eq + PartialEq + Clone + Ord + Hash;
+    type Meta: NodeTaxa;
 
     /// Returns node annotation
     fn get_taxa<'a>(&'a self) -> Option<&'a Self::Meta>;
@@ -127,7 +129,7 @@ pub trait RootedMetaNode: RootedTreeNode {
 /// A trait describing the behaviour of a Node in a n-ary tree that has numeric edge annotations
 pub trait RootedWeightedNode: RootedTreeNode {
     /// Weight of edge leading into node
-    type Weight: Num + Clone + PartialOrd + NumCast + std::iter::Sum;
+    type Weight: EdgeWeight;
 
     /// Returns weight of edge leading into node
     fn get_weight(&self) -> Option<Self::Weight>;
@@ -149,7 +151,7 @@ pub trait RootedWeightedNode: RootedTreeNode {
 /// A trait describing the behaviour of a Node in a n-ary tree with numeric node annotations
 pub trait RootedZetaNode: RootedTreeNode {
     /// Zeta annotation of a node
-    type Zeta: Num + Clone + PartialOrd + NumCast + std::iter::Sum;
+    type Zeta: NodeWeight;
 
     /// Returns node annotation
     fn get_zeta(&self) -> Option<Self::Zeta>;

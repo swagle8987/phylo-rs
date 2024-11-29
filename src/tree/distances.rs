@@ -1,6 +1,6 @@
 use itertools::Itertools;
-use num::{One, Float, NumCast, Signed};
-use std::fmt::{Debug, Display};
+use num::{One, Float, NumCast};
+use std::fmt::Debug;
 use vers_vecs::BitVec;
 
 #[cfg(feature = "non_crypto_hash")]
@@ -9,7 +9,7 @@ use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::collections::{HashMap, HashSet};
 
 #[cfg(feature = "parallel")]
-use rayon::{prelude::*, iter::ParallelBridge};
+use rayon::prelude::*;
 
 use crate::prelude::*;
 
@@ -253,35 +253,25 @@ pub trait CopheneticDistance:
     PathFunction + RootedMetaTree + Clusters + Ancestors + ContractTree + Debug
 where
     <Self as RootedTree>::Node: RootedMetaNode + RootedZetaNode,
-    <<Self as RootedTree>::Node as RootedZetaNode>::Zeta: Signed
-        + Clone
-        + NumCast
-        + std::iter::Sum
-        + Debug
-        + Display
-        + Float
-        + PartialOrd
-        + Copy
-        + Sync,
+    TreeNodeZeta<Self>: NodeWeight,
 {
     /// Returns zeta of leaf by taxa
     fn get_zeta_taxa(
         &self,
         taxa: &TreeNodeMeta<Self>,
-    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
+    ) -> TreeNodeZeta<Self> {
         self.get_zeta(self.get_taxa_node_id(taxa).unwrap()).unwrap()
     }
 
     /// Reurns the nth norm of an iterator composed of floating point values
     fn compute_norm(
-        vector: impl IntoIterator<Item = <<Self as RootedTree>::Node as RootedZetaNode>::Zeta>,
+        vector: impl Iterator<Item = TreeNodeZeta<Self>>,
         norm: u32,
-    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
+    ) -> TreeNodeZeta<Self> {
         if norm == 1 {
-            return vector.into_iter().map(|x| x.clone()).sum();
+            return vector.map(|x| x.clone()).sum();
         }
         vector
-        .into_iter()
             .map(|x| {
                 let mut out = <TreeNodeZeta<Self>>::one();
                 for _ in 0..norm{
@@ -289,30 +279,30 @@ where
                 }
                 out
             })
-            .sum::<<<Self as RootedTree>::Node as RootedZetaNode>::Zeta>()
+            .sum::<TreeNodeZeta<Self>>()
             .powf(
-                <<<Self as RootedTree>::Node as RootedZetaNode>::Zeta as NumCast>::from(norm)
+                <TreeNodeZeta<Self> as NumCast>::from(norm)
                     .unwrap()
                     .powi(-1),
             )
     }
 
     #[cfg(feature = "parallel")]
+    /// Returns the vector norm for an iterator
     fn compute_norm_par(
-        vector: impl IntoIterator<Item = <<Self as RootedTree>::Node as RootedZetaNode>::Zeta> + IntoParallelIterator<Item = <<Self as RootedTree>::Node as RootedZetaNode>::Zeta>,
+        vector: impl Iterator<Item = TreeNodeZeta<Self>>,
         norm: u32,
-    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
+    ) -> TreeNodeZeta<Self> {
         if norm == 1 {
-            return vector.into_iter().map(|x| x.clone()).sum();
+            return vector.map(|x| x.clone()).sum();
         }
         vector
-            .into_par_iter()
             .map(|x| {
                 x.clone().powi(norm as i32)
             })
-            .sum::<<<Self as RootedTree>::Node as RootedZetaNode>::Zeta>()
+            .sum::<TreeNodeZeta<Self>>()
             .powf(
-                <<<Self as RootedTree>::Node as RootedZetaNode>::Zeta as NumCast>::from(norm)
+                <TreeNodeZeta<Self> as NumCast>::from(norm)
                     .unwrap()
                     .powi(-1),
             )
@@ -323,16 +313,16 @@ where
         &'a self,
         tree: &'a Self,
         norm: u32,
-    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
+    ) -> TreeNodeZeta<Self> {
         if !self.is_all_zeta_set() || !tree.is_all_zeta_set() {
             panic!("Zeta values not set");
         }
         let binding1 = self
             .get_taxa_space()
-            .collect::<HashSet<&<<Self as RootedTree>::Node as RootedMetaNode>::Meta>>();
+            .collect::<HashSet<&TreeNodeMeta<Self>>>();
         let binding2 = tree
             .get_taxa_space()
-            .collect::<HashSet<&<<Self as RootedTree>::Node as RootedMetaNode>::Meta>>();
+            .collect::<HashSet<&TreeNodeMeta<Self>>>();
         let taxa_set = binding1.intersection(&binding2).cloned();
 
         self.cophen_dist_by_taxa(tree, norm, taxa_set)
@@ -344,19 +334,19 @@ where
         &'a self,
         tree: &'a Self,
         norm: u32,
-    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
+    ) -> TreeNodeZeta<Self> {
         if !self.is_all_zeta_set() || !tree.is_all_zeta_set() {
             panic!("Zeta values not set");
         }
         let binding1 = self
             .get_taxa_space()
-            .collect::<HashSet<&<<Self as RootedTree>::Node as RootedMetaNode>::Meta>>();
+            .collect::<HashSet<&TreeNodeMeta<Self>>>();
         let binding2 = tree
             .get_taxa_space()
-            .collect::<HashSet<&<<Self as RootedTree>::Node as RootedMetaNode>::Meta>>();
+            .collect::<HashSet<&TreeNodeMeta<Self>>>();
         let taxa_set = binding1.intersection(&binding2).cloned().map(|x| x.clone()).collect_vec();
 
-        self.cophen_dist_by_taxa_par(tree, norm, taxa_set)
+        self.cophen_dist_by_taxa_par(tree, norm, taxa_set.iter())
     }
 
     #[cfg(feature = "parallel")]
@@ -365,39 +355,35 @@ where
         &'a self,
         tree: &'a Self,
         norm: u32,
-        taxa_set: impl IntoIterator<Item = TreeNodeMeta<Self>> + Clone,
-    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
+        taxa_set: impl Iterator<Item = &'a TreeNodeMeta<Self>> + Send,
+    ) -> TreeNodeZeta<Self> {
         // let taxa_set = taxa_set.collect_vec();
-        let cophen_vec = taxa_set.into_iter()
-            .par_bridge()
+        let cophen_vec = taxa_set
             .combinations_with_replacement(2)
+            .into_iter()
             .map(|x| match x[0] == x[1] {
-                true => vec![x[0].clone()],
-                false => x,
-            })
-            .map(|x| match x.len() {
-                1 => {
-                    let zeta_1 = self.get_zeta_taxa(&x[0]);
-                    let zeta_2 = tree.get_zeta_taxa(&x[0]);
-                    (zeta_1 - zeta_2).abs()
-                }
-                _ => {
-                    let self_ids = x
-                        .iter()
-                        .map(|a| self.get_taxa_node_id(a).unwrap())
-                        .collect_vec();
-                    let tree_ids = x
-                        .iter()
-                        .map(|a| tree.get_taxa_node_id(a).unwrap())
-                        .collect_vec();
-                    let t_lca_id = self.get_lca_id(self_ids.as_slice());
-                    let t_hat_lca_id = tree.get_lca_id(tree_ids.as_slice());
-                    let zeta_1 = self.get_zeta(t_lca_id).unwrap();
-                    let zeta_2 = tree.get_zeta(t_hat_lca_id).unwrap();
-                    (zeta_1 - zeta_2).abs()
-                }
-            })
-            .collect_vec();
+                true => {
+                            let zeta_1 = self.get_zeta_taxa(x[0]);
+                            let zeta_2 = tree.get_zeta_taxa(x[0]);
+                            (zeta_1 - zeta_2).abs()
+                        },
+                false => {
+                            let self_ids = x
+                                .iter()
+                                .map(|a| self.get_taxa_node_id(a).unwrap())
+                                .collect_vec();
+                            let tree_ids = x
+                                .iter()
+                                .map(|a| tree.get_taxa_node_id(a).unwrap())
+                                .collect_vec();
+                            let t_lca_id = self.get_lca_id(self_ids.as_slice());
+                            let t_hat_lca_id = tree.get_lca_id(tree_ids.as_slice());
+                            let zeta_1 = self.get_zeta(t_lca_id).unwrap();
+                            let zeta_2 = tree.get_zeta(t_hat_lca_id).unwrap();
+                            (zeta_1 - zeta_2).abs()
+                        },
+            });
+            // .collect::<Vec<TreeNodeZeta<Self>>>();
 
         Self::compute_norm_par(cophen_vec, norm)
     }
@@ -407,39 +393,34 @@ where
         &'a self,
         tree: &'a Self,
         norm: u32,
-        taxa_set: impl Iterator<Item = &'a TreeNodeMeta<Self>> + Clone,
-    ) -> <<Self as RootedTree>::Node as RootedZetaNode>::Zeta {
-        let taxa_set = taxa_set.collect_vec();
+        taxa_set: impl Iterator<Item = &'a TreeNodeMeta<Self>>,
+    ) -> TreeNodeZeta<Self> {
+        // let taxa_set = taxa_set.collect_vec();
         let cophen_vec = taxa_set
-            .iter()
+            // .iter()
             .combinations_with_replacement(2)
             .map(|x| match x[0] == x[1] {
-                true => vec![x[0]],
-                false => x,
-            })
-            .map(|x| match x.len() {
-                1 => {
-                    let zeta_1 = self.get_zeta_taxa(x[0]);
-                    let zeta_2 = tree.get_zeta_taxa(x[0]);
-                    (zeta_1 - zeta_2).abs()
-                }
-                _ => {
-                    let self_ids = x
-                        .iter()
-                        .map(|a| self.get_taxa_node_id(a).unwrap())
-                        .collect_vec();
-                    let tree_ids = x
-                        .iter()
-                        .map(|a| tree.get_taxa_node_id(a).unwrap())
-                        .collect_vec();
-                    let t_lca_id = self.get_lca_id(self_ids.as_slice());
-                    let t_hat_lca_id = tree.get_lca_id(tree_ids.as_slice());
-                    let zeta_1 = self.get_zeta(t_lca_id).unwrap();
-                    let zeta_2 = tree.get_zeta(t_hat_lca_id).unwrap();
-                    (zeta_1 - zeta_2).abs()
-                }
-            })
-            .collect_vec();
+                true => {
+                            let zeta_1 = self.get_zeta_taxa(x[0]);
+                            let zeta_2 = tree.get_zeta_taxa(x[0]);
+                            (zeta_1 - zeta_2).abs()
+                        },
+                false => {
+                            let self_ids = x
+                                .iter()
+                                .map(|a| self.get_taxa_node_id(a).unwrap())
+                                .collect_vec();
+                            let tree_ids = x
+                                .iter()
+                                .map(|a| tree.get_taxa_node_id(a).unwrap())
+                                .collect_vec();
+                            let t_lca_id = self.get_lca_id(self_ids.as_slice());
+                            let t_hat_lca_id = tree.get_lca_id(tree_ids.as_slice());
+                            let zeta_1 = self.get_zeta(t_lca_id).unwrap();
+                            let zeta_2 = tree.get_zeta(t_hat_lca_id).unwrap();
+                            (zeta_1 - zeta_2).abs()
+                        },
+            });
 
         Self::compute_norm(cophen_vec, norm)
     }
