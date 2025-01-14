@@ -1,12 +1,12 @@
 use itertools::Itertools;
-use num::{Float, Signed};
+use num::{Float, Signed, Zero};
 use std::{hash::Hash, marker::Sync, fmt::{Debug, Display}, str::FromStr, iter::Sum};
 
 /// Trait bound alias for Edge Weight.
 pub trait EdgeWeight: Display + Debug + Sum + FromStr + Float + Signed + Sync + Send{}
 
 /// Trait bound alias for Node Weight.
-pub trait NodeWeight: Display + Debug + Sum + FromStr + Float + Signed + Sync + Send{}
+pub trait NodeWeight: Display + Debug + Sum + FromStr + Float + Zero + Signed + Sync + Send{}
 
 /// Trait bound alias for Node Taxa.
 pub trait NodeTaxa: Display + Debug + Clone + FromStr + Ord + Hash + Sync + Send{}

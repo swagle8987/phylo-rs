@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use num::{One, Float, NumCast};
+use num::{Zero, Float, NumCast, One};
 use std::fmt::Debug;
 use vers_vecs::BitVec;
 
@@ -268,12 +268,15 @@ where
         vector: impl Iterator<Item = TreeNodeZeta<Self>>,
         norm: u32,
     ) -> TreeNodeZeta<Self> {
+        if norm==0{
+            return vector.fold(<TreeNodeZeta<Self>>::zero(), |acc, x| acc.max(x));
+        }
         if norm == 1 {
             return vector.map(|x| x.clone()).sum();
         }
         vector
             .map(|x| {
-                let mut out = <TreeNodeZeta<Self>>::one();
+            let mut out = <TreeNodeZeta<Self>>::one();
                 for _ in 0..norm{
                     out = out* x.clone();
                 }

@@ -34,7 +34,6 @@ mod simple_rooted_tree {
 
     /// Type alias for Phylogenetic tree.
     pub type PhyloTree = SimpleRootedTree<String,f32,f32>;
-
     /// Arena memory-managed tree struct
     #[derive(Debug, Clone)]
     pub struct SimpleRootedTree<T,W,Z> 
@@ -295,7 +294,7 @@ mod simple_rooted_tree {
                 return tree;
             }
             let mut current_node_ids = vec![1, 2];
-            for i in 1..num_taxa {
+            for i in 2..num_taxa {
                 let rand_leaf_id = *current_node_ids
                     .iter()
                     .choose(&mut rand::thread_rng())
@@ -580,10 +579,18 @@ mod simple_rooted_tree {
 
         fn contract_tree(&self, leaf_ids: &[TreeNodeID<Self>]) -> Result<Self, ()> {
             let new_tree_root_id = self.get_lca_id(leaf_ids);
-            let new_nodes = self.contracted_tree_nodes(leaf_ids).collect_vec();
-            let mut new_tree = self.clone();
-            new_tree.set_root(new_tree_root_id);
-            new_tree.clear();
+            let new_nodes = self.contracted_tree_nodes(leaf_ids);
+            let mut new_tree = SimpleRootedTree{
+                root: new_tree_root_id,
+                nodes: vec![None; self.nodes.len()],
+                taxa_node_id_map: vec![].into_iter().collect(),
+                precomputed_euler: None,
+                precomputed_da: None,
+                precomputed_fai: None,
+                precomputed_rmq: None,
+            };
+            // new_tree.set_root(new_tree_root_id);
+            // new_tree.clear();
             new_tree.set_nodes(new_nodes);
             Ok(new_tree)
         }
@@ -595,8 +602,7 @@ mod simple_rooted_tree {
         ) -> Result<Self, ()> {
             let new_tree_root_id = self.get_lca_id(leaf_ids);
             let new_nodes = self
-                .contracted_tree_nodes_from_iter(new_tree_root_id, leaf_ids, node_iter)
-                .collect_vec();
+                .contracted_tree_nodes_from_iter(new_tree_root_id, leaf_ids, node_iter);
             let mut new_tree = self.clone();
             new_tree.set_root(new_tree_root_id);
             new_tree.clear();
@@ -612,7 +618,6 @@ mod simple_rooted_tree {
         Z: NodeWeight,
     {
         fn precompute_fai(&mut self) {
-            // todo!()
             let max_id = self.get_node_ids().max().unwrap();
             let mut index = vec![None; max_id + 1];
             match self.get_precomputed_walk() {
@@ -711,10 +716,6 @@ mod simple_rooted_tree {
                 .map(|x| self.get_fa_index(*x))
                 .max()
                 .unwrap();
-
-            if min_pos == max_pos {
-                return min_pos;
-            }
 
             match self.precomputed_rmq.as_ref() {
                 Some(dp) => self.get_euler_pos(dp.range_min(min_pos, max_pos)),

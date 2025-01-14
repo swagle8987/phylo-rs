@@ -170,6 +170,14 @@ fn uniform() {
 }
 
 #[test]
+fn const_lca() {
+    let mut tree = PhyloTree::yule(20);
+    tree.precompute_constant_time_lca();
+    dbg!(format!("{}", tree.get_lca_id(vec![1,10].as_slice())));
+}
+
+
+#[test]
 fn contract_tree() {
     fn depth(tree: &PhyloTree, node_id: usize) -> f32 {
         EulerWalk::get_node_depth(tree, node_id) as f32
@@ -211,6 +219,8 @@ fn cophenetic_dist() {
     t2.set_zeta(depth).unwrap();
 
     assert_eq!(t1.cophen_dist(&t2, 1), 4_f32);
+
+    dbg!(t1.cophen_dist(&t2, 0));
 }
 
 #[test]

@@ -117,10 +117,7 @@ where
     /// Inserts nodes into tree from iterator. Note: this will overwrite any existing node with a NodeID that already exists in tree.
     fn set_nodes(
         &mut self,
-        node_list: impl IntoIterator<
-            Item = Self::Node,
-            IntoIter = impl ExactSizeIterator<Item = Self::Node>,
-        >,
+        node_list: impl Iterator<Item = Self::Node>,
     ) {
         for node in node_list {
             self.set_node(node);
@@ -332,6 +329,11 @@ where
         self.remove_node(node_id);
         Some(())
     }
+
+    // /// gets lowest common ancestor nodeID
+    // fn get_mrca_id(&self, node_id_vec: &[TreeNodeID<Self>])->TreeNodeID<Self>{
+
+    // }
 
     /// Supresses all nodes of degree 2
     fn supress_unifurcations<'a>(&'a mut self);
