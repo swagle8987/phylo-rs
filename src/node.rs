@@ -14,6 +14,9 @@ pub type NodeID = usize;
 /// Default NodeID type 
 pub type PhyloNode = Node<String,f32,f32>;
 
+/// Default NodeID type 
+pub type DemoNode = Node<u32,f32,f32>;
+
 /// A node structure in an arena-memory managed tree, linking to connected neighbours via NodeID
 #[derive(Clone)]
 pub struct Node<T,W,Z> 

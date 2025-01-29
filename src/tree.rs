@@ -34,6 +34,11 @@ mod simple_rooted_tree {
 
     /// Type alias for Phylogenetic tree.
     pub type PhyloTree = SimpleRootedTree<String,f32,f32>;
+
+    /// For demoing algorithms
+    pub type DemoTree = SimpleRootedTree<u32,f32,f32>;
+
+
     /// Arena memory-managed tree struct
     #[derive(Debug, Clone)]
     pub struct SimpleRootedTree<T,W,Z> 
@@ -43,19 +48,19 @@ mod simple_rooted_tree {
         Z: NodeWeight,
     {
         /// Root NodeID
-        root: NodeID,
+        pub root: NodeID,
         /// Nodes of the tree
-        nodes: Vec<Option<Node<T,W,Z>>>,
+        pub nodes: Vec<Option<Node<T,W,Z>>>,
         /// Index of nodes by taxa
-        taxa_node_id_map: HashMap<T, NodeID>,
+        pub taxa_node_id_map: HashMap<T, NodeID>,
         /// Field to hold precomputed euler tour for constant-time LCA queries
-        precomputed_euler: Option<Vec<NodeID>>,
+        pub precomputed_euler: Option<Vec<NodeID>>,
         /// Field to hold precomputed first-appearance for constant-time LCA queries
-        precomputed_fai: Option<Vec<Option<usize>>>,
+        pub precomputed_fai: Option<Vec<Option<usize>>>,
         /// Field to hold precomputed depth-array for constant-time LCA queries
-        precomputed_da: Option<Vec<usize>>,
+        pub precomputed_da: Option<Vec<usize>>,
         /// Field to hold precomputed range-minimum-query for constant-time LCA queries
-        precomputed_rmq: Option<BinaryRmq>,
+        pub precomputed_rmq: Option<BinaryRmq>,
     }
 
     impl<T,W,Z> SimpleRootedTree<T,W,Z> 
@@ -122,6 +127,50 @@ mod simple_rooted_tree {
         Z: NodeWeight,
     {
         type Node = Node<T,W,Z>;
+
+        /// Creates new empty tree
+        fn new() -> Self {
+            let root_node = Node::new(0);
+            let mut nodes = vec![None; 1];
+            nodes[0] = Some(root_node);
+            SimpleRootedTree {
+                root: 0,
+                nodes,
+                precomputed_euler: None,
+                taxa_node_id_map: [].into_iter().collect::<HashMap<_, _>>(),
+                precomputed_fai: None,
+                precomputed_da: None,
+                precomputed_rmq: None,
+            }
+        }
+
+        /// Creates tree with specified capacity
+        fn with_capacity(capacity: usize) -> Self {
+            let root_node = Node::new(0);
+            let mut nodes = vec![None; capacity];
+            nodes[0] = Some(root_node);
+            SimpleRootedTree {
+                root: 0,
+                nodes,
+                precomputed_euler: None,
+                taxa_node_id_map: [].into_iter().collect::<HashMap<_, _>>(),
+                precomputed_fai: None,
+                precomputed_da: None,
+                precomputed_rmq: None,
+            }
+        }
+
+        fn from_nodes(nodes: Vec<Option<Self::Node>>, root_id: TreeNodeID<Self>)->Self{
+            SimpleRootedTree {
+                root: root_id,
+                nodes,
+                precomputed_euler: None,
+                taxa_node_id_map: [].into_iter().collect::<HashMap<_, _>>(),
+                precomputed_fai: None,
+                precomputed_da: None,
+                precomputed_rmq: None,
+            }
+        }
 
         /// Returns reference to node by ID
         fn get_node<'a>(&'a self, node_id: TreeNodeID<Self>) -> Option<&'a Node<T,W,Z>> {

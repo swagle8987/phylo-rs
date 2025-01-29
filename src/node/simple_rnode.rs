@@ -14,6 +14,7 @@ pub trait NodeTaxa: Display + Debug + Clone + FromStr + Ord + Hash + Sync + Send
 // pub trait NodeID: Display + Debug + Hash + Ord + Eq + Copy + Sync{}
 
 impl NodeTaxa for String{}
+impl NodeTaxa for u32{}
 impl EdgeWeight for f32{}
 impl EdgeWeight for f64{}
 impl NodeWeight for f32{}

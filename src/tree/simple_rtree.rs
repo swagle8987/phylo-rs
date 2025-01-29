@@ -2,6 +2,7 @@ use crate::node::simple_rnode::*;
 use itertools::Itertools;
 use std::fmt::Debug;
 
+
 /// A type alias for Tree Node ID
 pub type TreeNodeID<T> = <<T as RootedTree>::Node as RootedTreeNode>::NodeID;
 /// A type alias for Tree Node meta annotation
@@ -334,6 +335,15 @@ where
     // fn get_mrca_id(&self, node_id_vec: &[TreeNodeID<Self>])->TreeNodeID<Self>{
 
     // }
+
+    ///
+    fn new()->Self;
+
+    ///
+    fn with_capacity(cap: usize)->Self;
+
+    ///
+    fn from_nodes(nodes: Vec<Option<Self::Node>>, root_id: TreeNodeID<Self>)->Self;
 
     /// Supresses all nodes of degree 2
     fn supress_unifurcations<'a>(&'a mut self);
