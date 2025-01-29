@@ -3,11 +3,6 @@ use phylo::prelude::*;
 use phylo::tree::PhyloTree;
 use rand::{seq::IteratorRandom, thread_rng};
     
-#[cfg(feature = "non_crypto_hash")]
-use fxhash::FxHashMap as HashMap;
-#[cfg(not(feature = "non_crypto_hash"))]
-use std::collections::HashMap;
-
 const NORM: u32 = 1;
 
 fn main() {

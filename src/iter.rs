@@ -1,10 +1,9 @@
 /// Module with traits for tree traversals
 pub mod node_iter;
 
-use crate::{node::{Node, NodeID}, prelude::*};
+use crate::{node::Node, prelude::*};
 use itertools::Itertools;
 use std::collections::VecDeque;
-use vers_vecs::BinaryRmq;
 
 /// Struct for BFS iteration of nodes in a tree
 #[derive(Clone)]
