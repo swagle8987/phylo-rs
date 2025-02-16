@@ -92,6 +92,87 @@
 //! let cophen = tree_1.cophen_dist(&tree_2, 2);
 //! ```
 //!
+//! # Examples
+//! The following snippets are code examples of some phylogenetic analyses. You can find these in the `examples` directory of the repository
+//! 
+//! ## Quantifying Phylogenetic Diversity
+//! Quantifying the Phylogenetic Diveristy of a set of trees using the Faith Index:
+//! ```
+//! #[cfg(feature = "non_crypto_hash")]
+//! use fxhash::FxHashMap as HashMap;
+//! #[cfg(not(feature = "non_crypto_hash"))]
+//! use std::collections::HashMap;
+//! 
+//! use itertools::Itertools;
+//! use std::fs::{File, read_to_string};
+//! use phylo::prelude::*;
+//! use std::io::Write;
+//! 
+//! fn main() {
+//!     let paths: HashMap<_, _> = std::fs::read_dir("examples/phylogenetic-diversity/trees")
+//!        .unwrap()
+//!        .map(|x| (x.as_ref().unwrap().file_name().into_string().unwrap(), std::fs::read_dir(x.unwrap().path()).unwrap()
+//!            .map(|f| (f.as_ref().unwrap().file_name().into_string().unwrap().split("-").map(|x| x.to_string()).collect_vec()[0].clone(), PhyloTree::from_newick(read_to_string(f.unwrap().path()).unwrap().as_bytes()).unwrap()))
+//!            .collect::<HashMap<_,_>>()))
+//!        .collect();
+//!        
+//!        for (clade, trees) in paths.iter(){
+//!        println!("Clade: {}", clade);
+//!        let mut pds = vec![];
+//!        for year in 2015..2023{
+//!            let tree = trees.get(&year.to_string());
+//!            match tree{
+//!                Some(t) => {
+//!                    println!("{}: {}", year, t.get_nodes().map(|n| n.get_weight().unwrap_or(0.0)).sum::<f32>()); 
+//!                    pds.push(t.get_nodes().map(|n| n.get_weight().unwrap_or(0.0)).sum::<f32>());
+//!                },
+//!                _ => {println!("{}: {}", year, 0.0); pds.push(0.0);},
+//!            };
+//!        }
+//!        }
+//! }
+//! ```
+//! ## Visualizing Phylogenetic Tree Space
+//! Here, we copmpute all pairwise RF distances of a set of trees:
+//! ```
+//! #[cfg(feature = "non_crypto_hash")]
+//! use fxhash::FxHashMap as HashMap;
+//! #[cfg(not(feature = "non_crypto_hash"))]
+//! use std::collections::HashMap;
+//! 
+//! use itertools::Itertools;
+//! use std::fs::{File, read_to_string};
+//! use phylo::prelude::*;
+//! use std::io::Write;
+//! use indicatif::{ProgressIterator, ProgressBar, ProgressStyle};
+//! 
+//! fn main() {
+//!     let trees = (1..11).progress().map(|x| read_to_string(format!("examples/pairwise-distances/r{x}-preprocessed.trees"))
+//!             .unwrap()
+//!             .lines()
+//!             .enumerate()
+//!             .map(|(y,z)| (x,y,PhyloTree::from_newick(z.as_bytes()).unwrap()))
+//!             .collect_vec()
+//!         )
+//!         .flatten()
+//!         .collect_vec();
+//!     
+//!     
+//!     let bar = ProgressBar::new((trees.len()*(trees.len()-1)/2) as u64);
+//!     bar.set_style(ProgressStyle::with_template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg} [eta: {eta}]")
+//!         .unwrap()
+//!         .progress_chars("##-"));
+//!     
+//!     trees.iter().combinations(2).map(|v| (v[0], v[1])).for_each(|(x,y)| {
+//!         let out = format!("{}-{}-{}-{}-{}\n", x.0, y.0, x.1, y.1, x.2.ca(&y.2));
+//!         println!("{}", out);
+//!         bar.inc(1);
+//!     });
+//!     bar.finish();
+//! }
+//! ```
+//! 
+//! 
 
 /// Module with errors.
 pub mod error;
