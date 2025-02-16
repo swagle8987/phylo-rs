@@ -71,7 +71,7 @@ in order to compare trees with each other:
 use phylo::prelude::*;
 
 fn depth(tree: &SimpleRootedTree, node_id: usize) -> f32 {
-    tree.depth(node_id) as f32
+tree.depth(node_id) as f32
 }
 
 let newick_1 = "((A:0.1,B:0.2):0.6,(C:0.3,D:0.4):0.5);";
@@ -92,3 +92,103 @@ let wrfs = tree_1.wrfs(&tree_2);
 let ca = tree_1.ca(&tree_2);
 let cophen = tree_1.cophen_dist_naive(&tree_2, 2);
 ```
+
+# Examples
+The following snippets are code examples of some phylogenetic analyses. You can find these in the `examples` directory of the repository. To visualize the outputs of the examples, please first install the requirements using the following command:
+
+```bash
+pip install -r examples/visualization/requirements.txt
+```
+
+
+## Quantifying Phylogenetic Diversity
+Quantifying the Phylogenetic Diveristy of a set of trees using the Faith Index:
+```rust
+#[cfg(feature = "non_crypto_hash")]
+use fxhash::FxHashMap as HashMap;
+#[cfg(not(feature = "non_crypto_hash"))]
+use std::collections::HashMap;
+
+use itertools::Itertools;
+use std::fs::{File, read_to_string};
+use phylo::prelude::*;
+use std::io::Write;
+
+fn main() {
+    let paths: HashMap<_, _> = std::fs::read_dir("examples/phylogenetic-diversity/trees")
+    .unwrap()
+    .map(|x| (x.as_ref().unwrap().file_name().into_string().unwrap(), std::fs::read_dir(x.unwrap().path()).unwrap()
+        .map(|f| (f.as_ref().unwrap().file_name().into_string().unwrap().split("-").map(|x| x.to_string()).collect_vec()[0].clone(), PhyloTree::from_newick(read_to_string(f.unwrap().path()).unwrap().as_bytes()).unwrap()))
+        .collect::<HashMap<_,_>>()))
+    .collect();
+    
+    for (clade, trees) in paths.iter(){
+    println!("Clade: {}", clade);
+    let mut pds = vec![];
+    for year in 2015..2023{
+        let tree = trees.get(&year.to_string());
+        match tree{
+            Some(t) => {
+                println!("{}: {}", year, t.get_nodes().map(|n| n.get_weight().unwrap_or(0.0)).sum::<f32>()); 
+                pds.push(t.get_nodes().map(|n| n.get_weight().unwrap_or(0.0)).sum::<f32>());
+            },
+            _ => {println!("{}: {}", year, 0.0); pds.push(0.0);},
+        };
+    }
+    }
+}
+```
+
+The variations in Phylogenetic Diversity can be visualized using the python script ```examples/visualization/pd.py```.
+
+## Visualizing Phylogenetic Tree Space
+Here, we copmpute all pairwise RF distances of a set of trees:
+```rust
+#[cfg(feature = "non_crypto_hash")]
+use fxhash::FxHashMap as HashMap;
+#[cfg(not(feature = "non_crypto_hash"))]
+use std::collections::HashMap;
+
+use itertools::Itertools;
+use std::fs::{File, read_to_string};
+use phylo::prelude::*;
+use std::io::Write;
+use indicatif::{ProgressIterator, ProgressBar, ProgressStyle};
+
+fn main() {
+    let trees = (1..11).progress().map(|x| read_to_string(format!("examples/pairwise-distances/r{x}-preprocessed.trees"))
+            .unwrap()
+            .lines()
+            .enumerate()
+            .map(|(y,z)| (x,y,PhyloTree::from_newick(z.as_bytes()).unwrap()))
+            .collect_vec()
+        )
+        .flatten()
+        .collect_vec();
+    
+    
+    let bar = ProgressBar::new((trees.len()*(trees.len()-1)/2) as u64);
+    bar.set_style(ProgressStyle::with_template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg} [eta: {eta}]")
+        .unwrap()
+        .progress_chars("##-"));
+    
+    trees.iter().combinations(2).map(|v| (v[0], v[1])).for_each(|(x,y)| {
+        let out = format!("{}-{}-{}-{}-{}\n", x.0, y.0, x.1, y.1, x.2.ca(&y.2));
+        println!("{}", out);
+        bar.inc(1);
+    });
+    bar.finish();
+}
+```
+
+The tree space can be visualized using the python script ```examples/visualization/tree-space.py```.
+
+
+
+To run the code examples, run:
+```bash
+cargo run --example phylogenetic-diversity
+
+cargo run --example pairwise-distances
+```
+
