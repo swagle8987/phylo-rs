@@ -147,7 +147,7 @@
 //! use indicatif::{ProgressIterator, ProgressBar, ProgressStyle};
 //! 
 //! fn main() {
-//!     let trees = (1..11).progress().map(|x| read_to_string(format!("examples/pairwise-distances/r{x}-preprocessed.trees"))
+//!     let trees = (1..11).progress().map(|x| read_to_string(format!("examples/pairwise-distances/sample-trees.trees"))
 //!             .unwrap()
 //!             .lines()
 //!             .enumerate()
